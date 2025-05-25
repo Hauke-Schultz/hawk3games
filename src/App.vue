@@ -1,134 +1,319 @@
 <script setup>
-  import {onMounted, ref, watch} from 'vue'
-  import ThemeSwitch from './components/ThemeSwitch.vue'
+import {onMounted, ref, watch} from 'vue'
+import ThemeSwitch from './components/ThemeSwitch/ThemeSwitch.vue'
+import GameCard from './components/GameCard/GameCard.vue'
+import BottomNavigation from './components/BottomNavigation/BottomNavigation.vue'
+import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
 
-  const theme = ref('light')
+const theme = ref('dark') // Start with dark theme to match the design
+const activeTab = ref('home') // Track active navigation tab
+const currentView = ref('home') // Track current view/page
 
-  const toggleTheme = () => {
-    theme.value = theme.value === 'light' ? 'dark' : 'light'
+// Games data matching the mobile design
+const games = ref([
+  {
+    id: 1,
+    name: 'FruitMerge',
+    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    icon: '🍎',
+    iconType: 'emoji',
+    iconBg: '#ff6b6b'
+  },
+  {
+    id: 2,
+    name: 'DungeonCrawler',
+    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    icon: '🧙‍♂️',
+    iconType: 'emoji',
+    iconBg: '#4ecdc4'
+  },
+  {
+    id: 3,
+    name: 'GalaxyWarriors',
+    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    icon: '🚀',
+    iconType: 'emoji',
+    iconBg: '#45b7d1'
+  },
+  {
+    id: 4,
+    name: 'PuzzleQuest',
+    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    icon: '🧩',
+    iconType: 'emoji',
+    iconBg: '#f7dc6f'
   }
+])
 
-  watch(theme, (newTheme) => {
-    document.documentElement.setAttribute('data-theme', newTheme)
-    localStorage.setItem('theme', newTheme)
-  })
+const toggleTheme = () => {
+  theme.value = theme.value === 'light' ? 'dark' : 'light'
+}
 
-  onMounted(() => {
-    theme.value = localStorage.getItem('theme') || 'light'
-  })
+const handleGameSelected = (game) => {
+  console.log('Game selected:', game.name)
+  if (game.name === 'FruitMerge') {
+    currentView.value = 'fruitmerge'
+  }
+  // TODO: Add navigation for other games
+}
+
+const handleBackToMenu = () => {
+  currentView.value = 'home'
+  activeTab.value = 'home'
+}
+
+const handleTabChanged = (tabId) => {
+  activeTab.value = tabId
+  if (tabId === 'home') {
+    currentView.value = 'home'
+  } else {
+    currentView.value = tabId
+  }
+  console.log('Tab changed to:', tabId)
+}
+
+watch(theme, (newTheme) => {
+  document.documentElement.setAttribute('data-theme', newTheme)
+  localStorage.setItem('theme', newTheme)
+})
+
+onMounted(() => {
+  theme.value = localStorage.getItem('theme') || 'dark'
+})
 </script>
 
 <template>
-  <div class="app-container" :class="theme" role="application">
-    <header role="banner">
-      <h1>Hawk3Games</h1>
-      <div class="theme-switch-container">
-        <ThemeSwitch :theme="theme" @toggle-theme="toggleTheme" />
-      </div>
-    </header>
-    <main id="main-content">
-      Content
-    </main>
+  <div class="app-wrapper">
+    <div class="app-container" :class="theme" role="application">
+
+      <!-- Show FruitMerge Game -->
+      <FruitMergeGame
+          v-if="currentView === 'fruitmerge'"
+          @back-to-menu="handleBackToMenu"
+      />
+
+      <!-- Show Main App with Navigation -->
+      <template v-else>
+        <header role="banner">
+          <div class="header-content">
+            <div class="logo">
+              <span class="smiley">😊</span>
+            </div>
+            <h1>Hawk3Games</h1>
+            <div class="theme-switch-container">
+              <ThemeSwitch :theme="theme" @toggle-theme="toggleTheme" />
+            </div>
+          </div>
+        </header>
+        <main id="main-content" class="main-content">
+          <section class="games-section" v-if="activeTab === 'home'">
+            <h2>Games</h2>
+            <div class="games-list">
+              <GameCard
+                  v-for="game in games"
+                  :key="game.id"
+                  :game="game"
+                  @game-selected="handleGameSelected"
+              />
+            </div>
+          </section>
+
+          <section class="profile-section" v-else-if="activeTab === 'profile'">
+            <h2>Profile</h2>
+            <div class="profile-content">
+              <p>Your profile information will be displayed here.</p>
+            </div>
+          </section>
+
+          <section class="trophy-section" v-else-if="activeTab === 'trophy'">
+            <h2>Trophy</h2>
+            <div class="trophy-content">
+              <p>Your achievements and trophies will be displayed here.</p>
+            </div>
+          </section>
+        </main>
+      </template>
+
+      <BottomNavigation
+          :active-tab="activeTab"
+          @tab-changed="handleTabChanged"
+      />
+    </div>
   </div>
 </template>
 
 <style lang="scss">
-  @use './assets/variables.scss' as vars;
+@use './assets/variables.scss' as vars;
+
+.app-container {
+  min-height: 100vh;
+  font-family: 'Arial', sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  position: relative;
+}
+
+.app-wrapper {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+
+  @media (min-width: vars.$breakpoint-md) {
+    display: flex;
+    justify-content: center;
+    background-color: var(--grey-color); // Container-Hintergrund für Desktop
+  }
 
   .app-container {
-    min-height: 100vh;
-    font-family: 'Arial', sans-serif;
-    transition: background-color 0.3s, color 0.3s;
-    display: flex;
-    flex-direction: column;
-
-    &.light {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-    }
-
-    &.dark {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-    }
+    width: 100%;
+    max-width: 480px;
+    background-color: var(--bg-color);
 
     @media (min-width: vars.$breakpoint-md) {
-      max-width: 75rem;
-      margin: 0 auto;
+      border-left: 1px solid var(--grey-color);
+      border-right: 1px solid var(--grey-color);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     }
   }
 
-  header {
+  .bottom-navigation {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+header {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--grey-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-2) var(--space-4);
-    flex-wrap: wrap;
+    padding: var(--space-4);
+    max-width: 100%;
+  }
 
-    @media (min-width: vars.$breakpoint-md) {
+  @media (min-width: vars.$breakpoint-md) {
+    .header-content {
       padding: var(--space-4) var(--space-8);
-      flex-wrap: nowrap;
     }
   }
+}
 
-  h1 {
-    margin: 0;
-    font-size: var(--font-size-xl);
-    font-weight: bold;
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-md);
+  background-color: transparent;
 
-    @media (min-width: vars.$breakpoint-md) {
-      font-size: var(--font-size-2xl);
-    }
+  .smiley {
+    font-size: 24px;
+    line-height: 1;
+    user-select: none;
+  }
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--grey-color);
   }
 
-  h2, h3 {
-    margin: 0;
-    font-size: var(--font-size-lg);
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: 0.125rem;
+  }
+}
 
-    @media (min-width: vars.$breakpoint-md) {
-      font-size: var(--font-size-xl);
-    }
+h1 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  flex: 1;
+  text-align: center;
+
+  @media (min-width: vars.$breakpoint-md) {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+h2 {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--font-size-2xl);
+  font-weight: bold;
+  color: var(--text-color);
+
+  @media (min-width: vars.$breakpoint-md) {
+    font-size: var(--font-size-3xl);
+  }
+}
+
+.theme-switch-container {
+  display: flex;
+  align-items: center;
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--space-4);
+  /* Add bottom padding to account for fixed navigation */
+  padding-bottom: calc(var(--space-4) + 80px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+
+  @media (min-width: vars.$breakpoint-md) {
+    padding: var(--space-8);
+    padding-bottom: calc(var(--space-8) + 80px + env(safe-area-inset-bottom));
   }
 
-  p {
-    margin: 0;
+  &:focus {
+    outline: none;
   }
+}
 
-  .theme-switch-container {
-    margin-left: auto;
+.games-section {
+  .games-list {
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
+    flex-direction: column;
+    gap: var(--space-3);
 
     @media (min-width: vars.$breakpoint-md) {
       gap: var(--space-4);
     }
   }
+}
 
-  main {
-    width: 100%;
-    flex-grow: 1;
-    padding: var(--space-4);
+.profile-section,
+.trophy-section {
+  .profile-content,
+  .trophy-content {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    padding: var(--space-6);
+    text-align: center;
 
-    @media (min-width: vars.$breakpoint-md) {
-      padding: var(--space-8);
-    }
-
-    &:focus {
-      outline: none;
-    }
-  }
-
-  .content {
-    margin-top: var(--space-4);
-
-    @media (min-width: vars.$breakpoint-md) {
-      margin-top: var(--space-8);
-    }
-
-    &.full-width {
-      width: 100%;
-      max-width: 100%;
+    p {
+      color: var(--text-secondary);
+      margin: 0;
     }
   }
+}
 </style>

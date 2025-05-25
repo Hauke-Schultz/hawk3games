@@ -22,48 +22,51 @@
   --breakpoint-lg: 992px;      /* Large devices, small laptops */
   --breakpoint-xl: 1200px;     /* Extra large devices, laptops and desktops */
 
-  --bg-color: #eee;
-  --text-color: #222;
-  --card-bg: #fff;
+  /* Light theme colors */
+  --bg-color: #f8f9fa;
+  --text-color: #2d3436;
+  --text-secondary: #636e72;
+  --card-bg: #ffffff;
   --card-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
   --card-border-shadow: 0 0 0 0.0625rem rgba(0, 0, 0, 0.8), 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
   --header-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
-  --accent-color: #70a;
-  --focus-outline: 0.125rem solid #609;
-  --focus-shadow: 0 0 0 0.25rem rgba(130, 80, 200, 0.25);
-  --button-bg: #518;
+  --accent-color: #00b894;
+  --focus-outline: 0.125rem solid #00cec9;
+  --focus-shadow: 0 0 0 0.25rem rgba(0, 184, 148, 0.25);
+  --button-bg: #00b894;
   --button-text: #fff;
-  --button-ghost-text: #518;
-  --grey-color: #888;
-  --success-color: #080;
-  --error-color: #a00;
-  --warning-color: #d50;
-  --notion-color: #fd0;
-  --info-color: #0072d4;
+  --button-ghost-text: #00b894;
+  --grey-color: #b2bec3;
+  --success-color: #00b894;
+  --error-color: #e17055;
+  --warning-color: #fdcb6e;
+  --info-color: #0984e3;
 
   --border-radius-sm: 0.25rem;
-  --border-radius-md: 0.375rem;
-  --border-radius-lg: 0.5rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 0.75rem;
+  --border-radius-xl: 1rem;
 }
 
 [data-theme="dark"] {
-  --bg-color: #111;
-  --text-color: #eee;
-  --card-bg: #333;
-  --card-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.2);
-  --header-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.2);
-  --accent-color: #b9c;
-  --focus-outline: 0.125rem solid #c9d;
-  --focus-shadow: 0 0 0 0.25rem rgba(180, 130, 220, 0.3);
-  --button-bg: #86a;
+  /* Dark theme colors matching the mobile design */
+  --bg-color: #1a1a1a;
+  --text-color: #ffffff;
+  --text-secondary: #b2bec3;
+  --card-bg: #2d3436;
+  --card-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.3);
+  --header-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.3);
+  --accent-color: #00b894;
+  --focus-outline: 0.125rem solid #00cec9;
+  --focus-shadow: 0 0 0 0.25rem rgba(0, 206, 201, 0.3);
+  --button-bg: #00b894;
   --button-text: #fff;
-  --button-ghost-text: #fff;
-  --grey-color: #888;
-  --success-color: #4c4;
-  --error-color: #f66;
-  --warning-color: #fa4;
-  --notion-color: #ed4;
-  --info-color: #4af;
+  --button-ghost-text: #00cec9;
+  --grey-color: #636e72;
+  --success-color: #00b894;
+  --error-color: #e17055;
+  --warning-color: #fdcb6e;
+  --info-color: #74b9ff;
 }
 
 html {
