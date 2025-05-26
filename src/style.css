@@ -16,6 +16,7 @@
   --space-4: 1rem;             /* 16px */
   --space-6: 1.5rem;           /* 24px */
   --space-8: 2rem;             /* 32px */
+  --space-10: 2.5rem;          /* 40px */
   --space-12: 3rem;            /* 48px */
   --space-16: 4rem;            /* 64px */
 
@@ -267,6 +268,18 @@ body {
 .btn--large {
   padding: var(--space-3) var(--space-6);
   font-size: var(--font-size-lg);
+}
+
+.btn--circle {
+  border: none;
+  border-radius: var(--space-10);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  width: var(--space-10);
+  height: var(--space-10);
 }
 
 /* Card Base Styles - Reusable Pattern */

@@ -120,10 +120,10 @@ const currentLevelPadded = computed(() => {
 <template>
   <div class="fruit-merge-game">
     <!-- Game Header -->
-    <header class="fruit-merge-game__header" role="banner">
-      <div class="fruit-merge-game__header-content">
+    <header class="app__header" role="banner">
+      <div class="app__header-content">
         <button
-            class="fruit-merge-game__back-button btn btn--ghost btn--small"
+            class="btn btn--circle"
             @click="handleBackClick"
             :aria-label="showLevelSelection ? 'Back to menu' : 'Back to level selection'"
         >
@@ -131,8 +131,8 @@ const currentLevelPadded = computed(() => {
             <path d="m15 18-6-6 6-6"/>
           </svg>
         </button>
-        <h1 class="fruit-merge-game__title">FruitMerge</h1>
-        <div class="fruit-merge-game__theme-switch">
+        <h1 class="app__title">FruitMerge</h1>
+        <div class="app__theme-switch">
           <ThemeSwitch />
         </div>
       </div>
@@ -176,7 +176,7 @@ const currentLevelPadded = computed(() => {
     <main class="app__main fruit-merge-game__content">
       <!-- Level Selection Screen -->
       <div v-if="showLevelSelection" class="fruit-merge-game__level-selection">
-        <h2 class="fruit-merge-game__section-title">Select a Level</h2>
+        <h2 class="app__section-title">Select a Level</h2>
         <div class="fruit-merge-game__levels-container">
           <div class="fruit-merge-game__levels-grid">
             <!-- Level Cards using GameCard pattern -->
@@ -316,43 +316,6 @@ const currentLevelPadded = computed(() => {
   flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);
 
-  // Header Element
-  &__header {
-    background-color: var(--header-bg);
-    border-bottom: 1px solid var(--card-border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  &__header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-4);
-    max-width: 100%;
-  }
-
-  &__back-button {
-    flex-shrink: 0;
-  }
-
-  &__title {
-    margin: 0;
-    font-size: var(--font-size-xl);
-    font-weight: bold;
-    flex: 1;
-    text-align: center;
-
-    @media (min-width: 768px) {
-      font-size: var(--font-size-2xl);
-    }
-  }
-
-  &__theme-switch {
-    flex-shrink: 0;
-  }
-
   // Stats Element
   &__stats {
     background-color: var(--card-bg);
@@ -409,19 +372,6 @@ const currentLevelPadded = computed(() => {
   &__content {
     flex: 1;
     overflow-y: auto;
-  }
-
-  &__section-title {
-    margin: 0 0 var(--space-6) 0;
-    font-size: var(--font-size-2xl);
-    font-weight: bold;
-    text-align: center;
-    color: var(--text-color);
-
-    @media (min-width: 768px) {
-      font-size: var(--font-size-3xl);
-      margin-bottom: var(--space-8);
-    }
   }
 
   // Level Selection Element

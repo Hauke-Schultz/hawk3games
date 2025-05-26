@@ -217,6 +217,10 @@ const handleTabChanged = (tabId) => {
     user-select: none;
   }
 
+  &__back-button {
+    border-width: 0;
+  }
+
   // Title Element - Main app title
   &__title {
     margin: 0;
