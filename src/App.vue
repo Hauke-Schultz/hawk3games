@@ -1,31 +1,50 @@
 <script setup>
-import {onMounted, ref, watch} from 'vue'
+import { ref } from 'vue'
 import ThemeSwitch from './components/ThemeSwitch/ThemeSwitch.vue'
 import GameCard from './components/GameCard/GameCard.vue'
 import BottomNavigation from './components/BottomNavigation/BottomNavigation.vue'
 import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
 
+// Application state
 const activeTab = ref('home') // Track active navigation tab
 const currentView = ref('home') // Track current view/page
 
-// Games data matching the mobile design
+// Games data - designed for mobile-first approach
 const games = ref([
   {
     id: 1,
     name: 'FruitMerge',
-    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    text: 'Merge colorful fruits to create bigger ones and score points!',
     icon: '🍎',
     iconType: 'emoji',
     iconBg: '#ff6b6b'
   },
+  // Additional games can be added here when implemented
+  // {
+  //   id: 2,
+  //   name: 'BlockPuzzle',
+  //   text: 'Fit blocks together in this challenging puzzle game.',
+  //   icon: '🧩',
+  //   iconType: 'emoji',
+  //   iconBg: '#4dabf7'
+  // },
+  // {
+  //   id: 3,
+  //   name: 'CardMatch',
+  //   text: 'Match pairs of cards to test your memory skills.',
+  //   icon: '🃏',
+  //   iconType: 'emoji',
+  //   iconBg: '#69db7c'
+  // }
 ])
 
+// Event handlers
 const handleGameSelected = (game) => {
   console.log('Game selected:', game.name)
   if (game.name === 'FruitMerge') {
     currentView.value = 'fruitmerge'
   }
-  // TODO: Add navigation for other games
+  // TODO: Add navigation for other games when implemented
 }
 
 const handleBackToMenu = () => {
@@ -42,12 +61,11 @@ const handleTabChanged = (tabId) => {
   }
   console.log('Tab changed to:', tabId)
 }
-
 </script>
 
 <template>
-  <div class="app-wrapper">
-    <div class="app-container" :class="theme" role="application">
+  <div class="app">
+    <div class="app__container" role="application">
 
       <!-- Show FruitMerge Game -->
       <FruitMergeGame
@@ -57,46 +75,63 @@ const handleTabChanged = (tabId) => {
 
       <!-- Show Main App with Navigation -->
       <template v-else>
-        <header role="banner">
-          <div class="header-content">
-            <div class="logo">
-              <span class="smiley">😊</span>
+        <!-- App Header -->
+        <header class="app__header" role="banner">
+          <div class="app__header-content">
+            <div class="app__logo">
+              <span class="app__logo-emoji">😊</span>
             </div>
-            <h1>Hawk3Games</h1>
-            <div class="theme-switch-container">
+            <h1 class="app__title">Hawk3Games</h1>
+            <div class="app__theme-switch">
               <ThemeSwitch />
             </div>
           </div>
         </header>
-        <main id="main-content" class="main-content">
-          <section class="games-section" v-if="activeTab === 'home'">
-            <h2>Games</h2>
-            <div class="games-list">
+
+        <!-- Main Content -->
+        <main id="main-content" class="app__main">
+          <!-- Games Section -->
+          <section class="app__section" v-if="activeTab === 'home'">
+            <h2 class="app__section-title">Games</h2>
+            <div class="app__games-list">
               <GameCard
                   v-for="game in games"
                   :key="game.id"
                   :game="game"
+                  size="medium"
+                  variant="default"
                   @game-selected="handleGameSelected"
               />
             </div>
           </section>
 
-          <section class="profile-section" v-else-if="activeTab === 'profile'">
-            <h2>Profile</h2>
-            <div class="profile-content">
-              <p>Your profile information will be displayed here.</p>
+          <!-- Profile Section -->
+          <section class="app__section" v-else-if="activeTab === 'profile'">
+            <h2 class="app__section-title">Profile</h2>
+            <div class="app__placeholder-content">
+              <div class="app__placeholder-icon">👤</div>
+              <h3 class="app__placeholder-title">Your Profile</h3>
+              <p class="app__placeholder-text">
+                Your profile information, achievements, and personal stats will be displayed here.
+              </p>
             </div>
           </section>
 
-          <section class="trophy-section" v-else-if="activeTab === 'trophy'">
-            <h2>Trophy</h2>
-            <div class="trophy-content">
-              <p>Your achievements and trophies will be displayed here.</p>
+          <!-- Trophy Section -->
+          <section class="app__section" v-else-if="activeTab === 'trophy'">
+            <h2 class="app__section-title">Trophies</h2>
+            <div class="app__placeholder-content">
+              <div class="app__placeholder-icon">🏆</div>
+              <h3 class="app__placeholder-title">Your Achievements</h3>
+              <p class="app__placeholder-text">
+                Your trophies, badges, and accomplishments from all games will be shown here.
+              </p>
             </div>
           </section>
         </main>
       </template>
 
+      <!-- Bottom Navigation -->
       <BottomNavigation
           :active-tab="activeTab"
           @tab-changed="handleTabChanged"
@@ -108,174 +143,210 @@ const handleTabChanged = (tabId) => {
 <style lang="scss">
 @use './assets/variables.scss' as vars;
 
-.app-container {
-  min-height: 100vh;
-  font-family: 'Arial', sans-serif;
-  transition: background-color 0.3s, color 0.3s;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  position: relative;
-}
-
-.app-wrapper {
+// App Block - Main application wrapper
+.app {
   min-height: 100vh;
   background-color: var(--bg-color);
 
+  // Desktop wrapper for mobile-first design (centered mobile view)
   @media (min-width: vars.$breakpoint-md) {
     display: flex;
     justify-content: center;
-    background-color: var(--grey-color); // Container-Hintergrund für Desktop
+    background-color: var(--bg-color);
   }
 
-  .app-container {
+  // App Container Element - Mobile-first container (480px max)
+  &__container {
+    min-height: 100vh;
+    font-family: 'Arial', sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    position: relative;
     width: 100%;
     max-width: 480px;
-    background-color: var(--bg-color);
 
+    // Desktop styling - bordered mobile view
     @media (min-width: vars.$breakpoint-md) {
-      border-left: 1px solid var(--grey-color);
-      border-right: 1px solid var(--grey-color);
+      border-left: 1px solid var(--card-border);
+      border-right: 1px solid var(--card-border);
       box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     }
   }
 
-  .bottom-navigation {
-    max-width: 480px;
-    margin: 0 auto;
+  // Header Element - Sticky header with consistent styling
+  &__header {
+    background-color: var(--header-bg);
+    border-bottom: 1px solid var(--card-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--header-shadow);
   }
-}
 
-header {
-  background-color: var(--card-bg);
-  border-bottom: 1px solid var(--grey-color);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  .header-content {
+  &__header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: var(--space-4);
     max-width: 100%;
-  }
 
-  @media (min-width: vars.$breakpoint-md) {
-    .header-content {
+    // Larger padding on desktop
+    @media (min-width: vars.$breakpoint-md) {
       padding: var(--space-4) var(--space-8);
     }
   }
-}
 
-.logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--border-radius-md);
-  background-color: transparent;
+  // Logo Element - App branding
+  &__logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-md);
+    background-color: transparent;
+    flex-shrink: 0;
+  }
 
-  .smiley {
+  &__logo-emoji {
     font-size: 24px;
     line-height: 1;
     user-select: none;
   }
-}
 
-.back-button {
-  background: none;
-  border: none;
-  color: var(--text-color);
-  cursor: pointer;
-  padding: var(--space-2);
-  border-radius: var(--border-radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
+  // Title Element - Main app title
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    flex: 1;
+    text-align: center;
+    color: var(--text-color);
 
-  &:hover {
-    background-color: var(--grey-color);
+    // Larger title on desktop
+    @media (min-width: vars.$breakpoint-md) {
+      font-size: var(--font-size-2xl);
+    }
   }
 
-  &:focus-visible {
-    outline: var(--focus-outline);
-    outline-offset: 0.125rem;
+  // Theme Switch Element - Dark/light mode toggle
+  &__theme-switch {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
   }
-}
 
-h1 {
-  margin: 0;
-  font-size: var(--font-size-xl);
-  font-weight: bold;
-  flex: 1;
-  text-align: center;
+  // Main Content Element - Scrollable content area
+  &__main {
+    flex: 1;
+    padding: var(--space-4);
+    /* Bottom padding accounts for fixed bottom navigation */
+    padding-bottom: calc(var(--space-4) + 80px + env(safe-area-inset-bottom));
+    overflow-y: auto;
 
-  @media (min-width: vars.$breakpoint-md) {
+    // Larger padding on desktop
+    @media (min-width: vars.$breakpoint-md) {
+      padding: var(--space-8);
+      padding-bottom: calc(var(--space-8) + 80px + env(safe-area-inset-bottom));
+    }
+
+    // Remove focus outline for main content
+    &:focus {
+      outline: none;
+    }
+  }
+
+  // Section Element - Content sections (Games, Profile, Trophy)
+  &__section {
+    width: 100%;
+  }
+
+  &__section-title {
+    margin: 0 0 var(--space-4) 0;
     font-size: var(--font-size-2xl);
-  }
-}
+    font-weight: bold;
+    color: var(--text-color);
 
-h2 {
-  margin: 0 0 var(--space-4) 0;
-  font-size: var(--font-size-2xl);
-  font-weight: bold;
-  color: var(--text-color);
-
-  @media (min-width: vars.$breakpoint-md) {
-    font-size: var(--font-size-3xl);
-  }
-}
-
-.theme-switch-container {
-  display: flex;
-  align-items: center;
-}
-
-.main-content {
-  flex: 1;
-  padding: var(--space-4);
-  /* Add bottom padding to account for fixed navigation */
-  padding-bottom: calc(var(--space-4) + 80px + env(safe-area-inset-bottom));
-  overflow-y: auto;
-
-  @media (min-width: vars.$breakpoint-md) {
-    padding: var(--space-8);
-    padding-bottom: calc(var(--space-8) + 80px + env(safe-area-inset-bottom));
+    // Larger title and spacing on desktop
+    @media (min-width: vars.$breakpoint-md) {
+      font-size: var(--font-size-3xl);
+      margin-bottom: var(--space-6);
+    }
   }
 
-  &:focus {
-    outline: none;
-  }
-}
-
-.games-section {
-  .games-list {
+  // Games List Element - Grid of game cards
+  &__games-list {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
 
+    // Larger gap on desktop
     @media (min-width: vars.$breakpoint-md) {
       gap: var(--space-4);
     }
-  }
-}
 
-.profile-section,
-.trophy-section {
-  .profile-content,
-  .trophy-content {
+    // Could be converted to grid for multiple columns in future
+    // @media (min-width: vars.$breakpoint-lg) {
+    //   display: grid;
+    //   grid-template-columns: repeat(2, 1fr);
+    //   gap: var(--space-4);
+    // }
+  }
+
+  // Placeholder Content Element - For Profile/Trophy sections
+  &__placeholder-content {
     background-color: var(--card-bg);
     border-radius: var(--border-radius-lg);
     padding: var(--space-6);
     text-align: center;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--card-border);
 
-    p {
-      color: var(--text-secondary);
-      margin: 0;
+    // Larger padding on desktop
+    @media (min-width: vars.$breakpoint-md) {
+      padding: var(--space-8);
+    }
+  }
+
+  &__placeholder-icon {
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--space-4);
+    opacity: 0.7;
+
+    // Even larger icon on desktop
+    @media (min-width: vars.$breakpoint-md) {
+      font-size: 4rem;
+      margin-bottom: var(--space-6);
+    }
+  }
+
+  &__placeholder-title {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-color);
+
+    // Larger title on desktop
+    @media (min-width: vars.$breakpoint-md) {
+      font-size: var(--font-size-2xl);
+      margin-bottom: var(--space-4);
+    }
+  }
+
+  &__placeholder-text {
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+    max-width: 300px;
+    margin: 0 auto;
+
+    // Larger text and width on desktop
+    @media (min-width: vars.$breakpoint-md) {
+      font-size: var(--font-size-lg);
+      max-width: 400px;
     }
   }
 }

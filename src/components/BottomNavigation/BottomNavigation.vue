@@ -79,16 +79,26 @@ const isActive = (tabId) => {
 </template>
 
 <style scoped lang="scss">
+@use '../../assets/variables.scss' as vars;
+
 .bottom-navigation {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  max-width: 480px;
+  margin: 0 auto;
   background-color: var(--card-bg);
   border-top: 1px solid var(--grey-color);
   z-index: 1000;
   /* Add safe area for mobile devices with home indicator */
   padding-bottom: env(safe-area-inset-bottom);
+
+  // Desktop styling - bordered mobile view
+  @media (min-width: vars.$breakpoint-md) {
+    border-left: 1px solid var(--card-border);
+    border-right: 1px solid var(--card-border);
+  }
 }
 
 .nav-container {
