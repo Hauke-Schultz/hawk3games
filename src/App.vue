@@ -18,30 +18,6 @@ const games = ref([
     iconType: 'emoji',
     iconBg: '#ff6b6b'
   },
-  {
-    id: 2,
-    name: 'DungeonCrawler',
-    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    icon: '🧙‍♂️',
-    iconType: 'emoji',
-    iconBg: '#4ecdc4'
-  },
-  {
-    id: 3,
-    name: 'GalaxyWarriors',
-    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    icon: '🚀',
-    iconType: 'emoji',
-    iconBg: '#45b7d1'
-  },
-  {
-    id: 4,
-    name: 'PuzzleQuest',
-    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    icon: '🧩',
-    iconType: 'emoji',
-    iconBg: '#f7dc6f'
-  }
 ])
 
 const handleGameSelected = (game) => {
