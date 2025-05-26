@@ -1,20 +1,23 @@
 <script setup>
-  import { computed } from 'vue'
+import {ref, watch, onMounted, computed} from 'vue'
 
-  const props = defineProps({
-    theme: {
-      type: String,
-      required: true
-    }
+  const theme = ref('dark')
+
+  // Watch theme changes and update DOM + localStorage
+  watch(theme, (newTheme) => {
+    document.documentElement.setAttribute('data-theme', newTheme)
+    localStorage.setItem('theme', newTheme)
   })
 
-  const emit = defineEmits(['toggle-theme'])
+  onMounted(() => {
+    theme.value = localStorage.getItem('theme') || 'dark'
+  })
 
   const toggleTheme = () => {
-    emit('toggle-theme')
+    theme.value = theme.value === 'light' ? 'dark' : 'light'
   }
 
-  const isDark = computed(() => props.theme === 'dark')
+  const isDark = computed(() => theme.value === 'dark')
 </script>
 
 <template>

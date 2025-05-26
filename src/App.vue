@@ -5,7 +5,6 @@ import GameCard from './components/GameCard/GameCard.vue'
 import BottomNavigation from './components/BottomNavigation/BottomNavigation.vue'
 import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
 
-const theme = ref('dark') // Start with dark theme to match the design
 const activeTab = ref('home') // Track active navigation tab
 const currentView = ref('home') // Track current view/page
 
@@ -45,10 +44,6 @@ const games = ref([
   }
 ])
 
-const toggleTheme = () => {
-  theme.value = theme.value === 'light' ? 'dark' : 'light'
-}
-
 const handleGameSelected = (game) => {
   console.log('Game selected:', game.name)
   if (game.name === 'FruitMerge') {
@@ -72,14 +67,6 @@ const handleTabChanged = (tabId) => {
   console.log('Tab changed to:', tabId)
 }
 
-watch(theme, (newTheme) => {
-  document.documentElement.setAttribute('data-theme', newTheme)
-  localStorage.setItem('theme', newTheme)
-})
-
-onMounted(() => {
-  theme.value = localStorage.getItem('theme') || 'dark'
-})
 </script>
 
 <template>
@@ -101,7 +88,7 @@ onMounted(() => {
             </div>
             <h1>Hawk3Games</h1>
             <div class="theme-switch-container">
-              <ThemeSwitch :theme="theme" @toggle-theme="toggleTheme" />
+              <ThemeSwitch />
             </div>
           </div>
         </header>
