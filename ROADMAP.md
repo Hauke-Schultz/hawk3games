@@ -2,7 +2,7 @@
 
 ## 📋 Current Status: Foundation Phase
 **Version**: 0.1.0-alpha  
-**Last Updated**: May 26, 2025
+**Last Updated**: May 27, 2025
 
 ---
 
@@ -17,6 +17,7 @@
 - [x] Base component architecture (GameCard, ThemeSwitch, BottomNavigation)
 - [x] App shell with navigation structure
 - [x] FruitMergeGame component foundation
+- [x] Collaboration guidelines and code standards established
 
 ### 🔄 In Progress
 - [ ] FruitMergeGame level selection refinement
@@ -97,24 +98,6 @@
 - [ ] Increasing difficulty levels
 - [ ] Combo scoring system
 
-### 🃏 Game 3: CardMatch
-**Target**: Q1 2026
-
-- [ ] Memory card matching game
-- [ ] Multiple difficulty levels
-- [ ] Themed card sets
-- [ ] Time-based challenges
-- [ ] Multiplayer potential
-
-### 🎯 Game 4: TargetShoot
-**Target**: Q2 2026
-
-- [ ] Physics-based shooting game
-- [ ] Various target types
-- [ ] Weapon/tool progression
-- [ ] Challenge modes
-- [ ] Leaderboards
-
 ---
 
 ## 🚀 Phase 5: Advanced Features *(Long-term)*
@@ -194,18 +177,27 @@
 ### Development Workflow
 1. Pick a task from current sprint
 2. Create feature branch
-3. Follow BEM + mobile-first guidelines
+3. Follow collaboration guidelines and code standards
 4. Test on mobile devices
 5. Update CHANGELOG.md
 6. Submit for review
 
+### Code Quality Standards
+- **Confirmation Process**: All tasks must be confirmed before implementation
+- **Incremental Changes**: Work in small, manageable steps
+- **Line-by-Line Modifications**: Show specific changes, not full files
+- **Proactive Refactoring**: Identify and suggest component extraction opportunities
+- **Continuous Quality**: Maintain best practices throughout development
+
 ### Code Standards
-- Mobile-first responsive design (480px primary)
-- BEM methodology for CSS
-- Vue 3 Composition API with `<script setup>`
-- English comments in source code
-- Global CSS variables for all colors
-- Shared mixins for common patterns
+- **Vue 3**: `<script setup>` syntax with Composition API
+- **Comments**: English language in source code
+- **SCSS + BEM**: `.block__element--modifier` methodology
+- **Media Queries**: Within BEM blocks using `@media (min-width: vars.$breakpoint-md)`
+- **Mobile-First**: 480px primary target with progressive enhancement
+- **Global CSS Variables**: All colors and spacing in `src/style.css`
+- **Component Modularity**: Extract reusable logic into separate files
+- **Clean Architecture**: Structured and maintainable codebase
 
 ---
 
@@ -224,6 +216,12 @@
 - **Matter.js**: For physics-based games
 - **Vite**: For fast development and optimal builds
 - **PWA**: For native app-like experience
+
+### Collaboration Philosophy
+- **Quality First**: Write the best code from the start, not later
+- **Modular Development**: Extract reusable components immediately
+- **Clear Communication**: Confirm tasks before implementation
+- **Iterative Approach**: Small steps with continuous improvement
 
 ---
 
