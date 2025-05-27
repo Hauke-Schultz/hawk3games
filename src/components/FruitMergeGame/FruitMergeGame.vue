@@ -1,48 +1,80 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import ThemeSwitch from "../ThemeSwitch/ThemeSwitch.vue"
+import { useLevelStore, useCurrencyStore, useSessionStore } from '../../stores'
 
-// Game state
+// Store instances
+const levelStore = useLevelStore()
+const currencyStore = useCurrencyStore()
+const sessionStore = useSessionStore()
+
+// Reactive store state
+const {
+  currentLevel,
+  levelConfigurations,
+  unlockedLevels,
+  completedLevels,
+  levelStars
+} = storeToRefs(levelStore)
+
+const { coins, diamonds } = storeToRefs(currencyStore)
+
+const {
+  isGameActive,
+  isGamePaused,
+  formattedGameTime,
+  currentSession
+} = storeToRefs(sessionStore)
+
+// Local component state
 const gameContainer = ref(null)
-const gameRunning = ref(false)
 const showLevelSelection = ref(true) // Show level selection by default
+const isDev = computed(() => import.meta.env.DEV)
 
-// Game stats (placeholder values)
-const currentLevel = ref(1)
-const coins = ref(1251)
-const diamonds = ref(251)
+// Computed level data for display
+const levels = computed(() => {
+  return levelConfigurations.value.map(level => ({
+    ...level,
+    unlocked: levelStore.isLevelUnlocked(level.id),
+    completed: levelStore.isLevelCompleted(level.id),
+    stars: levelStore.getLevelStars(level.id)
+  }))
+})
 
-// Level configuration - 9 levels total
-const levels = ref([
-  { id: 1, unlocked: true, completed: false, stars: 0, name: "Getting Started", description: "Learn the basics" },
-  { id: 2, unlocked: false, completed: false, stars: 0, name: "Apple Merge", description: "Combine red apples" },
-  { id: 3, unlocked: false, completed: false, stars: 0, name: "Citrus Rush", description: "Orange challenge" },
-  { id: 4, unlocked: false, completed: false, stars: 0, name: "Berry Blast", description: "Purple berry fun" },
-  { id: 5, unlocked: false, completed: false, stars: 0, name: "Tropical Mix", description: "Exotic fruits" },
-  { id: 6, unlocked: false, completed: false, stars: 0, name: "Melon Madness", description: "Big fruit merge" },
-  { id: 7, unlocked: false, completed: false, stars: 0, name: "Fruit Salad", description: "Mix everything" },
-  { id: 8, unlocked: false, completed: false, stars: 0, name: "Super Combo", description: "Advanced merging" },
-  { id: 9, unlocked: false, completed: false, stars: 0, name: "Master Level", description: "Ultimate challenge" }
-])
-
-// Fruit emojis for levels
+// Fruit emojis for levels (keep existing)
 const fruitEmojis = ['🍎', '🍊', '🍇', '🍓', '🥝', '🍉', '🥭', '🍌', '🏆']
 
-// Level selection functions
+// Level selection functions - integrated with stores
 const selectLevel = (level) => {
   if (level.unlocked) {
-    currentLevel.value = level.id
+    console.log(`🎮 Starting level ${level.id}`)
+
+    // Update stores
+    levelStore.startLevel(level.id)
+    sessionStore.startNewSession(level.id)
+
+    // Update local state
     showLevelSelection.value = false
-    startGame()
+
+    // Start actual game logic
+    startGameLogic()
+  } else {
+    console.warn(`Level ${level.id} is locked`)
   }
 }
 
 const showLevelSelect = () => {
+  // End current session if active
+  if (isGameActive.value || isGamePaused.value) {
+    sessionStore.abortSession()
+    levelStore.finishLevel()
+  }
+
   showLevelSelection.value = true
-  gameRunning.value = false
 }
 
-// Convert level data to game card format
+// Convert level data to game card format (updated)
 const getLevelAsGameCard = (level) => {
   return {
     id: level.id,
@@ -51,37 +83,126 @@ const getLevelAsGameCard = (level) => {
     icon: fruitEmojis[level.id - 1],
     iconType: 'emoji',
     iconBg: level.unlocked
-        ? (level.id === 1 ? '#e84393' : '#00b894')
-        : 'var(--grey-color)',
+      ? (level.id === 1 ? '#e84393' : '#00b894')
+      : 'var(--grey-color)',
     unlocked: level.unlocked,
     completed: level.completed,
     stars: level.stars
   }
 }
 
-// Game functions
-const startGame = () => {
-  gameRunning.value = true
-  console.log(`FruitMerge game started on level ${currentLevel.value}!`)
+// Game functions - integrated with session store
+const startGameLogic = () => {
+  console.log(`🎯 Game logic started for level ${currentLevel.value}`)
+
+  // Initialize game state
+  sessionStore.updateScore(0)
+  sessionStore.updateMoves(0)
+
+  // Here would be the actual game initialization
+  // For now, we'll simulate some game progress for testing
+  if (import.meta.env.DEV) {
+    simulateGameProgress()
+  }
 }
 
 const pauseGame = () => {
-  gameRunning.value = false
-  console.log('FruitMerge game paused!')
+  if (sessionStore.pauseSession()) {
+    console.log('🎮 Game paused via component')
+  }
 }
 
-const resetGame = () => {
-  gameRunning.value = false
-  console.log('FruitMerge game reset!')
+const resumeGame = () => {
+  if (sessionStore.resumeSession()) {
+    console.log('🎮 Game resumed via component')
+  }
+}
+
+// Simulate game progress for testing (DEV only)
+const simulateGameProgress = () => {
+  if (!import.meta.env.DEV) return
+
+  console.log('🧪 Simulating game progress (DEV mode)')
+
+  // Simulate some moves and score over time
+  let moveCount = 0
+  let score = 0
+
+  const gameInterval = setInterval(() => {
+    if (!isGameActive.value) {
+      clearInterval(gameInterval)
+      return
+    }
+
+    moveCount++
+    score += Math.floor(Math.random() * 100) + 50
+
+    sessionStore.updateMoves(moveCount)
+    sessionStore.updateScore(score)
+
+    // Simulate combo occasionally
+    if (Math.random() > 0.7) {
+      const combo = Math.floor(Math.random() * 5) + 2
+      sessionStore.updateCombo(combo)
+    } else {
+      sessionStore.resetCombo()
+    }
+
+    // End simulation after 10 moves
+    if (moveCount >= 10) {
+      clearInterval(gameInterval)
+      completeLevel(score, moveCount)
+    }
+  }, 2000) // Every 2 seconds
+}
+
+const completeLevel = (finalScore, totalMoves) => {
+  const currentLevelId = currentLevel.value
+
+  // Calculate stars based on performance (simple logic)
+  let stars = 1
+  if (finalScore > 800) stars = 2
+  if (finalScore > 1200) stars = 3
+
+  console.log(`🎉 Level ${currentLevelId} completed! Score: ${finalScore}, Stars: ${stars}`)
+
+  // Complete session
+  sessionStore.completeSession(finalScore, true)
+
+  // Complete level in level store
+  levelStore.completeLevel(currentLevelId, stars, finalScore, sessionStore.gameElapsedTime)
+
+  // Award currency
+  const rewards = currencyStore.rewardForLevel(currentLevelId, stars)
+  console.log(`💰 Rewards: ${rewards.coins} coins, ${rewards.diamonds} diamonds`)
+
+  // Finish level
+  levelStore.finishLevel()
+
+  // Show completion message (could be a modal in real implementation)
+  setTimeout(() => {
+    alert(`Level ${currentLevelId} Complete!\n⭐ ${stars} stars\n💰 +${rewards.coins} coins\n💎 +${rewards.diamonds} diamonds`)
+    showLevelSelect()
+  }, 1000)
 }
 
 // Lifecycle
 onMounted(() => {
-  console.log('FruitMerge game component mounted')
+  console.log('🎮 FruitMerge component mounted with store integration')
+
+  // Load saved state if available
+  if (currentLevel.value > 1 && !showLevelSelection.value) {
+    console.log('📖 Restoring previous game state')
+    // Could restore to previous level or session here
+  }
 })
 
 onUnmounted(() => {
-  gameRunning.value = false
+  // Clean up any active sessions
+  if (isGameActive.value || isGamePaused.value) {
+    sessionStore.abortSession()
+    levelStore.finishLevel()
+  }
 })
 
 // Emit events to parent component
@@ -95,7 +216,7 @@ const handleBackClick = () => {
   }
 }
 
-// Handle level card selection
+// Handle level card selection (updated)
 const handleLevelCardSelected = (levelCard) => {
   const level = levels.value.find(l => l.id === levelCard.id)
   if (level) {
@@ -103,7 +224,7 @@ const handleLevelCardSelected = (levelCard) => {
   }
 }
 
-// Format numbers for display
+// Format numbers for display (keep existing)
 const formatNumber = (num) => {
   if (num >= 1000) {
     return `${Math.floor(num / 100) / 10}k`
@@ -115,6 +236,32 @@ const formatNumber = (num) => {
 const currentLevelPadded = computed(() => {
   return currentLevel.value.toString().padStart(2, '0')
 })
+
+// Debug functions (DEV only)
+const debugUnlockAllLevels = () => {
+  if (import.meta.env.DEV) {
+    levelStore.unlockAllLevels()
+    console.log('🔓 All levels unlocked (DEBUG)')
+  }
+}
+
+const debugAddCurrency = () => {
+  if (import.meta.env.DEV) {
+    currencyStore.addCheatCurrency(1000, 100)
+    console.log('💰 Added cheat currency (DEBUG)')
+  }
+}
+
+// Expose debug functions to window in development
+if (import.meta.env.DEV) {
+  window.fruitMergeDebug = {
+    unlockAllLevels: debugUnlockAllLevels,
+    addCurrency: debugAddCurrency,
+    completeCurrentLevel: () => completeLevel(1500, 8),
+    stores: { levelStore, currencyStore, sessionStore }
+  }
+  console.log('🛠️ Debug functions available at window.fruitMergeDebug')
+}
 </script>
 
 <template>
@@ -143,9 +290,10 @@ const currentLevelPadded = computed(() => {
       <!-- Level Display -->
       <div class="fruit-merge-game__level-display">
         <span class="fruit-merge-game__level-text">LEVEL {{ currentLevelPadded }}</span>
+        <span v-if="isGameActive" class="fruit-merge-game__time-display">{{ formattedGameTime }}</span>
       </div>
 
-      <!-- Stats Display -->
+      <!-- Stats Display - Now from store -->
       <div class="fruit-merge-game__stats-container">
         <div class="fruit-merge-game__stat fruit-merge-game__stat--coins">
           <span class="fruit-merge-game__stat-value">{{ formatNumber(coins) }}</span>
@@ -172,49 +320,93 @@ const currentLevelPadded = computed(() => {
       </div>
     </div>
 
+    <!-- Game Session Info (when active) -->
+    <div v-if="isGameActive && !showLevelSelection" class="fruit-merge-game__session-info">
+      <div class="fruit-merge-game__session-stats">
+        <span class="fruit-merge-game__session-stat">
+          🎯 {{ currentSession.moves }} moves
+        </span>
+        <span class="fruit-merge-game__session-stat">
+          📊 {{ formatNumber(currentSession.score) }} points
+        </span>
+        <span v-if="sessionStore.currentCombo > 1" class="fruit-merge-game__session-stat fruit-merge-game__session-stat--combo">
+          🔥 {{ sessionStore.currentCombo }}x combo
+        </span>
+      </div>
+      <div class="fruit-merge-game__session-controls">
+        <button
+          v-if="!isGamePaused"
+          @click="pauseGame"
+          class="btn btn--small btn--ghost"
+        >
+          ⏸️ Pause
+        </button>
+        <button
+          v-else
+          @click="resumeGame"
+          class="btn btn--small"
+        >
+          ▶️ Resume
+        </button>
+      </div>
+    </div>
+
     <!-- Main Game Content -->
     <main class="app__main fruit-merge-game__content">
       <!-- Level Selection Screen -->
       <div v-if="showLevelSelection" class="fruit-merge-game__level-selection">
-        <h2 class="app__section-title">Select a Level</h2>
+        <div class="fruit-merge-game__level-header">
+          <h2 class="app__section-title">Select a Level</h2>
+
+          <!-- Debug Controls (DEV only) -->
+          <div v-if="isDev" class="fruit-merge-game__debug-controls">
+            <button @click="debugUnlockAllLevels" class="btn btn--small btn--ghost">
+              🔓 Unlock All
+            </button>
+            <button @click="debugAddCurrency" class="btn btn--small btn--ghost">
+              💰 Add Currency
+            </button>
+          </div>
+        </div>
+
         <div class="fruit-merge-game__levels-container">
           <div class="fruit-merge-game__levels-grid">
-            <!-- Level Cards using GameCard pattern -->
+            <!-- Level Cards using real store data -->
             <div
-                v-for="level in levels"
-                :key="level.id"
-                class="fruit-merge-game__level-card"
-                :class="{
+              v-for="level in levels"
+              :key="level.id"
+              class="fruit-merge-game__level-card"
+              :class="{
                   'fruit-merge-game__level-card--unlocked': level.unlocked,
                   'fruit-merge-game__level-card--locked': !level.unlocked,
                   'fruit-merge-game__level-card--completed': level.completed,
                   'fruit-merge-game__level-card--featured': level.id === 1
                 }"
-                role="button"
-                tabindex="0"
-                @click="selectLevel(level)"
-                @keydown.enter="selectLevel(level)"
-                :disabled="!level.unlocked"
-                :aria-label="`Level ${level.id}: ${level.name}${level.unlocked ? '' : ' (locked)'}`"
+              role="button"
+              tabindex="0"
+              @click="selectLevel(level)"
+              @keydown.enter="selectLevel(level)"
+              :disabled="!level.unlocked"
+              :aria-label="`Level ${level.id}: ${level.name}${level.unlocked ? '' : ' (locked)'}`"
             >
               <!-- Level Icon -->
               <div class="fruit-merge-game__level-icon">
                 <div
-                    class="fruit-merge-game__level-icon-container"
-                    :style="{ backgroundColor: getLevelAsGameCard(level).iconBg }"
+                  class="fruit-merge-game__level-icon-container"
+                  :style="{ backgroundColor: getLevelAsGameCard(level).iconBg }"
                 >
                   <!-- Lock icon for locked levels -->
                   <svg
-                      v-if="!level.unlocked"
-                      class="fruit-merge-game__level-lock"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
+                    v-if="!level.unlocked"
+                    class="fruit-merge-game__level-lock"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
                   >
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                     <circle cx="12" cy="16" r="1"/>
@@ -223,8 +415,8 @@ const currentLevelPadded = computed(() => {
 
                   <!-- Fruit emoji for unlocked levels -->
                   <span
-                      v-else
-                      class="fruit-merge-game__level-emoji"
+                    v-else
+                    class="fruit-merge-game__level-emoji"
                   >
                     {{ fruitEmojis[level.id - 1] }}
                   </span>
@@ -235,8 +427,8 @@ const currentLevelPadded = computed(() => {
               <div class="fruit-merge-game__level-content">
                 <h3 class="fruit-merge-game__level-name">{{ level.name }}</h3>
                 <p
-                    v-if="level.unlocked"
-                    class="fruit-merge-game__level-description"
+                  v-if="level.unlocked"
+                  class="fruit-merge-game__level-description"
                 >
                   {{ level.description }}
                 </p>
@@ -246,14 +438,14 @@ const currentLevelPadded = computed(() => {
               <div class="fruit-merge-game__level-action">
                 <!-- Stars for completed levels -->
                 <div
-                    v-if="level.completed"
-                    class="fruit-merge-game__level-stars"
+                  v-if="level.completed"
+                  class="fruit-merge-game__level-stars"
                 >
                   <span
-                      v-for="star in 3"
-                      :key="star"
-                      class="fruit-merge-game__level-star"
-                      :class="{ 'fruit-merge-game__level-star--filled': star <= level.stars }"
+                    v-for="star in 3"
+                    :key="star"
+                    class="fruit-merge-game__level-star"
+                    :class="{ 'fruit-merge-game__level-star--filled': star <= level.stars }"
                   >
                     ⭐
                   </span>
@@ -261,24 +453,24 @@ const currentLevelPadded = computed(() => {
 
                 <!-- Play button for level 1 -->
                 <div
-                    v-else-if="level.id === 1 && level.unlocked"
-                    class="fruit-merge-game__play-badge"
+                  v-else-if="level.id === 1 && level.unlocked"
+                  class="fruit-merge-game__play-badge"
                 >
                   PLAY
                 </div>
 
                 <!-- Arrow for other unlocked levels -->
                 <svg
-                    v-else-if="level.unlocked"
-                    class="fruit-merge-game__level-arrow"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                  v-else-if="level.unlocked"
+                  class="fruit-merge-game__level-arrow"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 >
                   <path d="m9 18 6-6-6-6"/>
                 </svg>
@@ -290,16 +482,63 @@ const currentLevelPadded = computed(() => {
 
       <!-- Game Play Area -->
       <div v-else class="fruit-merge-game__play-area">
-        <div class="fruit-merge-game__game-placeholder">
-          <p class="fruit-merge-game__placeholder-text">
-            Game Level {{ currentLevel }} will be implemented here
-          </p>
-          <button
-            class="btn"
-            @click="showLevelSelect"
-          >
-            Back to Level Selection
-          </button>
+        <div class="fruit-merge-game__game-container">
+          <!-- Game Status Display -->
+          <div class="fruit-merge-game__game-status">
+            <h3 class="fruit-merge-game__status-title">
+              {{ isGamePaused ? '⏸️ Game Paused' : '🎮 Playing Level ' + currentLevel }}
+            </h3>
+            <div v-if="isGameActive || isGamePaused" class="fruit-merge-game__game-info">
+              <p>Score: {{ formatNumber(currentSession.score) }}</p>
+              <p>Moves: {{ currentSession.moves }}</p>
+              <p>Time: {{ formattedGameTime }}</p>
+            </div>
+          </div>
+
+          <!-- Actual Game Area Placeholder -->
+          <div class="fruit-merge-game__game-placeholder">
+            <p class="fruit-merge-game__placeholder-text">
+              Game Level {{ currentLevel }} implementation will go here
+            </p>
+            <p class="fruit-merge-game__placeholder-subtitle">
+              {{ isGamePaused ? 'Game is paused' : 'Game is active' }}
+            </p>
+
+            <!-- Game Controls -->
+            <div class="fruit-merge-game__game-controls">
+              <button
+                v-if="!isGamePaused"
+                @click="pauseGame"
+                class="btn"
+              >
+                ⏸️ Pause Game
+              </button>
+              <button
+                v-else
+                @click="resumeGame"
+                class="btn"
+              >
+                ▶️ Resume Game
+              </button>
+
+              <button
+                @click="showLevelSelect"
+                class="btn btn--ghost"
+              >
+                🔙 Back to Level Selection
+              </button>
+
+              <!-- Debug complete button (DEV only) -->
+              <button
+                v-if="isDev"
+                @click="completeLevel(1500, 8)"
+                class="btn btn--small"
+                style="margin-top: 1rem;"
+              >
+                🏁 Complete Level (DEBUG)
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -318,7 +557,7 @@ const currentLevelPadded = computed(() => {
   flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);
 
-  // Stats Element
+  // Stats Element (enhanced)
   &__stats {
     background-color: var(--card-bg);
     padding: var(--space-3) var(--space-4);
@@ -331,7 +570,9 @@ const currentLevelPadded = computed(() => {
   &__level-display {
     flex: 1;
     display: flex;
+    flex-direction: column;
     justify-content: flex-start;
+    gap: var(--space-1);
   }
 
   &__level-text {
@@ -342,6 +583,13 @@ const currentLevelPadded = computed(() => {
     font-size: var(--font-size-sm);
     font-weight: bold;
     letter-spacing: 0.5px;
+    align-self: flex-start;
+  }
+
+  &__time-display {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-weight: 500;
   }
 
   &__stats-container {
@@ -370,17 +618,64 @@ const currentLevelPadded = computed(() => {
     flex-shrink: 0;
   }
 
+  // NEW: Session Info Element
+  &__session-info {
+    background-color: var(--bg-secondary);
+    padding: var(--space-2) var(--space-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--card-border);
+    font-size: var(--font-size-sm);
+  }
+
+  &__session-stats {
+    display: flex;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  &__session-stat {
+    color: var(--text-secondary);
+
+    &--combo {
+      color: var(--accent-color);
+      font-weight: bold;
+    }
+  }
+
+  &__session-controls {
+    display: flex;
+    gap: var(--space-2);
+  }
+
   // Content Element
   &__content {
     flex: 1;
     overflow-y: auto;
   }
 
-  // Level Selection Element
+  // Level Selection Element (enhanced)
   &__level-selection {
     display: flex;
     flex-direction: column;
     min-height: 60vh;
+  }
+
+  &__level-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+  }
+
+  &__debug-controls {
+    display: flex;
+    gap: var(--space-2);
+
+    @media (max-width: vars.$breakpoint-sm) {
+      flex-direction: column;
+    }
   }
 
   &__levels-container {
@@ -408,7 +703,7 @@ const currentLevelPadded = computed(() => {
     }
   }
 
-  // Level Card Element (extends card pattern)
+  // Level Card Element
   &__level-card {
     background-color: var(--card-bg);
     border-radius: var(--border-radius-lg);
@@ -576,28 +871,134 @@ const currentLevelPadded = computed(() => {
     }
   }
 
-  // Play Area Element
+  // NEW: Play Area Element
   &__play-area {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 60vh;
+    padding: var(--space-4);
+  }
+
+  &__game-container {
+    width: 100%;
+    max-width: 500px;
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+  }
+
+  &__game-status {
+    background-color: var(--bg-secondary);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--card-border);
+    text-align: center;
+  }
+
+  &__status-title {
+    margin: 0 0 var(--space-2) 0;
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+    color: var(--text-color);
+  }
+
+  &__game-info {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-4);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+
+    p {
+      margin: 0;
+    }
+
+    @media (max-width: vars.$breakpoint-sm) {
+      flex-direction: column;
+      gap: var(--space-1);
+    }
   }
 
   &__game-placeholder {
+    padding: var(--space-6);
     text-align: center;
-    background-color: var(--card-bg);
-    padding: var(--space-8);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--card-shadow);
-    max-width: 400px;
-    width: 100%;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
 
   &__placeholder-text {
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-2);
     font-size: var(--font-size-lg);
+    color: var(--text-color);
+    font-weight: 600;
+  }
+
+  &__placeholder-subtitle {
+    margin-bottom: var(--space-4);
+    font-size: var(--font-size-base);
     color: var(--text-secondary);
   }
+
+  &__game-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: center;
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+// Responsive adjustments
+@media (min-width: vars.$breakpoint-md) {
+  .fruit-merge-game {
+    &__session-info {
+      padding: var(--space-3) var(--space-8);
+    }
+
+    &__session-stats {
+      gap: var(--space-6);
+    }
+
+    &__play-area {
+      padding: var(--space-8);
+    }
+
+    &__game-container {
+      max-width: 600px;
+    }
+
+    &__game-controls {
+      flex-direction: row;
+      max-width: none;
+    }
+  }
+}
+
+// Game state specific styling
+.fruit-merge-game__game-container {
+  // Paused state styling
+  &[data-game-paused="true"] {
+    opacity: 0.8;
+
+    .fruit-merge-game__game-placeholder {
+      filter: grayscale(0.3);
+    }
+  }
+}
+
+// Animation for session stats
+.fruit-merge-game__session-stat--combo {
+  animation: pulse-combo 0.5s ease-in-out;
+}
+
+@keyframes pulse-combo {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 </style>
