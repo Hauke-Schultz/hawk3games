@@ -1,8 +1,13 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import './style.css'
+
+const app = createApp(App)
+const pinia = createPinia()
 
 const savedTheme = localStorage.getItem('theme') || 'light'
 document.documentElement.setAttribute('data-theme', savedTheme)
 
-createApp(App).mount('#app')
+app.use(pinia)
+app.mount('#app')
