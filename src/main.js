@@ -12,8 +12,11 @@ document.documentElement.setAttribute('data-theme', savedTheme)
 
 app.use(pinia)
 
-// Initialize stores after Pinia is ready
+// Mount app first
 app.mount('#app')
 
-// Initialize all game stores with saved data
-initializeAllStores()
+// Initialize stores after a short delay to ensure Pinia is ready
+setTimeout(async () => {
+	const { initializeAllStores } = await import('./stores')
+	initializeAllStores()
+}, 100)

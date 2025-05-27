@@ -20,27 +20,37 @@ export const STORAGE_KEYS = {
 export const STATE_VERSION = '1.0.0'
 
 // Combined store initialization function
-export const initializeAllStores = () => {
+export const initializeAllStores = async () => {
 	console.log('🏗️ Initializing all game stores...')
 
-	// Initialize stores in order of dependency
-	const gameStore = useGameStore()
-	const levelStore = useLevelStore()
-	const currencyStore = useCurrencyStore()
-	const sessionStore = useSessionStore()
+	try {
+		// Initialize stores in order of dependency
+		const {useGameStore} = await import('./gameStore.js')
+		const {useLevelStore} = await import('./levelStore.js')
+		const {useCurrencyStore} = await import('./currencyStore.js')
+		const {useSessionStore} = await import('./sessionStore.js')
 
-	// Load saved data
-	gameStore.loadGameState()
-	levelStore.loadLevelData()
-	currencyStore.loadCurrencyData()
+		const gameStore = useGameStore()
+		const levelStore = useLevelStore()
+		const currencyStore = useCurrencyStore()
+		const sessionStore = useSessionStore()
 
-	console.log('✅ All stores initialized successfully')
+		// Load saved data
+		gameStore.loadGameState()
+		levelStore.loadLevelData()
+		currencyStore.loadCurrencyData()
 
-	return {
-		gameStore,
-		levelStore,
-		currencyStore,
-		sessionStore
+		console.log('✅ All stores initialized successfully')
+
+		return {
+			gameStore,
+			levelStore,
+			currencyStore,
+			sessionStore
+		}
+	} catch (error) {
+		console.error('❌ Store initialization failed:', error)
+		return null
 	}
 }
 

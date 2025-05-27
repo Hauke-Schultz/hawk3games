@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { createLevelConfigurations, LEVEL_DIFFICULTY } from '../types/game.js'
 import { saveToStorage, loadFromStorage } from '../utils/storage.js'
 
@@ -270,6 +270,18 @@ export const useLevelStore = defineStore('levels', () => {
 		console.log('📊 No saved level data found, using defaults')
 		return false
 	}
+
+	// Auto-save on changes with debouncing
+	let levelSaveTimeout = null
+	const debouncedLevelSave = () => {
+		if (levelSaveTimeout) clearTimeout(levelSaveTimeout)
+		levelSaveTimeout = setTimeout(() => {
+			saveLevelData()
+		}, 1000) // Save after 1 second of inactivity
+	}
+
+	// Watch für Auto-Save
+	watch([unlockedLevels, completedLevels, levelStars, levelScores], debouncedLevelSave, { deep: true })
 
 	return {
 		// State
