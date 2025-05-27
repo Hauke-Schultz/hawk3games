@@ -307,6 +307,8 @@ const currentLevelPadded = computed(() => {
 </template>
 
 <style scoped lang="scss">
+@use '../../assets/variables.scss' as vars;
+
 // Fruit Merge Game Block
 .fruit-merge-game {
   min-height: 100vh;
@@ -389,7 +391,7 @@ const currentLevelPadded = computed(() => {
     max-width: 100%;
     width: 100%;
 
-    @media (min-width: 768px) {
+    @media (min-width: vars.$breakpoint-md) {
       max-width: 600px;
       margin: 0 auto;
       padding: var(--space-8);
@@ -401,7 +403,7 @@ const currentLevelPadded = computed(() => {
     grid-template-columns: 1fr;
     gap: var(--space-3);
 
-    @media (min-width: 480px) {
+    @media (min-width: vars.$breakpoint-sm) {
       gap: var(--space-4);
     }
   }

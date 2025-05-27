@@ -116,6 +116,8 @@ const getIconClasses = () => {
 </template>
 
 <style scoped lang="scss">
+@use '../../assets/variables.scss' as vars;
+
 // Game Card Block
 .game-card {
   display: flex;
@@ -277,7 +279,7 @@ const getIconClasses = () => {
 }
 
 // Media Queries for responsive behavior
-@media (min-width: 768px) {
+@media (min-width: vars.$breakpoint-md) {
   .game-card {
     padding: var(--space-6);
 

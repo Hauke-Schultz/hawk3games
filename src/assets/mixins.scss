@@ -1,5 +1,6 @@
 // Shared SCSS Mixins for modular and reusable components
 // Following BEM methodology and mobile-first approach
+@use 'variables.scss' as vars;
 
 // Card Base Mixin - Reusable card pattern
 @mixin card-base {
@@ -152,7 +153,7 @@
   padding: var(--space-4);
   max-width: 100%;
 
-  @media (min-width: 768px) {
+  @media (min-width: vars.$breakpoint-md) {
     padding: var(--space-4) var(--space-8);
   }
 }
@@ -164,7 +165,7 @@
   font-weight: bold;
   color: var(--text-color);
 
-  @media (min-width: 768px) {
+  @media (min-width: vars.$breakpoint-md) {
     font-size: var(--font-size-2xl);
   }
 }
@@ -175,7 +176,7 @@
   font-weight: bold;
   color: var(--text-color);
 
-  @media (min-width: 768px) {
+  @media (min-width: vars.$breakpoint-md) {
     font-size: var(--font-size-3xl);
     margin-bottom: var(--space-6);
   }
@@ -221,11 +222,11 @@
   grid-template-columns: repeat($mobile-cols, 1fr);
   gap: $gap;
 
-  @media (min-width: 768px) {
+  @media (min-width: vars.$breakpoint-md) {
     grid-template-columns: repeat($tablet-cols, 1fr);
   }
 
-  @media (min-width: 1200px) {
+  @media (min-width: vars.$breakpoint-xl) {
     grid-template-columns: repeat($desktop-cols, 1fr);
   }
 }
@@ -237,7 +238,7 @@
   margin: 0 auto;
   padding: 0 var(--space-4);
 
-  @media (min-width: 768px) {
+  @media (min-width: vars.$breakpoint-md) {
     padding: 0 var(--space-8);
   }
 }
