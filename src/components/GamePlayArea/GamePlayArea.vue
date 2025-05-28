@@ -58,6 +58,95 @@ const PHYSICS_CONFIG = {
   }
 }
 
+// Fruit Configuration System
+const FRUIT_TYPES = {
+  CHERRY: {
+    id: 1,
+    emoji: '🍒',
+    radius: 15,
+    nextType: 'STRAWBERRY',
+    color: '#ff6b6b',
+    scoreValue: 10
+  },
+  STRAWBERRY: {
+    id: 2,
+    emoji: '🍓',
+    radius: 18,
+    nextType: 'GRAPE',
+    color: '#ff8787',
+    scoreValue: 25
+  },
+  GRAPE: {
+    id: 3,
+    emoji: '🍇',
+    radius: 22,
+    nextType: 'ORANGE',
+    color: '#845ec2',
+    scoreValue: 50
+  },
+  ORANGE: {
+    id: 4,
+    emoji: '🍊',
+    radius: 26,
+    nextType: 'APPLE',
+    color: '#ffa726',
+    scoreValue: 100
+  },
+  APPLE: {
+    id: 5,
+    emoji: '🍎',
+    radius: 30,
+    nextType: 'PEAR',
+    color: '#e53e3e',
+    scoreValue: 200
+  },
+  PEAR: {
+    id: 6,
+    emoji: '🍐',
+    radius: 34,
+    nextType: 'PINEAPPLE',
+    color: '#38a169',
+    scoreValue: 400
+  },
+  PINEAPPLE: {
+    id: 7,
+    emoji: '🍍',
+    radius: 38,
+    nextType: 'MELON',
+    color: '#d69e2e',
+    scoreValue: 800
+  },
+  MELON: {
+    id: 8,
+    emoji: '🍉',
+    radius: 42,
+    nextType: 'COCONUT',
+    color: '#38b2ac',
+    scoreValue: 1600
+  },
+  COCONUT: {
+    id: 9,
+    emoji: '🥥',
+    radius: 46,
+    nextType: null,
+    color: '#8b4513',
+    scoreValue: 3200
+  }
+}
+
+// Fruit spawning probability (for random drops)
+const FRUIT_SPAWN_WEIGHTS = {
+  CHERRY: 0.4,      // 40% chance
+  STRAWBERRY: 0.3,  // 30% chance
+  GRAPE: 0.2,       // 20% chance
+  ORANGE: 0.1       // 10% chance
+  // Higher fruits only through merging
+}
+
+const fruits = ref([])
+const nextFruitType = ref('CHERRY')
+const gameOverHeight = 100 // Game over if fruit reaches this height
+
 // Physics Engine Initialization
 const initPhysics = async () => {
   try {
@@ -99,8 +188,16 @@ const initPhysics = async () => {
     // Add ground boundaries
     createBoundaries()
 
-    console.log('✅ Physics engine initialized successfully')
+    // Setup fruit collision detection
+    setupFruitCollisions()
 
+    // Setup custom renderer for emojis // →
+    setupCustomRenderer()
+
+    // Initialize next fruit type // →
+    nextFruitType.value = getRandomFruitType()
+
+    console.log('✅ Physics engine initialized successfully')
     return true
 
   } catch (error) {
@@ -211,28 +308,119 @@ const removeTestObjects = () => {
   }
 }
 
+// Fruit Factory System (T2.1)
+const createFruit = (x, y, fruitType, options = {}) => {
+  const type = FRUIT_TYPES[fruitType]
+  if (!type) {
+    console.error('Invalid fruit type:', fruitType)
+    return null
+  }
+
+  // Create Matter.js body
+  const body = Matter.Bodies.circle(x, y, type.radius, {
+    restitution: 0.4,
+    friction: 0.3,
+    frictionAir: 0.01,
+    density: 0.001,
+    render: {
+      fillStyle: type.color,
+      strokeStyle: '#333',
+      lineWidth: 2
+    },
+    ...options
+  })
+
+  // Add custom properties
+  body.fruitType = fruitType
+  body.fruitData = {
+    id: crypto.randomUUID(),
+    type: fruitType,
+    emoji: type.emoji,
+    scoreValue: type.scoreValue,
+    createdAt: Date.now(),
+    hasBeenMerged: false
+  }
+
+  // Add to fruits tracking array
+  fruits.value.push({
+    id: body.fruitData.id,
+    body: body,
+    type: fruitType,
+    data: body.fruitData
+  })
+
+  console.log(`🍎 Created ${fruitType} fruit at (${x}, ${y})`)
+  return body
+}
+
+// Get random fruit type for spawning
+const getRandomFruitType = () => {
+  const random = Math.random()
+  let cumulative = 0
+
+  for (const [type, weight] of Object.entries(FRUIT_SPAWN_WEIGHTS)) {
+    cumulative += weight
+    if (random <= cumulative) {
+      return type
+    }
+  }
+
+  return 'CHERRY' // Fallback
+}
+
+// Remove fruit from tracking
+const removeFruit = (fruitBody) => {
+  const index = fruits.value.findIndex(f => f.body === fruitBody)
+  if (index > -1) {
+    const fruit = fruits.value[index]
+    fruits.value.splice(index, 1)
+    console.log(`🗑️ Removed ${fruit.type} fruit`)
+    return fruit
+  }
+  return null
+}
+
+// Clear all fruits
+const clearAllFruits = () => {
+  if (!physicsWorld.value) return
+
+  const fruitBodies = fruits.value.map(f => f.body)
+  if (fruitBodies.length > 0) {
+    Matter.World.remove(physicsWorld.value, fruitBodies)
+    fruits.value = []
+    console.log('🧹 Cleared all fruits')
+  }
+}
+
+// Get fruit by Matter.js body
+const getFruitByBody = (body) => {
+  return fruits.value.find(f => f.body === body)
+}
+
+// Get next fruit type in progression chain
+const getNextFruitType = (currentType) => {
+  const type = FRUIT_TYPES[currentType]
+  return type?.nextType || null
+}
+
 // Click/Touch handler for dropping test objects
 const handleCanvasClick = (event) => {
-  if (!physicsWorld.value || !gameCanvas.value) return
+  if (!physicsWorld.value || !gameCanvas.value || !props.isGameActive) return
 
   const rect = gameCanvas.value.querySelector('canvas')?.getBoundingClientRect()
   if (!rect) return
 
   const x = event.clientX - rect.left
-  const y = 50 // Drop from top
 
-  // Create new test circle at click position
-  const newCircle = Matter.Bodies.circle(x, y, 15 + Math.random() * 10, {
-    restitution: 0.7,
-    render: {
-      fillStyle: `hsl(${Math.random() * 360}, 70%, 50%)`,
-      strokeStyle: '#000',
-      lineWidth: 1
-    }
-  })
+  // Drop fruit at click position // →
+  const droppedFruit = dropNextFruit(x)
 
-  Matter.World.add(physicsWorld.value, newCircle)
-  console.log('🎯 Dropped test object at:', { x, y })
+  if (droppedFruit) {
+    // Check for game over after dropping
+    setTimeout(() => {
+      checkGameOver()
+    }, 1000)
+  }
 }
 
 // Start physics simulation
@@ -254,6 +442,305 @@ const startPhysics = () => {
 
   console.log('▶️ Physics simulation started')
   return true
+}
+
+// Fruit Collision Detection (T2.2)
+const setupFruitCollisions = () => {
+  if (!physicsEngine.value) return
+
+  // Listen for collision events
+  Matter.Events.on(physicsEngine.value, 'collisionStart', (event) => {
+    event.pairs.forEach(pair => {
+      const { bodyA, bodyB } = pair
+
+      // Check if both bodies are fruits
+      if (bodyA.fruitType && bodyB.fruitType) {
+        handleFruitCollision(bodyA, bodyB)
+      }
+    })
+  })
+
+  console.log('🔧 Fruit collision detection setup')
+}
+
+// Visual Fruit Rendering System (T2.3)
+const setupCustomRenderer = () => {
+  if (!physicsRender.value || !physicsEngine.value) return
+
+  // Custom render function for fruits with emojis
+  const originalRender = physicsRender.value.canvas.getContext('2d')
+
+  // Override Matter.js render to add emoji rendering
+  Matter.Events.on(physicsRender.value, 'afterRender', () => {
+    renderFruitEmojis(originalRender)
+  })
+
+  console.log('🎨 Custom fruit renderer setup')
+}
+
+// Render emoji overlays on fruits
+const renderFruitEmojis = (ctx) => {
+  if (!ctx || fruits.value.length === 0) return
+
+  fruits.value.forEach(fruit => {
+    const body = fruit.body
+    const { x, y } = body.position
+    const { emoji, type } = fruit.data
+    const fruitType = FRUIT_TYPES[type]
+
+    if (!fruitType) return
+
+    // Calculate emoji size based on fruit radius
+    const fontSize = fruitType.radius * 1.2
+
+    ctx.save()
+
+    // Position at fruit center
+    ctx.translate(x, y)
+    ctx.rotate(body.angle)
+
+    // Set font and alignment
+    ctx.font = `${fontSize}px Arial`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    // Add emoji shadow for better visibility
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
+    ctx.shadowBlur = 2
+    ctx.shadowOffsetX = 1
+    ctx.shadowOffsetY = 1
+
+    // Draw emoji
+    ctx.fillText(emoji, 0, 0)
+
+    ctx.restore()
+  })
+}
+
+// Visual effect for merging
+const createMergeEffect = (x, y, fruitType) => {
+  if (!physicsRender.value) return
+
+  const ctx = physicsRender.value.canvas.getContext('2d')
+  if (!ctx) return
+
+  // Create particle effect
+  const particles = []
+  for (let i = 0; i < 8; i++) {
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 10,
+      vy: (Math.random() - 0.5) * 10,
+      life: 1.0,
+      color: FRUIT_TYPES[fruitType]?.color || '#ffff00'
+    })
+  }
+
+  // Animate particles
+  const animateParticles = () => {
+    ctx.save()
+
+    particles.forEach(particle => {
+      if (particle.life <= 0) return
+
+      ctx.globalAlpha = particle.life
+      ctx.fillStyle = particle.color
+      ctx.beginPath()
+      ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Update particle
+      particle.x += particle.vx
+      particle.y += particle.vy
+      particle.vy += 0.3 // Gravity
+      particle.life -= 0.05
+    })
+
+    ctx.restore()
+
+    // Continue animation if particles are alive
+    if (particles.some(p => p.life > 0)) {
+      requestAnimationFrame(animateParticles)
+    }
+  }
+
+  animateParticles()
+  console.log(`✨ Merge effect created for ${fruitType}`)
+}
+
+// Handle fruit collision and potential merging
+const handleFruitCollision = (fruitA, fruitB) => {
+  // Only merge if same type and neither has been merged recently
+  if (fruitA.fruitType === fruitB.fruitType &&
+    !fruitA.fruitData.hasBeenMerged &&
+    !fruitB.fruitData.hasBeenMerged) {
+
+    console.log(`💥 ${fruitA.fruitType} collision detected!`)
+
+    // Schedule merge (slight delay to prevent multiple merges)
+    setTimeout(() => {
+      mergeFruits(fruitA, fruitB)
+    }, 50)
+  }
+}
+
+// Merge two fruits into next type
+
+const mergeFruits = (fruitA, fruitB) => {
+  if (!physicsWorld.value) return
+
+  // Mark as merged to prevent duplicate merges
+  fruitA.fruitData.hasBeenMerged = true
+  fruitB.fruitData.hasBeenMerged = true
+
+  const fruitType = fruitA.fruitType
+  const nextType = getNextFruitType(fruitType)
+
+  if (!nextType) {
+    console.log(`🏆 Max fruit reached: ${fruitType}`)
+    return
+  }
+
+  // Calculate merge position (midpoint)
+  const mergeX = (fruitA.position.x + fruitB.position.x) / 2
+  const mergeY = (fruitA.position.y + fruitB.position.y) / 2
+
+  // Create visual effect // →
+  createMergeEffect(mergeX, mergeY, nextType)
+
+  // Remove old fruits
+  Matter.World.remove(physicsWorld.value, [fruitA, fruitB])
+  removeFruit(fruitA)
+  removeFruit(fruitB)
+
+  // Create new merged fruit
+  const newFruit = createFruit(mergeX, mergeY, nextType, {
+    // Add some upward velocity for juice
+    velocity: { x: 0, y: -2 }
+  })
+
+  if (newFruit) {
+    Matter.World.add(physicsWorld.value, newFruit)
+
+    // Calculate score
+    const baseScore = FRUIT_TYPES[nextType].scoreValue
+    const totalScore = baseScore
+
+    // Update session store
+    if (props.currentSession) {
+      emit('score-update', totalScore)
+    }
+
+    console.log(`🎉 Merged ${fruitType} → ${nextType} (+${totalScore} points)`)
+  }
+}
+
+// Game Logic and Fruit Type System (T2.4)
+const dropNextFruit = (x) => {
+  if (!physicsWorld.value) return null
+
+  const dropY = 50
+  const fruitType = nextFruitType.value
+
+  // Create and drop fruit
+  const newFruit = createFruit(x, dropY, fruitType, {
+    isSleeping: false
+  })
+
+  if (newFruit) {
+    Matter.World.add(physicsWorld.value, newFruit)
+
+    // Generate next fruit type
+    nextFruitType.value = getRandomFruitType()
+
+    // Update moves counter
+    if (props.currentSession) {
+      emit('move-made')
+    }
+
+    console.log(`🎯 Dropped ${fruitType} at x:${x}, next: ${nextFruitType.value}`)
+    return newFruit
+  }
+
+  return null
+}
+
+// Check for game over condition
+const checkGameOver = () => {
+  if (!physicsWorld.value) return false
+
+  // Check if any fruits are above the game over line
+  const gameOverFruits = fruits.value.filter(fruit => {
+    return fruit.body.position.y <= gameOverHeight
+  })
+
+  if (gameOverFruits.length > 0) {
+    // Give a grace period for fruits to settle
+    setTimeout(() => {
+      const stillAbove = fruits.value.filter(fruit => {
+        return fruit.body.position.y <= gameOverHeight &&
+          Math.abs(fruit.body.velocity.y) < 0.1 // Not moving much
+      })
+
+      if (stillAbove.length > 0) {
+        handleGameOver()
+      }
+    }, 2000) // 2 second grace period
+
+    return true
+  }
+
+  return false
+}
+
+// Handle game over
+const handleGameOver = () => {
+  console.log('💀 GAME OVER!')
+
+  // Stop physics
+  stopPhysics()
+
+  // Emit game over event
+  emit('game-over', {
+    finalScore: props.currentSession?.score || 0,
+    totalMoves: props.currentSession?.moves || 0,
+    fruits: fruits.value.length
+  })
+}
+
+// Get fruit statistics
+const getFruitStatistics = () => {
+  const stats = {}
+
+  Object.keys(FRUIT_TYPES).forEach(type => {
+    stats[type] = fruits.value.filter(f => f.type === type).length
+  })
+
+  return {
+    totalFruits: fruits.value.length,
+    byType: stats,
+    highestType: getHighestFruitType(),
+    nextDrop: nextFruitType.value
+  }
+}
+
+// Get highest fruit type currently in game
+const getHighestFruitType = () => {
+  if (fruits.value.length === 0) return null
+
+  let highest = null
+  let highestId = 0
+
+  fruits.value.forEach(fruit => {
+    const typeId = FRUIT_TYPES[fruit.type]?.id || 0
+    if (typeId > highestId) {
+      highestId = typeId
+      highest = fruit.type
+    }
+  })
+
+  return highest
 }
 
 // Stop physics simulation
