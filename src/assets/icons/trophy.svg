@@ -1,0 +1,51 @@
+<!-- trophy.svg - Improved version -->
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Trophy Cup (Main Body) -->
+    <path d="M7 4h10c0.5 0 1 0.5 1 1v6c0 2.5-2 4.5-4.5 4.5h-3C8 15.5 6 13.5 6 11V5c0-0.5 0.5-1 1-1z"
+          fill="#FFD700"
+          stroke="#FFA500"
+          stroke-width="1"/>
+
+    <!-- Trophy Handles -->
+    <path d="M6 7H4.5C3.12 7 2 8.12 2 9.5S3.12 12 4.5 12H6"
+          fill="none"
+          stroke="#FFA500"
+          stroke-width="1.5"
+          stroke-linecap="round"/>
+    <path d="M18 7h1.5C20.88 7 22 8.12 22 9.5S20.88 12 19.5 12H18"
+          fill="none"
+          stroke="#FFA500"
+          stroke-width="1.5"
+          stroke-linecap="round"/>
+
+    <!-- Trophy Stem -->
+    <rect x="10.5" y="15.5" width="3" height="3.5"
+          fill="#C0C0C0"
+          stroke="#999999"
+          stroke-width="0.5"/>
+
+    <!-- Trophy Base -->
+    <ellipse cx="12" cy="20" rx="6" ry="1.5"
+             fill="#8B4513"
+             stroke="#654321"
+             stroke-width="0.5"/>
+
+    <!-- Trophy Top Decoration -->
+    <circle cx="12" cy="7" r="1.5"
+            fill="#FF6B35"
+            stroke="#FF4500"
+            stroke-width="0.5"/>
+
+    <!-- Trophy Shine Effect -->
+    <path d="M8 5c0 0 1-0.5 2-0.5s2 0.5 2 0.5"
+          fill="none"
+          stroke="#FFFF99"
+          stroke-width="1"
+          stroke-linecap="round"
+          opacity="0.8"/>
+
+    <!-- Star decoration on cup -->
+    <path d="M12 9l0.5 1.5h1.5l-1.2 0.9 0.5 1.5-1.3-1-1.3 1 0.5-1.5-1.2-0.9h1.5z"
+          fill="#FF6B35"
+          opacity="0.9"/>
+</svg>

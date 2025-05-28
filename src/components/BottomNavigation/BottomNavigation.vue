@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import GameIcon from '../GameIcon/GameIcon.vue'
 
 const props = defineProps({
   activeTab: {
@@ -52,25 +53,28 @@ const isActive = (tabId) => {
       >
         <div class="nav-icon">
           <!-- Home Icon -->
-          <svg v-if="item.icon === 'home'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9,22 9,12 15,12 15,22"/>
-          </svg>
+          <GameIcon
+            v-if="item.icon === 'home'"
+            :name="item.icon"
+            :size="24"
+            :color="isActive(item.id) ? 'var(--accent-color)' : 'currentColor'"
+          />
 
           <!-- Profile Icon -->
-          <svg v-else-if="item.icon === 'profile'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
+          <GameIcon
+            v-else-if="item.icon === 'profile'"
+            :name="item.icon"
+            :size="24"
+            :color="isActive(item.id) ? 'var(--accent-color)' : 'currentColor'"
+          />
 
           <!-- Trophy Icon -->
-          <svg v-else-if="item.icon === 'trophy'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-            <path d="M4 22h16"/>
-            <path d="M10 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34"/>
-            <path d="M2 14.66a8 8 0 1 0 20 0"/>
-          </svg>
+          <GameIcon
+            v-else-if="item.icon === 'trophy'"
+            :name="item.icon"
+            :size="24"
+            :color="isActive(item.id) ? 'var(--accent-color)' : 'currentColor'"
+          />
         </div>
         <span class="nav-label">{{ item.label }}</span>
       </button>
