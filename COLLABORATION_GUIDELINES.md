@@ -9,31 +9,51 @@
 
 ### 2. Code Modification Approach
 
-#### Small Changes
-- **Show only specific lines** that need modification
-- **Don't show**: Complete file contents for minor changes
+#### Code Change Display Method
+- **NEVER use artifacts for code changes** - Browser compatibility issues
+- **ALWAYS show changes directly in chat** as numbered lists
+- **Use clear section headers** for each file/area being modified
+- **Artifacts only for small complete files** - Maximum 400 lines, for download purposes only
 
-#### Example Format for Line Changes:
-```javascript
-// File: src/components/Example/Example.vue
-// Line 15:
-const isActive = ref(false) // → 
-const isActive = ref(true)
+#### Small Changes Format:
+```
+## 📝 **FileName.vue - Änderungsliste**
 
-// Line 23: 
-background-color: red; // →
-background-color: var(--accent-color);
+### **1. Section Name - Action Description**
+// Zeile X: Beschreibung der Änderung
+OLD CODE → NEW CODE
+
+### **2. Section Name - Action Description**  
+// Nach Zeile Y hinzufügen:
+NEW CODE BLOCK
 ```
 
-#### Large Changes
-- **Show complete file** only when modifications are extensive
-- **Threshold**: More than 20% of file content or structural changes
+#### Large Changes Format:
+- **Show complete sections** when modifications are extensive
+- **Use clear headings** for each modification area
+- **Number each change** for easy reference
+- **Provide line number context** where possible
 
-#### Example Format for Line Changes:
+#### Example Format:
 ```
-File: src/components/Example/Example.vue
-Line 15: const isActive = ref(false) → const isActive = ref(true)
-Line 23: background-color: red; → background-color: var(--accent-color);
+## 🎯 **ComponentName.vue - Änderungsliste**
+
+### **1. Script Section - Variable hinzufügen**
+// Zeile 25: Nach existing variable hinzufügen:
+const newVariable = ref(false)
+
+### **2. Template Section - Element ersetzen**
+<!-- ALT (Zeile 45): -->
+<old-element />
+
+<!-- NEU: -->
+<new-element :prop="value" />
+
+### **3. Style Section - CSS hinzufügen**
+// Am Ende hinzufügen:
+.new-class {
+  property: value;
+}
 ```
 
 ### 3. Incremental Development

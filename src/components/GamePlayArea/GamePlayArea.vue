@@ -1,6 +1,7 @@
 <script setup>
 import {computed, ref, onMounted, onUnmounted, nextTick, watch} from 'vue'
 import Matter from 'matter-js'
+import FruitDropPreview from '../FruitDropPreview/FruitDropPreview.vue'
 
 // Props for game state and session data
 const props = defineProps({
@@ -39,12 +40,26 @@ const physicsEngine = ref(null)
 const physicsWorld = ref(null)
 const physicsRender = ref(null)
 const physicsRunner = ref(null)
+const dropPreviewPosition = ref(null)
+const isPointerDown = ref(false)
+const canDrop = ref(true)
+const dropCooldown = 500 // Milliseconds between drops
+let dropCooldownTimer = null
+
+// Touch tracking for mobile
+const lastTouchPosition = ref({ x: 0, y: 0 })
+const isDragging = ref(false)
 
 // Physics configuration
 const PHYSICS_CONFIG = {
   canvas: {
     width: 400,
     height: 500
+  },
+  dropZone: {
+    minX: 30, // Safe margin from walls
+    maxX: 370, // Canvas width - safe margin
+    dropY: 50  // Drop height
   },
   engine: {
     gravity: { x: 0, y: 0.8 },
@@ -152,26 +167,12 @@ const fruits = ref([])
 const nextFruitType = ref('CHERRY')
 const gameOverHeight = 100 // Game over if fruit reaches this height
 
-let frameCount = 0
-let lastFPSCheck = Date.now()
 let performanceRunning = false
 
 const monitorPerformance = () => {
   if (!performanceRunning) {
     performanceRunning = true
     console.log('📊 Performance monitoring started')
-  }
-
-  frameCount++
-  const now = Date.now()
-
-  if (now - lastFPSCheck > 1000) { // Alle Sekunde
-    const fps = Math.round((frameCount * 1000) / (now - lastFPSCheck))
-    if (props.isDev) {
-      console.log(`🎯 FPS: ${fps}, Bodies: ${fruits.value.length}`)
-    }
-    frameCount = 0
-    lastFPSCheck = now
   }
 
   // Nur weiterlaufen wenn Physics Engine noch aktiv ist
@@ -181,6 +182,157 @@ const monitorPerformance = () => {
     performanceRunning = false
     console.log('📊 Performance monitoring stopped')
   }
+}
+
+// Enhanced Touch/Click Event Handlers
+const getCanvasPosition = (event) => {
+  const canvas = gameCanvas.value?.querySelector('canvas')
+  if (!canvas) return null
+
+  const rect = canvas.getBoundingClientRect()
+
+  // Handle both mouse and touch events
+  const clientX = event.touches ? event.touches[0].clientX : event.clientX
+  const clientY = event.touches ? event.touches[0].clientY : event.clientY
+
+  const x = clientX - rect.left
+  const y = clientY - rect.top
+
+  // Clamp to drop zone boundaries
+  const clampedX = Math.max(
+    PHYSICS_CONFIG.dropZone.minX,
+    Math.min(PHYSICS_CONFIG.dropZone.maxX, x)
+  )
+
+  return { x: clampedX, y }
+}
+
+const handlePointerMove = (event) => {
+  if (!props.isGameActive) return
+
+  const position = getCanvasPosition(event)
+  if (position) {
+    dropPreviewPosition.value = position.x
+    lastTouchPosition.value = position
+  }
+}
+
+const handlePointerDown = (event) => {
+  if (!props.isGameActive || !canDrop.value) return
+
+  event.preventDefault()
+  isPointerDown.value = true
+
+  const position = getCanvasPosition(event)
+  if (position) {
+    dropPreviewPosition.value = position.x
+    lastTouchPosition.value = position
+  }
+}
+
+const handlePointerUp = (event) => {
+  if (!props.isGameActive || !canDrop.value || !isPointerDown.value) return
+
+  event.preventDefault()
+  isPointerDown.value = false
+
+  const position = getCanvasPosition(event)
+  if (position) {
+    performDrop(position.x)
+  }
+}
+
+const handlePointerLeave = () => {
+  dropPreviewPosition.value = null
+  isPointerDown.value = false
+  isDragging.value = false
+}
+
+// Touch-specific handlers for mobile optimization
+const handleTouchStart = (event) => {
+  isDragging.value = false
+  handlePointerDown(event)
+}
+
+const handleTouchMove = (event) => {
+  if (!isPointerDown.value) return
+
+  event.preventDefault() // Prevent scrolling
+  isDragging.value = true
+  handlePointerMove(event)
+}
+
+const handleTouchEnd = (event) => {
+  if (isDragging.value) {
+    handlePointerUp(event)
+  }
+  isDragging.value = false
+}
+
+// Drop functionality with cooldown
+const performDrop = (x) => {
+  if (!canDrop.value || !physicsWorld.value) return
+
+  // Start cooldown
+  canDrop.value = false
+
+  // Drop the fruit
+  const droppedFruit = dropNextFruit(x)
+
+  if (droppedFruit) {
+    // Emit move event for session tracking
+    emit('move-made')
+
+    // Visual feedback
+    createDropFeedback(x)
+
+    // Check for game over after a delay
+    setTimeout(() => {
+      checkGameOver()
+    }, 1000)
+  }
+
+  // Reset cooldown
+  if (dropCooldownTimer) {
+    clearTimeout(dropCooldownTimer)
+  }
+
+  dropCooldownTimer = setTimeout(() => {
+    canDrop.value = true
+  }, dropCooldown)
+
+  // Hide preview
+  dropPreviewPosition.value = null
+}
+
+// Visual drop feedback
+const createDropFeedback = (x) => {
+  const canvas = gameCanvas.value?.querySelector('canvas')
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // Simple ring effect
+  let radius = 10
+  const maxRadius = 30
+  const animateRing = () => {
+    if (radius > maxRadius) return
+
+    ctx.save()
+    ctx.globalAlpha = 1 - (radius / maxRadius)
+    ctx.strokeStyle = '#00b894'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.arc(x, PHYSICS_CONFIG.dropZone.dropY, radius, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.restore()
+
+    radius += 2
+    requestAnimationFrame(animateRing)
+  }
+
+  animateRing()
 }
 
 // Physics Engine Initialization
@@ -449,26 +601,6 @@ const getFruitByBody = (body) => {
 const getNextFruitType = (currentType) => {
   const type = FRUIT_TYPES[currentType]
   return type?.nextType || null
-}
-
-// Click/Touch handler for dropping test objects
-const handleCanvasClick = (event) => {
-  if (!physicsWorld.value || !gameCanvas.value || !props.isGameActive) return
-
-  const rect = gameCanvas.value.querySelector('canvas')?.getBoundingClientRect()
-  if (!rect) return
-
-  const x = event.clientX - rect.left
-
-  // Drop fruit at click position // →
-  const droppedFruit = dropNextFruit(x)
-
-  if (droppedFruit) {
-    // Check for game over after dropping
-    setTimeout(() => {
-      checkGameOver()
-    }, 1000)
-  }
 }
 
 // Start physics simulation
@@ -843,9 +975,7 @@ const stopPhysics = () => {
   }
 
   // STOPPE PERFORMANCE MONITORING
-  frameCount = 0 // Reset counter
   console.log('📊 Performance monitoring stopped')
-
   console.log('⏹️ Physics simulation stopped')
 }
 
@@ -853,7 +983,6 @@ const stopPhysics = () => {
 const cleanupPhysics = () => {
   // STOPPE PERFORMANCE MONITORING
   performanceRunning = false
-  frameCount = 0
 
   stopPhysics()
 
@@ -882,7 +1011,8 @@ const emit = defineEmits([
   'pause-game',
   'resume-game',
   'back-to-level-selection',
-  'debug-complete-level'
+  'debug-complete-level',
+  'move-made'  // ← NEU
 ])
 
 // Format numbers for display
@@ -932,7 +1062,6 @@ const handleDebugClearObjects = () => {
 const handleDebugPhysicsInfo = () => {
   if (props.isDev && physicsEngine.value) {
     const bodies = Matter.Composite.allBodies(physicsWorld.value)
-    const fps = frameCount > 0 ? Math.round((frameCount * 1000) / (Date.now() - lastFPSCheck)) : 0
 
     console.log('🔧 Physics Debug Info:', {
       engine: !!physicsEngine.value,
@@ -943,7 +1072,6 @@ const handleDebugPhysicsInfo = () => {
       staticBodies: bodies.filter(b => b.isStatic).length,
       dynamicBodies: bodies.filter(b => !b.isStatic).length,
       gravity: physicsEngine.value.world.gravity,
-      currentFPS: fps,
       fruits: fruits.value.length,
       performanceRunning: performanceRunning
     })
@@ -1007,6 +1135,15 @@ watch(() => props.isGamePaused, (isPaused) => {
 <template>
   <div class="game-play-area">
     <div class="game-play-area__game-container">
+
+      <!-- Fruit Drop Preview - NEU! -->
+      <FruitDropPreview
+        :next-fruit-type="nextFruitType"
+        :canvas-width="PHYSICS_CONFIG.canvas.width"
+        :is-game-active="isGameActive"
+        :drop-position="dropPreviewPosition"
+      />
+
       <!-- Game Status Display -->
       <div class="game-play-area__game-status">
         <h3 class="game-play-area__status-title">
@@ -1021,24 +1158,58 @@ watch(() => props.isGamePaused, (isPaused) => {
 
       <!-- Physics Game Area -->
       <div class="game-play-area__game-physics">
-        <!-- Physics Canvas Container -->
+        <!-- Physics Canvas Container - ERWEITERTE EVENTS! -->
         <div
           ref="gameCanvas"
           class="game-play-area__canvas-container"
           :class="{
             'game-play-area__canvas-container--paused': isGamePaused,
-            'game-play-area__canvas-container--active': isGameActive
+            'game-play-area__canvas-container--active': isGameActive && canDrop,
+            'game-play-area__canvas-container--cooldown': !canDrop
           }"
-          @click="handleCanvasClick"
+          @mousedown="handlePointerDown"
+          @mousemove="handlePointerMove"
+          @mouseup="handlePointerUp"
+          @mouseleave="handlePointerLeave"
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+          @touchcancel="handlePointerLeave"
         >
+          <!-- Drop Zone Indicator - NEU! -->
+          <div
+            v-if="isGameActive"
+            class="game-play-area__drop-zone"
+          ></div>
+
           <!-- Canvas wird von Matter.js hier eingefügt -->
         </div>
 
+        <!-- Touch Feedback - NEU! -->
+        <div
+          v-if="isPointerDown && dropPreviewPosition"
+          class="game-play-area__touch-feedback"
+          :style="{
+            left: `${dropPreviewPosition}px`,
+            top: '50px'
+          }"
+        ></div>
+
+        <!-- Drop Cooldown Indicator - NEU! -->
+        <div
+          v-if="!canDrop"
+          class="game-play-area__cooldown-indicator"
+        >
+          <span>⏳ Wait {{ Math.ceil(dropCooldown / 1000) }}s...</span>
+        </div>
+
         <!-- Physics Debug Info (DEV only) -->
-        <div v-if="props.isDev" class="game-play-area__physics-debug"> <!-- → -->
+        <div v-if="props.isDev" class="game-play-area__physics-debug">
           <p>Engine: {{ physicsEngine ? '✅' : '❌' }}</p>
           <p>Render: {{ physicsRender ? '✅' : '❌' }}</p>
           <p>Runner: {{ physicsRunner ? '✅' : '❌' }}</p>
+          <p>Can Drop: {{ canDrop ? '✅' : '❌' }}</p>
+          <p>Touch Position: {{ dropPreviewPosition || 'None' }}</p>
           <div class="game-play-area__debug-controls">
             <button @click="handleDebugAddTestObjects" class="btn btn--small">
               🧪 Add Objects
@@ -1052,6 +1223,7 @@ watch(() => props.isGamePaused, (isPaused) => {
           </div>
         </div>
       </div>
+
       <!-- Original placeholder als fallback -->
       <div v-if="!physicsEngine" class="game-play-area__game-placeholder">
         <p class="game-play-area__placeholder-text">
@@ -1063,7 +1235,6 @@ watch(() => props.isGamePaused, (isPaused) => {
 
         <!-- Game Controls -->
         <div class="game-play-area__game-controls">
-          <!-- Pause/Resume Controls -->
           <button
             v-if="!isGamePaused"
             @click="handlePauseGame"
@@ -1080,7 +1251,6 @@ watch(() => props.isGamePaused, (isPaused) => {
             ▶️ Resume Game
           </button>
 
-          <!-- Navigation Control -->
           <button
             @click="handleBackToLevelSelection"
             class="btn btn--ghost"
@@ -1088,7 +1258,6 @@ watch(() => props.isGamePaused, (isPaused) => {
             🔙 Back to Level Selection
           </button>
 
-          <!-- Debug complete button (DEV only) -->
           <button
             v-if="isDev"
             @click="handleDebugCompleteLevel"
@@ -1102,7 +1271,6 @@ watch(() => props.isGamePaused, (isPaused) => {
     </div>
   </div>
 </template>
-
 <style scoped lang="scss">
 @use '../../assets/variables' as vars;
 
@@ -1217,10 +1385,12 @@ watch(() => props.isGamePaused, (isPaused) => {
     background-color: var(--bg-secondary);
     overflow: hidden;
     position: relative;
-    cursor: pointer; // →
+    cursor: pointer;
+    user-select: none; // Prevent text selection during drag
+    touch-action: none; // Optimize touch handling
 
     &:hover {
-      border-color: var(--accent-color); // →
+      border-color: var(--accent-color);
     }
 
     canvas {
@@ -1234,8 +1404,14 @@ watch(() => props.isGamePaused, (isPaused) => {
       cursor: not-allowed; // →
     }
 
+    &--cooldown {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
     &--active {
       box-shadow: 0 0 20px rgba(0, 184, 148, 0.3);
+      cursor: crosshair;
     }
   }
 
@@ -1266,6 +1442,41 @@ watch(() => props.isGamePaused, (isPaused) => {
       padding: var(--space-1) var(--space-2);
     }
   }
+
+  // Drop zone indicator
+  &__drop-zone {
+    position: absolute;
+    top: 0;
+    left: 30px;
+    right: 30px;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--accent-color) 50%,
+      transparent 100%
+    );
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  // Touch feedback
+  &__touch-feedback {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    opacity: 0.8;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    animation: touch-pulse 0.3s ease-out;
+  }
+}
+
+@keyframes touch-pulse {
+  0% { transform: translate(-50%, -50%) scale(0); }
+  50% { transform: translate(-50%, -50%) scale(1.2); }
+  100% { transform: translate(-50%, -50%) scale(1); }
 }
 
 // Responsive adjustments

@@ -47,6 +47,7 @@ const showAdvancedTools = ref(false)
 const customCoinAmount = ref(1000)
 const customDiamondAmount = ref(100)
 const autoSimulation = ref(false)
+const showFPS = ref(false)
 
 // Computed visibility
 const shouldShow = computed(() => {
@@ -126,6 +127,11 @@ const handleToggleAutoSimulation = () => {
   emit('toggle-auto-simulation', autoSimulation.value)
 }
 
+const handleToggleFPS = () => {
+  showFPS.value = !showFPS.value
+  console.log(`📊 Debug: FPS display ${showFPS.value ? 'enabled' : 'disabled'}`)
+}
+
 // Store statistics display
 const getStoreInfo = () => {
   if (!props.stores.levelStore) return null
@@ -147,11 +153,17 @@ const handleKeydown = (event) => {
   if (!shouldShow.value) return
 
   // Only trigger shortcuts when not in input fields
-  if (event.target.tagName === 'INPUT') return
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
 
-  switch (event.key) {
+  // Check if user is typing in any input field
+  const activeElement = document.activeElement
+  if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+    return
+  }
+
+  switch (event.key.toLowerCase()) {
     case 'u':
-      if (event.ctrlKey) {
+      if (event.ctrlKey && !event.shiftKey) {
         event.preventDefault()
         handleUnlockAllLevels()
       }
@@ -174,18 +186,32 @@ const handleKeydown = (event) => {
         isExpanded.value = !isExpanded.value
       }
       break
+    case 'f':
+      if (event.ctrlKey && event.shiftKey) {
+        event.preventDefault()
+        handleToggleFPS()
+      }
+      break
+    case 's':
+      if (event.ctrlKey && event.shiftKey) {
+        event.preventDefault()
+        handleToggleAutoSimulation()
+      }
+      break
   }
 }
 
 // Lifecycle
 onMounted(() => {
   if (shouldShow.value) {
-    document.addEventListener('keydown', handleKeydown)
+    document.addEventListener('keydown', handleKeydown, { passive: false })
     console.log('🛠️ Debug Panel mounted. Keyboard shortcuts:')
     console.log('  Ctrl+U: Unlock all levels')
     console.log('  Ctrl+Shift+C: Add currency')
     console.log('  Ctrl+Shift+L: Complete level')
     console.log('  Ctrl+Shift+D: Toggle debug panel')
+    console.log('  Ctrl+Shift+F: Toggle FPS display')
+    console.log('  Ctrl+Shift+S: Toggle auto simulation')
   }
 })
 
@@ -314,6 +340,16 @@ const formatNumber = (num) => {
               Auto Simulation
             </label>
           </div>
+          <div class="debug-panel__status-item">
+            <label>
+              <input
+                type="checkbox"
+                v-model="showFPS"
+                @change="handleToggleFPS"
+              >
+              Show FPS
+            </label>
+          </div>
         </div>
       </div>
 
@@ -352,8 +388,8 @@ const formatNumber = (num) => {
           <div class="debug-panel__stat">
             Stars: {{ getStoreInfo()?.levels?.totalStars || 0 }}
           </div>
-          <div class="debug-panel__stat">
-            Sessions: {{ getStoreInfo()?.sessions?.history?.totalSessions || 0 }}
+          <div v-if="showFPS && getStoreInfo()" class="debug-panel__stat">
+            FPS: {{ Math.round(averageFPS.value || 60) }}
           </div>
         </div>
       </div>
@@ -366,6 +402,8 @@ const formatNumber = (num) => {
           <div>Ctrl+Shift+C: Add currency</div>
           <div>Ctrl+Shift+L: Complete level</div>
           <div>Ctrl+Shift+D: Toggle panel</div>
+          <div>Ctrl+Shift+F: Toggle FPS</div>
+          <div>Ctrl+Shift+S: Toggle simulation</div>
         </div>
       </div>
     </div>
