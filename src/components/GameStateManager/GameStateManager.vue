@@ -50,6 +50,10 @@ const {
 const gameContainer = ref(null)
 const showLevelSelection = ref(true)
 
+// Auto-simulation control
+const autoSimulationEnabled = ref(false)
+let simulationInterval = null
+
 // Computed level data for display
 const levels = computed(() => {
   return levelConfigurations.value.map(level => ({
@@ -96,6 +100,9 @@ const startLevel = (level) => {
 }
 
 const finishCurrentLevel = () => {
+  // Stop any running simulation
+  stopSimulation()
+
   // End current session if active
   if (isGameActive.value || isGamePaused.value) {
     sessionStore.abortSession()
@@ -111,6 +118,11 @@ const finishCurrentLevel = () => {
 
 const pauseGame = () => {
   if (sessionStore.pauseSession()) {
+    // Pause simulation if running
+    if (simulationInterval) {
+      clearInterval(simulationInterval)
+      simulationInterval = null
+    }
     console.log('🎮 Game paused via GameStateManager')
     return true
   }
@@ -119,6 +131,10 @@ const pauseGame = () => {
 
 const resumeGame = () => {
   if (sessionStore.resumeSession()) {
+    // Resume simulation if it was enabled
+    if (autoSimulationEnabled.value && !simulationInterval) {
+      startSimulation()
+    }
     console.log('🎮 Game resumed via GameStateManager')
     return true
   }
@@ -133,25 +149,29 @@ const startGameLogic = () => {
   sessionStore.updateScore(0)
   sessionStore.updateMoves(0)
 
-  // Here would be the actual game initialization
-  // For now, we'll simulate some game progress for testing
-  if (props.autoStartSimulation && import.meta.env.DEV) {
-    simulateGameProgress()
+  // Start simulation only if enabled and in DEV mode
+  if (autoSimulationEnabled.value && import.meta.env.DEV) {
+    startSimulation()
   }
 }
 
-const simulateGameProgress = () => {
-  if (!import.meta.env.DEV) return
+const startSimulation = () => {
+  if (!import.meta.env.DEV || !autoSimulationEnabled.value) {
+    return
+  }
 
-  console.log('🧪 Simulating game progress (DEV mode)')
+  console.log('🤖 Starting auto-simulation (DEV mode)')
+
+  // Stop any existing simulation
+  stopSimulation()
 
   // Simulate some moves and score over time
   let moveCount = 0
   let score = 0
 
-  const gameInterval = setInterval(() => {
+  simulationInterval = setInterval(() => {
     if (!isGameActive.value) {
-      clearInterval(gameInterval)
+      stopSimulation()
       return
     }
 
@@ -171,14 +191,36 @@ const simulateGameProgress = () => {
 
     // End simulation after 10 moves
     if (moveCount >= 10) {
-      clearInterval(gameInterval)
+      stopSimulation()
       completeLevel(score, moveCount)
     }
   }, 2000) // Every 2 seconds
 }
 
+const stopSimulation = () => {
+  if (simulationInterval) {
+    clearInterval(simulationInterval)
+    simulationInterval = null
+    console.log('🤖 Auto-simulation stopped')
+  }
+}
+
+const toggleAutoSimulation = (enabled) => {
+  autoSimulationEnabled.value = enabled
+  console.log(`🤖 Auto-simulation ${enabled ? 'enabled' : 'disabled'}`)
+
+  if (enabled && isGameActive.value && import.meta.env.DEV) {
+    startSimulation()
+  } else {
+    stopSimulation()
+  }
+}
+
 const completeLevel = (finalScore, totalMoves) => {
   const currentLevelId = currentLevel.value
+
+  // Stop simulation
+  stopSimulation()
 
   // Calculate stars based on performance (simple logic)
   let stars = 1
@@ -263,6 +305,9 @@ const debugCompleteCurrentLevel = () => {
 onMounted(() => {
   console.log('🎮 GameStateManager mounted with store integration')
 
+  // Initialize auto-simulation state from props (but don't start it)
+  autoSimulationEnabled.value = props.autoStartSimulation
+
   // Load saved state if available
   if (currentLevel.value > 1 && !showLevelSelection.value) {
     console.log('📖 Restoring previous game state')
@@ -282,6 +327,7 @@ onMounted(() => {
       unlockAllLevels: debugUnlockAllLevels,
       addCurrency: debugAddCurrency,
       completeCurrentLevel: debugCompleteCurrentLevel,
+      toggleAutoSimulation: toggleAutoSimulation,
       getStatistics: getStoreStatistics,
       stores: { levelStore, currencyStore, sessionStore }
     }
@@ -290,6 +336,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  // Stop any running simulation
+  stopSimulation()
+
   // Clean up any active sessions
   if (isGameActive.value || isGamePaused.value) {
     sessionStore.abortSession()
@@ -315,6 +364,7 @@ provide('gameStateManager', {
   debugUnlockAllLevels,
   debugAddCurrency,
   debugCompleteCurrentLevel,
+  toggleAutoSimulation,
   getStoreStatistics,
   formatNumber
 })
@@ -333,6 +383,7 @@ defineExpose({
   currentSession,
   showLevelSelection,
   isDev,
+  autoSimulationEnabled,
 
   // Functions
   startLevel,
@@ -343,6 +394,7 @@ defineExpose({
   debugUnlockAllLevels,
   debugAddCurrency,
   debugCompleteCurrentLevel,
+  toggleAutoSimulation,
   getStoreStatistics,
   formatNumber,
 
@@ -369,6 +421,7 @@ defineExpose({
       :current-session="currentSession"
       :show-level-selection="showLevelSelection"
       :is-dev="isDev"
+      :auto-simulation-enabled="autoSimulationEnabled"
       :start-level="startLevel"
       :finish-current-level="finishCurrentLevel"
       :pause-game="pauseGame"
@@ -377,6 +430,7 @@ defineExpose({
       :debug-unlock-all-levels="debugUnlockAllLevels"
       :debug-add-currency="debugAddCurrency"
       :debug-complete-current-level="debugCompleteCurrentLevel"
+      :toggle-auto-simulation="toggleAutoSimulation"
       :format-number="formatNumber"
       :get-store-statistics="getStoreStatistics"
     />

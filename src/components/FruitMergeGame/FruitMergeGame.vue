@@ -6,6 +6,9 @@ import GameStateManager from "../GameStateManager/GameStateManager.vue"
 import LevelSelection from "../LevelSelection/LevelSelection.vue"
 import GamePlayArea from "../GamePlayArea/GamePlayArea.vue"
 import DebugPanel from "../DebugPanel/DebugPanel.vue"
+import GameStatsHeader from "../GameStatsHeader/GameStatsHeader.vue"
+import SessionInfoBar from "../SessionInfoBar/SessionInfoBar.vue"
+import GameControls from "../GameControls/GameControls.vue"
 
 // Emit events to parent component
 const emit = defineEmits(['back-to-menu'])
@@ -92,7 +95,7 @@ const handleDebugImportData = (data) => {
 
 const handleToggleAutoSimulation = (enabled) => {
   console.log(`🤖 Auto simulation ${enabled ? 'enabled' : 'disabled'}`)
-  // Auto simulation logic would be implemented here
+  gameStateManager.value?.toggleAutoSimulation(enabled)
 }
 
 // GameStateManager Events
@@ -119,7 +122,7 @@ const handleStoresReady = (stores) => {
     <!-- Game State Manager - Central store management -->
     <GameStateManager
       ref="gameStateManager"
-      :auto-start-simulation="true"
+      :auto-start-simulation="false"
       :enable-debug-mode="true"
       @level-completed="handleLevelCompleted"
       @session-started="handleSessionStarted"
@@ -160,56 +163,26 @@ const handleStoresReady = (stores) => {
         </header>
 
         <!-- Game Stats Header (only show when playing) -->
-        <div v-if="!showLevelSelection" class="fruit-merge-game__stats">
-          <!-- Level Display -->
-          <div class="fruit-merge-game__level-display">
-            <span class="fruit-merge-game__level-text">LEVEL {{ currentLevelPadded }}</span>
-            <span v-if="isGameActive" class="fruit-merge-game__time-display">{{ formattedGameTime }}</span>
-          </div>
+        <GameStatsHeader
+          v-if="!showLevelSelection"
+          :current-level="currentLevel"
+          :coins="coins"
+          :diamonds="diamonds"
+          :is-game-active="isGameActive"
+          :formatted-game-time="formattedGameTime"
+          :format-number="formatNumber"
+        />
 
-          <!-- Stats Display -->
-          <div class="fruit-merge-game__stats-container">
-            <div class="fruit-merge-game__stat fruit-merge-game__stat--coins">
-              <span class="fruit-merge-game__stat-value">{{ formatNumber(coins) }}</span>
-              <GameIcon name="coin" :size="16" class="fruit-merge-game__stat-icon" />
-            </div>
-            <div class="fruit-merge-game__stat fruit-merge-game__stat--diamonds">
-              <span class="fruit-merge-game__stat-value">{{ formatNumber(diamonds) }}</span>
-              <GameIcon name="diamond" :size="19" class="fruit-merge-game__stat-icon" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Game Session Info (when active) -->
-        <div v-if="isGameActive && !showLevelSelection" class="fruit-merge-game__session-info">
-          <div class="fruit-merge-game__session-stats">
-            <span class="fruit-merge-game__session-stat">
-              🎯 {{ currentSession.moves }} moves
-            </span>
-            <span class="fruit-merge-game__session-stat">
-              📊 {{ formatNumber(currentSession.score) }} points
-            </span>
-            <span v-if="currentSession.combo > 1" class="fruit-merge-game__session-stat fruit-merge-game__session-stat--combo">
-              🔥 {{ currentSession.combo }}x combo
-            </span>
-          </div>
-          <div class="fruit-merge-game__session-controls">
-            <button
-              v-if="!isGamePaused"
-              @click="handlePauseGame"
-              class="btn btn--small btn--ghost"
-            >
-              ⏸️ Pause
-            </button>
-            <button
-              v-else
-              @click="handleResumeGame"
-              class="btn btn--small"
-            >
-              ▶️ Resume
-            </button>
-          </div>
-        </div>
+        <!-- Session Info Bar (when active) -->
+        <SessionInfoBar
+          v-if="(isGameActive || isGamePaused) && !showLevelSelection"
+          :current-session="currentSession"
+          :is-game-active="isGameActive"
+          :is-game-paused="isGamePaused"
+          :format-number="formatNumber"
+          @pause-game="handlePauseGame"
+          @resume-game="handleResumeGame"
+        />
 
         <!-- Main Game Content -->
         <main class="app__main fruit-merge-game__content">
@@ -239,6 +212,21 @@ const handleStoresReady = (stores) => {
             @debug-complete-level="handleDebugCompleteLevel"
           />
         </main>
+
+        <!-- Game Controls (only show when not in level selection) -->
+        <GameControls
+          v-if="!showLevelSelection"
+          :is-game-active="isGameActive"
+          :is-game-paused="isGamePaused"
+          :current-level="currentLevel"
+          :is-dev="isDev"
+          :show-back-button="true"
+          :show-debug-controls="true"
+          @back-to-level-selection="handleBackToLevelSelection"
+          @pause-game="handlePauseGame"
+          @resume-game="handleResumeGame"
+          @debug-complete-level="handleDebugCompleteLevel"
+        />
 
         <!-- Debug Panel (DEV only) -->
         <DebugPanel
@@ -274,98 +262,6 @@ const handleStoresReady = (stores) => {
   flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);
 
-  // Stats Element
-  &__stats {
-    background-color: var(--card-bg);
-    padding: var(--space-3) var(--space-4);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--card-border);
-  }
-
-  &__level-display {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: var(--space-1);
-  }
-
-  &__level-text {
-    background-color: var(--accent-color);
-    color: var(--white);
-    padding: var(--space-2) var(--space-4);
-    border-radius: 20px;
-    font-size: var(--font-size-sm);
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    align-self: flex-start;
-  }
-
-  &__time-display {
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-    font-weight: 500;
-  }
-
-  &__stats-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  &__stat {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: var(--space-1);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--text-color);
-  }
-
-  &__stat-value {
-    font-size: var(--font-size-base);
-  }
-
-  &__stat-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-  }
-
-  // Session Info Element
-  &__session-info {
-    background-color: var(--bg-secondary);
-    padding: var(--space-2) var(--space-4);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--card-border);
-    font-size: var(--font-size-sm);
-  }
-
-  &__session-stats {
-    display: flex;
-    gap: var(--space-4);
-    flex-wrap: wrap;
-  }
-
-  &__session-stat {
-    color: var(--text-secondary);
-
-    &--combo {
-      color: var(--accent-color);
-      font-weight: bold;
-    }
-  }
-
-  &__session-controls {
-    display: flex;
-    gap: var(--space-2);
-  }
-
   // Content Element
   &__content {
     flex: 1;
@@ -376,24 +272,7 @@ const handleStoresReady = (stores) => {
 // Responsive adjustments
 @media (min-width: vars.$breakpoint-md) {
   .fruit-merge-game {
-    &__session-info {
-      padding: var(--space-3) var(--space-8);
-    }
-
-    &__session-stats {
-      gap: var(--space-6);
-    }
+    // Additional desktop-specific styling if needed
   }
-}
-
-// Animation for session stats
-.fruit-merge-game__session-stat--combo {
-  animation: pulse-combo 0.5s ease-in-out;
-}
-
-@keyframes pulse-combo {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
 }
 </style>
