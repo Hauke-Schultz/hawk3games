@@ -11,8 +11,19 @@
 
 #### Small Changes
 - **Show only specific lines** that need modification
-- **Format**: `Line X: [current code] → [new code]`
 - **Don't show**: Complete file contents for minor changes
+
+#### Example Format for Line Changes:
+```javascript
+// File: src/components/Example/Example.vue
+// Line 15:
+const isActive = ref(false) // → 
+const isActive = ref(true)
+
+// Line 23: 
+background-color: red; // →
+background-color: var(--accent-color);
+```
 
 #### Large Changes
 - **Show complete file** only when modifications are extensive
