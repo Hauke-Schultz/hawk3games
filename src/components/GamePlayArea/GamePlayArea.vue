@@ -1174,18 +1174,6 @@ defineExpose({
         :drop-position="dropPreviewPosition"
       />
 
-      <!-- Game Status Display -->
-      <div class="game-play-area__game-status">
-        <h3 class="game-play-area__status-title">
-          {{ gameStatusTitle }}
-        </h3>
-        <div v-if="showGameInfo" class="game-play-area__game-info">
-          <p>Score: {{ formatNumber(currentSession.score) }}</p>
-          <p>Moves: {{ currentSession.moves }}</p>
-          <p>Time: {{ formattedGameTime }}</p>
-        </div>
-      </div>
-
       <!-- Physics Game Area -->
       <div class="game-play-area__game-physics">
         <!-- Physics Canvas Container -->

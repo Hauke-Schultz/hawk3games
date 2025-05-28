@@ -181,12 +181,13 @@ const getPhysicsState = () => {
           </div>
         </header>
 
-        <!-- Game Stats Header (only show when playing) -->
+        <!-- Game Stats Header (enhanced with session data) -->
         <GameStatsHeader
           v-if="!showLevelSelection"
           :current-level="currentLevel"
           :coins="coins"
           :diamonds="diamonds"
+          :current-session="currentSession"
           :is-game-active="isGameActive"
           :formatted-game-time="formattedGameTime"
           :format-number="formatNumber"
@@ -205,7 +206,7 @@ const getPhysicsState = () => {
             @debug-add-currency="handleDebugAddCurrency"
           />
 
-          <!-- Game Play Area -->
+          <!-- Game Play Area (focused on gameplay) -->
           <GamePlayArea
             v-else
             ref="gamePlayArea"

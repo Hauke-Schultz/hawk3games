@@ -27,6 +27,13 @@ const props = defineProps({
   formatNumber: {
     type: Function,
     required: true
+  },
+  currentSession: {
+    type: Object,
+    required: true,
+    validator: (session) => {
+      return session && typeof session.score === 'number' && typeof session.moves === 'number'
+    }
   }
 })
 
@@ -46,8 +53,8 @@ const formattedDiamonds = computed(() => {
 
 <template>
   <div class="game-stats-header">
-    <!-- Level Display -->
-    <div class="game-stats-header__level-display">
+    <!-- Level & Time Section -->
+    <div class="game-stats-header__level-section">
       <span class="game-stats-header__level-text">LEVEL {{ currentLevelPadded }}</span>
       <span
         v-if="isGameActive"
@@ -57,23 +64,27 @@ const formattedDiamonds = computed(() => {
       </span>
     </div>
 
-    <!-- Currency Display -->
-    <div class="game-stats-header__currency-container">
+    <!-- Game Stats Section -->
+    <div class="game-stats-header__game-section">
+      <div class="game-stats-header__stat game-stats-header__stat--score">
+        <span class="game-stats-header__stat-value">{{ formatNumber(currentSession.score) }}</span>
+        <span class="game-stats-header__stat-label">SCORE</span>
+      </div>
+      <div class="game-stats-header__stat game-stats-header__stat--moves">
+        <span class="game-stats-header__stat-value">{{ currentSession.moves }}</span>
+        <span class="game-stats-header__stat-label">MOVES</span>
+      </div>
+    </div>
+
+    <!-- Currency Section -->
+    <div class="game-stats-header__currency-section">
       <div class="game-stats-header__currency game-stats-header__currency--coins">
         <span class="game-stats-header__currency-value">{{ formattedCoins }}</span>
-        <GameIcon
-          name="coin"
-          :size="16"
-          class="game-stats-header__currency-icon"
-        />
+        <GameIcon name="coin" :size="16" class="game-stats-header__currency-icon" />
       </div>
       <div class="game-stats-header__currency game-stats-header__currency--diamonds">
         <span class="game-stats-header__currency-value">{{ formattedDiamonds }}</span>
-        <GameIcon
-          name="diamond"
-          :size="19"
-          class="game-stats-header__currency-icon"
-        />
+        <GameIcon name="diamond" :size="19" class="game-stats-header__currency-icon" />
       </div>
     </div>
   </div>
@@ -86,115 +97,98 @@ const formattedDiamonds = computed(() => {
 .game-stats-header {
   background-color: var(--card-bg);
   padding: var(--space-3) var(--space-4);
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-4);
   align-items: center;
   border-bottom: 1px solid var(--card-border);
 
   @media (min-width: vars.$breakpoint-md) {
     padding: var(--space-4) var(--space-8);
+    gap: var(--space-6);
   }
 
-  // Level Display Element
-  &__level-display {
-    flex: 1;
+  // Mobile Stack Layout
+  @media (max-width: vars.$breakpoint-sm) {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    text-align: center;
+  }
+
+  // Level Section Element
+  &__level-section {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    align-items: flex-start;
     gap: var(--space-1);
-  }
 
-  &__level-text {
-    background-color: var(--accent-color);
-    color: var(--white);
-    padding: var(--space-2) var(--space-4);
-    border-radius: 20px;
-    font-size: var(--font-size-sm);
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    align-self: flex-start;
-    transition: all 0.2s ease;
-
-    @media (min-width: vars.$breakpoint-md) {
-      font-size: var(--font-size-base);
-      padding: var(--space-2) var(--space-6);
+    @media (max-width: vars.$breakpoint-sm) {
+      align-items: center;
     }
   }
 
-  &__time-display {
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-    font-weight: 500;
-    margin-left: var(--space-1);
+  // Game Section Element
+  &__game-section {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
 
-    @media (min-width: vars.$breakpoint-md) {
-      font-size: var(--font-size-sm);
+    @media (max-width: vars.$breakpoint-sm) {
+      gap: var(--space-6);
     }
   }
 
-  // Currency Container Element
-  &__currency-container {
+  &__stat {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
-
-    @media (min-width: vars.$breakpoint-md) {
-      gap: var(--space-2);
-    }
-  }
-
-  &__currency {
-    display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: var(--space-1);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--text-color);
-    transition: all 0.2s ease;
+  }
 
-    &:hover {
-      transform: scale(1.05);
+  &__stat-value {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+    color: var(--text-color);
+
+    @media (min-width: vars.$breakpoint-md) {
+      font-size: var(--font-size-xl);
+    }
+  }
+
+  &__stat-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  // Currency Section Element
+  &__currency-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    align-items: flex-end;
+
+    @media (max-width: vars.$breakpoint-sm) {
+      align-items: center;
     }
 
     @media (min-width: vars.$breakpoint-md) {
-      font-size: var(--font-size-base);
       gap: var(--space-2);
     }
   }
 
-  &__currency-value {
-    font-size: var(--font-size-base);
-    min-width: 40px;
-    text-align: right;
-
-    @media (min-width: vars.$breakpoint-md) {
-      font-size: var(--font-size-lg);
-      min-width: 50px;
+  // Stat Color Modifiers
+  &__stat--score {
+    .game-stats-header__stat-value {
+      color: var(--accent-color);
     }
   }
 
-  &__currency-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-
-    @media (min-width: vars.$breakpoint-md) {
-      width: 20px;
-      height: 20px;
-    }
-  }
-
-  // Currency Type Modifiers
-  &__currency--coins {
-    .game-stats-header__currency-value {
-      color: #f39c12;
-    }
-  }
-
-  &__currency--diamonds {
-    .game-stats-header__currency-value {
-      color: #e84393;
+  &__stat--moves {
+    .game-stats-header__stat-value {
+      color: var(--info-color);
     }
   }
 }
