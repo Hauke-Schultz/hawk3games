@@ -57,24 +57,32 @@ const PHYSICS_CONFIG = {
     height: 500
   },
   dropZone: {
-    minX: 30, // Safe margin from walls
-    maxX: 370, // Canvas width - safe margin
-    dropY: 50  // Drop height
+    minX: 35,
+    maxX: 365,
+    dropY: 50
   },
   engine: {
     gravity: { x: 0, y: 0.8 },
     enableSleeping: true,
-    velocityIterations: 4,    // Reduziert von 6
-    positionIterations: 2,    // Reduziert von 6
-    constraintIterations: 1   // Neu hinzugefügt
+    velocityIterations: 4,
+    positionIterations: 2,
+    constraintIterations: 1
   },
   render: {
     wireframes: false,
     background: 'transparent',
     showVelocity: false,
     showAngleIndicator: false,
-    pixelRatio: 1,           // Fixiere Pixel Ratio
-    hasBounds: true          // Aktiviere Bounds für bessere Performance
+    pixelRatio: 1,
+    hasBounds: true
+  },
+  mobile: {
+    touchTargetSize: 44,
+    doubleTapDelay: 300,
+    longPressDelay: 500,
+    dragThreshold: 10,
+    hapticEnabled: true,
+    swipeVelocityThreshold: 0.5
   }
 }
 
@@ -86,7 +94,12 @@ const FRUIT_TYPES = {
     radius: 15,
     nextType: 'STRAWBERRY',
     color: '#ff6b6b',
-    scoreValue: 10
+    scoreValue: 10,
+    gradient: ['#ff8a80', '#ff6b6b', '#e53935'],
+    shadow: '0 2px 8px rgba(229, 57, 53, 0.4)',
+    glowColor: 'rgba(255, 107, 107, 0.6)',
+    bounceScale: 1.1,
+    sparkleColor: '#ffcdd2'
   },
   STRAWBERRY: {
     id: 2,
@@ -94,7 +107,12 @@ const FRUIT_TYPES = {
     radius: 18,
     nextType: 'GRAPE',
     color: '#ff8787',
-    scoreValue: 25
+    scoreValue: 25,
+    gradient: ['#ffab91', '#ff8787', '#f4511e'],
+    shadow: '0 2px 8px rgba(244, 81, 30, 0.4)',
+    glowColor: 'rgba(255, 135, 135, 0.6)',
+    bounceScale: 1.1,
+    sparkleColor: '#ffccbc'
   },
   GRAPE: {
     id: 3,
@@ -102,7 +120,12 @@ const FRUIT_TYPES = {
     radius: 22,
     nextType: 'ORANGE',
     color: '#845ec2',
-    scoreValue: 50
+    scoreValue: 50,
+    gradient: ['#b39ddb', '#845ec2', '#5e35b1'],
+    shadow: '0 2px 8px rgba(94, 53, 177, 0.4)',
+    glowColor: 'rgba(132, 94, 194, 0.6)',
+    bounceScale: 1.15,
+    sparkleColor: '#d1c4e9'
   },
   ORANGE: {
     id: 4,
@@ -110,7 +133,12 @@ const FRUIT_TYPES = {
     radius: 26,
     nextType: 'APPLE',
     color: '#ffa726',
-    scoreValue: 100
+    scoreValue: 100,
+    gradient: ['#ffcc02', '#ffa726', '#ff9800'],
+    shadow: '0 2px 8px rgba(255, 152, 0, 0.4)',
+    glowColor: 'rgba(255, 167, 38, 0.6)',
+    bounceScale: 1.15,
+    sparkleColor: '#ffe0b2'
   },
   APPLE: {
     id: 5,
@@ -118,7 +146,12 @@ const FRUIT_TYPES = {
     radius: 30,
     nextType: 'PEAR',
     color: '#e53e3e',
-    scoreValue: 200
+    scoreValue: 200,
+    gradient: ['#ef5350', '#e53e3e', '#c62828'],
+    shadow: '0 3px 12px rgba(198, 40, 40, 0.5)',
+    glowColor: 'rgba(229, 62, 62, 0.7)',
+    bounceScale: 1.2,
+    sparkleColor: '#ffcdd2'
   },
   PEAR: {
     id: 6,
@@ -126,7 +159,12 @@ const FRUIT_TYPES = {
     radius: 34,
     nextType: 'PINEAPPLE',
     color: '#38a169',
-    scoreValue: 400
+    scoreValue: 400,
+    gradient: ['#66bb6a', '#38a169', '#2e7d32'],
+    shadow: '0 3px 12px rgba(46, 125, 50, 0.5)',
+    glowColor: 'rgba(56, 161, 105, 0.7)',
+    bounceScale: 1.2,
+    sparkleColor: '#c8e6c9'
   },
   PINEAPPLE: {
     id: 7,
@@ -134,7 +172,12 @@ const FRUIT_TYPES = {
     radius: 38,
     nextType: 'MELON',
     color: '#d69e2e',
-    scoreValue: 800
+    scoreValue: 800,
+    gradient: ['#ffd54f', '#d69e2e', '#f57f17'],
+    shadow: '0 4px 16px rgba(245, 127, 23, 0.6)',
+    glowColor: 'rgba(214, 158, 46, 0.8)',
+    bounceScale: 1.25,
+    sparkleColor: '#fff9c4'
   },
   MELON: {
     id: 8,
@@ -142,7 +185,12 @@ const FRUIT_TYPES = {
     radius: 42,
     nextType: 'COCONUT',
     color: '#38b2ac',
-    scoreValue: 1600
+    scoreValue: 1600,
+    gradient: ['#4db6ac', '#38b2ac', '#00695c'],
+    shadow: '0 4px 16px rgba(0, 105, 92, 0.6)',
+    glowColor: 'rgba(56, 178, 172, 0.8)',
+    bounceScale: 1.25,
+    sparkleColor: '#b2dfdb'
   },
   COCONUT: {
     id: 9,
@@ -150,7 +198,12 @@ const FRUIT_TYPES = {
     radius: 46,
     nextType: null,
     color: '#8b4513',
-    scoreValue: 3200
+    scoreValue: 3200,
+    gradient: ['#a1887f', '#8b4513', '#5d4037'],
+    shadow: '0 5px 20px rgba(93, 64, 55, 0.7)',
+    glowColor: 'rgba(139, 69, 19, 0.9)',
+    bounceScale: 1.3,
+    sparkleColor: '#d7ccc8'
   }
 }
 
@@ -207,6 +260,57 @@ const getCanvasPosition = (event) => {
   return { x: clampedX, y }
 }
 
+// Mobile Performance Optimization
+const mobileOptimizations = {
+  reducedParticles: window.innerWidth < 768,
+  lowPowerMode: navigator.hardwareConcurrency < 4,
+  touchOptimized: 'ontouchstart' in window
+}
+
+// Adaptive particle count based on device
+const getParticleCount = (baseCount) => {
+  if (mobileOptimizations.reducedParticles) {
+    return Math.max(3, Math.floor(baseCount * 0.6))
+  }
+  if (mobileOptimizations.lowPowerMode) {
+    return Math.max(5, Math.floor(baseCount * 0.8))
+  }
+  return baseCount
+}
+
+// Preview position change effect
+const createPreviewUpdateEffect = (x) => {
+  const canvas = gameCanvas.value?.querySelector('canvas')
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  let rippleRadius = 0
+  const maxRadius = 15
+  let opacity = 0.8
+
+  const animatePreview = () => {
+    ctx.save()
+    ctx.globalAlpha = opacity
+    ctx.strokeStyle = '#00cec9'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(x, PHYSICS_CONFIG.dropZone.dropY, rippleRadius, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.restore()
+
+    rippleRadius += 2
+    opacity -= 0.1
+
+    if (rippleRadius < maxRadius && opacity > 0) {
+      requestAnimationFrame(animatePreview)
+    }
+  }
+
+  animatePreview()
+}
+
 const getPhysicsState = () => {
   return {
     engine: physicsEngine.value,
@@ -223,8 +327,14 @@ const handlePointerMove = (event) => {
 
   const position = getCanvasPosition(event)
   if (position) {
+    const oldPosition = dropPreviewPosition.value
     dropPreviewPosition.value = position.x
     lastTouchPosition.value = position
+
+    // Smooth preview animation on position change
+    if (oldPosition !== null && Math.abs(oldPosition - position.x) > 5) {
+      createPreviewUpdateEffect(position.x)
+    }
   }
 }
 
@@ -260,24 +370,220 @@ const handlePointerLeave = () => {
 }
 
 // Touch-specific handlers for mobile optimization
+
+// Enhanced touch start with haptic feedback
 const handleTouchStart = (event) => {
-  isDragging.value = false
-  handlePointerDown(event)
-}
+  if (preventMultiTouch(event) || !props.isGameActive || !canDrop.value) return
 
-const handleTouchMove = (event) => {
-  if (!isPointerDown.value) return
+  event.preventDefault()
 
-  event.preventDefault() // Prevent scrolling
-  isDragging.value = true
-  handlePointerMove(event)
-}
+  const touch = event.touches[0]
+  const position = getCanvasPosition(event)
 
-const handleTouchEnd = (event) => {
-  if (isDragging.value) {
-    handlePointerUp(event)
+  if (position) {
+    touchState.value = {
+      isActive: true,
+      startTime: Date.now(),
+      startPosition: position,
+      currentPosition: position,
+      hasMoved: false,
+      tapCount: touchState.value.tapCount + 1,
+      lastTapTime: Date.now()
+    }
+
+    // Haptic feedback für moderne Browser
+    if (navigator.vibrate) {
+      navigator.vibrate(5) // Kurze Vibration
+    }
+
+    // Visual feedback
+    dropPreviewPosition.value = position.x
+    createTouchStartEffect(position.x, position.y)
   }
-  isDragging.value = false
+}
+
+// Enhanced touch move with gesture recognition
+const handleTouchMove = (event) => {
+  if (preventMultiTouch(event) || !touchState.value.isActive) return
+
+  event.preventDefault()
+
+  const position = getCanvasPosition(event)
+  if (!position) return
+
+  const deltaX = Math.abs(position.x - touchState.value.startPosition.x)
+  const deltaY = Math.abs(position.y - touchState.value.startPosition.y)
+
+  // Detect if user has moved enough to cancel tap
+  if (deltaX > 10 || deltaY > 10) {
+    touchState.value.hasMoved = true
+  }
+
+  touchState.value.currentPosition = position
+  dropPreviewPosition.value = position.x
+
+  // Smooth trail effect
+  createTouchTrailEffect(position.x, position.y)
+}
+
+// Enhanced touch end with gesture completion
+const handleTouchEnd = (event) => {
+  if (!touchState.value.isActive) return
+
+  event.preventDefault()
+
+  const touchDuration = Date.now() - touchState.value.startTime
+  const position = touchState.value.currentPosition
+
+  // Quick tap detection (< 200ms, minimal movement)
+  const isQuickTap = touchDuration < 200 && !touchState.value.hasMoved
+
+  // Double tap detection
+  const isDoubleTap = touchState.value.tapCount > 1 &&
+    (Date.now() - touchState.value.lastTapTime) < 300
+
+  if (isQuickTap || (!touchState.value.hasMoved && touchDuration < 500)) {
+    // Execute drop
+    performDrop(position.x)
+
+    // Enhanced haptic feedback for successful drop
+    if (navigator.vibrate) {
+      navigator.vibrate([10, 5, 10]) // Pattern vibration
+    }
+
+    // Special effect for double tap
+    if (isDoubleTap) {
+      createDoubleTapEffect(position.x, position.y)
+    }
+  }
+
+  // Reset touch state
+  touchState.value.isActive = false
+  touchState.value.hasMoved = false
+
+  // Clear preview after delay
+  setTimeout(() => {
+    if (!touchState.value.isActive) {
+      dropPreviewPosition.value = null
+    }
+  }, 100)
+}
+
+// Touch Start Visual Effect
+const createTouchStartEffect = (x, y) => {
+  const canvas = gameCanvas.value?.querySelector('canvas')
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  let scale = 0
+  const maxScale = 1.5
+  let opacity = 1
+
+  const animate = () => {
+    ctx.save()
+    ctx.globalAlpha = opacity
+    ctx.fillStyle = '#00b894'
+    ctx.beginPath()
+    ctx.arc(x, y, 15 * scale, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Inner circle
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+    ctx.beginPath()
+    ctx.arc(x, y, 8 * scale, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+
+    scale += 0.1
+    opacity -= 0.1
+
+    if (scale < maxScale && opacity > 0) {
+      requestAnimationFrame(animate)
+    }
+  }
+
+  animate()
+}
+
+// Touch Trail Effect
+const createTouchTrailEffect = (x, y) => {
+  if (Math.random() > 0.7) return // Don't create trail every frame
+
+  const canvas = gameCanvas.value?.querySelector('canvas')
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  let life = 1.0
+
+  const animate = () => {
+    ctx.save()
+    ctx.globalAlpha = life * 0.3
+    ctx.fillStyle = '#00cec9'
+    ctx.beginPath()
+    ctx.arc(x + (Math.random() - 0.5) * 5, y + (Math.random() - 0.5) * 5, 2, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+
+    life -= 0.05
+
+    if (life > 0) {
+      requestAnimationFrame(animate)
+    }
+  }
+
+  animate()
+}
+
+// Double Tap Special Effect
+const createDoubleTapEffect = (x, y) => {
+  const canvas = gameCanvas.value?.querySelector('canvas')
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const rings = []
+  for (let i = 0; i < 3; i++) {
+    rings.push({
+      radius: 0,
+      maxRadius: 30 + (i * 15),
+      opacity: 1 - (i * 0.2),
+      delay: i * 100
+    })
+  }
+
+  let startTime = Date.now()
+
+  const animate = () => {
+    const elapsed = Date.now() - startTime
+    ctx.save()
+
+    rings.forEach(ring => {
+      if (elapsed > ring.delay) {
+        const progress = Math.min((elapsed - ring.delay) / 500, 1)
+        const currentRadius = ring.maxRadius * progress
+        const currentOpacity = ring.opacity * (1 - progress)
+
+        ctx.globalAlpha = currentOpacity
+        ctx.strokeStyle = '#e74c3c'
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.arc(x, y, currentRadius, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+    })
+
+    ctx.restore()
+
+    if (elapsed < 800) {
+      requestAnimationFrame(animate)
+    }
+  }
+
+  animate()
+  console.log('🔥 Double tap effect triggered!')
 }
 
 // Drop functionality with cooldown
@@ -317,6 +623,7 @@ const performDrop = (x) => {
 }
 
 // Visual drop feedback
+// Enhanced Visual Drop Feedback with Juice Effects
 const createDropFeedback = (x) => {
   const canvas = gameCanvas.value?.querySelector('canvas')
   if (!canvas) return
@@ -324,26 +631,66 @@ const createDropFeedback = (x) => {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  // Simple ring effect
-  let radius = 10
-  const maxRadius = 30
-  const animateRing = () => {
-    if (radius > maxRadius) return
+  // Ring ripple effect
+  let ringRadius = 5
+  const maxRingRadius = 40
+  const ringOpacity = { value: 1 }
 
-    ctx.save()
-    ctx.globalAlpha = 1 - (radius / maxRadius)
-    ctx.strokeStyle = '#00b894'
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    ctx.arc(x, PHYSICS_CONFIG.dropZone.dropY, radius, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.restore()
-
-    radius += 2
-    requestAnimationFrame(animateRing)
+  // Impact particles
+  const impactParticles = []
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI * 2 * i) / 6
+    impactParticles.push({
+      x: x,
+      y: PHYSICS_CONFIG.dropZone.dropY,
+      vx: Math.cos(angle) * 3,
+      vy: Math.sin(angle) * 3,
+      life: 1.0,
+      size: 2 + Math.random()
+    })
   }
 
-  animateRing()
+  const animateDropFeedback = () => {
+    ctx.save()
+
+    // Draw expanding ring
+    if (ringRadius <= maxRingRadius) {
+      ctx.globalAlpha = ringOpacity.value
+      ctx.strokeStyle = '#00b894'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.arc(x, PHYSICS_CONFIG.dropZone.dropY, ringRadius, 0, Math.PI * 2)
+      ctx.stroke()
+
+      ringRadius += 3
+      ringOpacity.value -= 0.05
+    }
+
+    // Draw impact particles
+    impactParticles.forEach(particle => {
+      if (particle.life <= 0) return
+
+      ctx.globalAlpha = particle.life
+      ctx.fillStyle = '#00cec9'
+      ctx.beginPath()
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+      ctx.fill()
+
+      particle.x += particle.vx
+      particle.y += particle.vy
+      particle.vy += 0.2 // Gravity
+      particle.life -= 0.08
+    })
+
+    ctx.restore()
+
+    // Continue animation
+    if (ringRadius <= maxRingRadius || impactParticles.some(p => p.life > 0)) {
+      requestAnimationFrame(animateDropFeedback)
+    }
+  }
+
+  animateDropFeedback()
 }
 
 // Physics Engine Initialization
@@ -683,21 +1030,11 @@ const setupCustomRenderer = () => {
   console.log('🎨 Custom fruit renderer setup')
 }
 
-// Render emoji overlays on fruits
-// Render emoji overlays auf fruits - OPTIMIERT
+// Visual Fruit Rendering with Gradients and Animations
 const renderFruitEmojis = (ctx) => {
   if (!ctx || fruits.value.length === 0) return
 
-  // Batch alle Rendering-Operationen
   ctx.save()
-
-  // Performance: Setze einmal für alle Früchte
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
-  ctx.shadowBlur = 2
-  ctx.shadowOffsetX = 1
-  ctx.shadowOffsetY = 1
 
   fruits.value.forEach(fruit => {
     const body = fruit.body
@@ -711,19 +1048,92 @@ const renderFruitEmojis = (ctx) => {
 
     if (!fruitType) return
 
-    // Nur rendern wenn Frucht sich bewegt oder sichtbar ist
     const isMoving = Math.abs(body.velocity.x) > 0.1 || Math.abs(body.velocity.y) > 0.1
     const isVisible = y < PHYSICS_CONFIG.canvas.height + 50 && y > -50
 
     if (!isVisible) return
 
-    const fontSize = fruitType.radius * 1.2
+    const radius = fruitType.radius
+    const fontSize = radius * 1.2
+
+    // Animation scale from creation or bouncing
+    const animationScale = body.animationScale || 1
+    const animationOpacity = body.animationOpacity !== undefined ? body.animationOpacity : 1
+    const bounceScale = isMoving ? fruitType.bounceScale : 1
+    const finalScale = animationScale * bounceScale
 
     ctx.save()
     ctx.translate(x, y)
     ctx.rotate(body.angle)
+    ctx.scale(finalScale, finalScale)
+    ctx.globalAlpha = animationOpacity
+
+    // 1. Glow effect for moving fruits
+    if (isMoving) {
+      ctx.shadowColor = fruitType.glowColor
+      ctx.shadowBlur = 12
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+    }
+
+    // 2. Gradient background circle - KORRIGIERT
+    const gradient = ctx.createRadialGradient(
+      -radius * 0.3, -radius * 0.3, 0,
+      0, 0, radius
+    )
+
+    // Verwende das gradient Array direkt
+    gradient.addColorStop(0, fruitType.gradient[0])
+    gradient.addColorStop(0.6, fruitType.gradient[1])
+    gradient.addColorStop(1, fruitType.gradient[2])
+
+    // 3. Draw gradient circle
+    ctx.fillStyle = gradient
+    ctx.beginPath()
+    ctx.arc(0, 0, radius, 0, Math.PI * 2)
+    ctx.fill()
+
+    // 4. Subtle border
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'
+    ctx.lineWidth = 1
+    ctx.stroke()
+
+    // 5. Highlight spot for depth
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
+    ctx.beginPath()
+    ctx.arc(-radius * 0.25, -radius * 0.25, radius * 0.15, 0, Math.PI * 2)
+    ctx.fill()
+
+    // 6. Secondary highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
+    ctx.beginPath()
+    ctx.arc(-radius * 0.4, -radius * 0.4, radius * 0.08, 0, Math.PI * 2)
+    ctx.fill()
+
+    // 7. Emoji overlay with enhanced shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+    ctx.shadowBlur = 3
+    ctx.shadowOffsetX = 1
+    ctx.shadowOffsetY = 1
+    ctx.fillStyle = 'transparent'
     ctx.font = `${fontSize}px Arial`
-    ctx.fillText(emoji, 0, 0)
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(emoji, 0, fontSize * 0.05) // Slight offset for better centering
+
+    // 8. Sparkle effect for high-value fruits (optional)
+    if (fruitType.id >= 6 && Math.random() > 0.95) {
+      ctx.shadowColor = 'transparent'
+      ctx.fillStyle = fruitType.sparkleColor
+      const sparkleX = (Math.random() - 0.5) * radius * 1.5
+      const sparkleY = (Math.random() - 0.5) * radius * 1.5
+      ctx.beginPath()
+      ctx.arc(sparkleX, sparkleY, 1, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
     ctx.restore()
   })
 
@@ -731,55 +1141,167 @@ const renderFruitEmojis = (ctx) => {
 }
 
 // Visual effect for merging
+// Enhanced Merge Effects with Advanced Particle System
 const createMergeEffect = (x, y, fruitType) => {
   if (!physicsRender.value) return
 
   const ctx = physicsRender.value.canvas.getContext('2d')
   if (!ctx) return
 
-  // Create particle effect
+  const type = FRUIT_TYPES[fruitType]
+  if (!type) return
+
+  // Create different particle types
   const particles = []
-  for (let i = 0; i < 8; i++) {
+  const particleCount = getParticleCount(Math.min(15 + (type.id * 2), 25))
+
+  // Explosion particles
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5
+    const speed = 3 + Math.random() * 4
+    const size = 2 + Math.random() * 3
+
     particles.push({
+      type: 'explosion',
       x: x,
       y: y,
-      vx: (Math.random() - 0.5) * 10,
-      vy: (Math.random() - 0.5) * 10,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 1, // Slight upward bias
       life: 1.0,
-      color: FRUIT_TYPES[fruitType]?.color || '#ffff00'
+      maxLife: 1.0,
+      size: size,
+      color: type.gradient[Math.floor(Math.random() * type.gradient.length)],
+      gravity: 0.1,
+      fadeSpeed: 0.02
     })
   }
 
-  // Animate particles
+  // Sparkle particles for higher-level fruits
+  if (type.id >= 4) {
+    for (let i = 0; i < 8; i++) {
+      particles.push({
+        type: 'sparkle',
+        x: x + (Math.random() - 0.5) * type.radius * 2,
+        y: y + (Math.random() - 0.5) * type.radius * 2,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        life: 1.0,
+        maxLife: 1.0,
+        size: 1 + Math.random() * 2,
+        color: type.sparkleColor,
+        gravity: 0.05,
+        fadeSpeed: 0.015,
+        twinkle: Math.random() * Math.PI * 2
+      })
+    }
+  }
+
+  // Score popup particle
+  particles.push({
+    type: 'score',
+    x: x,
+    y: y - type.radius - 10,
+    vx: 0,
+    vy: -2,
+    life: 1.0,
+    maxLife: 1.0,
+    size: 16 + (type.id * 2),
+    text: `+${type.scoreValue}`,
+    color: type.gradient[1],
+    gravity: 0,
+    fadeSpeed: 0.01
+  })
+
+  // Ring wave effect
+  particles.push({
+    type: 'ring',
+    x: x,
+    y: y,
+    life: 1.0,
+    maxLife: 1.0,
+    size: 0,
+    maxSize: type.radius * 3,
+    color: type.glowColor,
+    gravity: 0,
+    fadeSpeed: 0.03
+  })
+
+  // Animate all particles
   const animateParticles = () => {
     ctx.save()
 
-    particles.forEach(particle => {
+    particles.forEach((particle, index) => {
       if (particle.life <= 0) return
 
-      ctx.globalAlpha = particle.life
-      ctx.fillStyle = particle.color
-      ctx.beginPath()
-      ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2)
-      ctx.fill()
+      const alpha = particle.life / particle.maxLife
 
-      // Update particle
+      switch (particle.type) {
+        case 'explosion':
+          ctx.globalAlpha = alpha
+          ctx.fillStyle = particle.color
+          ctx.beginPath()
+          ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2)
+          ctx.fill()
+          break
+
+        case 'sparkle':
+          ctx.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(particle.twinkle + Date.now() * 0.01))
+          ctx.fillStyle = particle.color
+          ctx.save()
+          ctx.translate(particle.x, particle.y)
+          ctx.rotate(Date.now() * 0.005)
+          ctx.fillRect(-particle.size/2, -particle.size/2, particle.size, particle.size)
+          ctx.fillRect(-particle.size/6, -particle.size*1.5, particle.size/3, particle.size*3)
+          ctx.fillRect(-particle.size*1.5, -particle.size/6, particle.size*3, particle.size/3)
+          ctx.restore()
+          break
+
+        case 'score':
+          ctx.globalAlpha = alpha
+          ctx.fillStyle = particle.color
+          ctx.font = `bold ${particle.size}px Arial`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+          ctx.lineWidth = 2
+          ctx.strokeText(particle.text, particle.x, particle.y)
+          ctx.fillText(particle.text, particle.x, particle.y)
+          break
+
+        case 'ring':
+          const ringProgress = 1 - (particle.life / particle.maxLife)
+          const currentSize = particle.maxSize * ringProgress
+          ctx.globalAlpha = alpha * 0.6
+          ctx.strokeStyle = particle.color
+          ctx.lineWidth = 3
+          ctx.beginPath()
+          ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2)
+          ctx.stroke()
+          break
+      }
+
+      // Update particle physics
       particle.x += particle.vx
       particle.y += particle.vy
-      particle.vy += 0.3 // Gravity
-      particle.life -= 0.05
+      particle.vy += particle.gravity
+      particle.life -= particle.fadeSpeed
     })
 
     ctx.restore()
 
-    // Continue animation if particles are alive
-    if (particles.some(p => p.life > 0)) {
+    // Remove dead particles and continue animation
+    const aliveParticles = particles.filter(p => p.life > 0)
+
+    if (aliveParticles.length > 0) {
+      // Update particles array reference
+      particles.length = 0
+      particles.push(...aliveParticles)
       requestAnimationFrame(animateParticles)
     }
   }
 
   animateParticles()
-  console.log(`✨ Merge effect created for ${fruitType}`)
+  console.log(`✨ Enhanced merge effect created for ${fruitType} with ${particles.length} particles`)
 }
 
 // Handle fruit collision and potential merging
@@ -897,6 +1419,80 @@ const dropNextFruit = (x) => {
   }
 
   return null
+}
+
+// Enhanced Touch System für Mobile Optimization
+const touchState = ref({
+  isActive: false,
+  startTime: 0,
+  startPosition: { x: 0, y: 0 },
+  currentPosition: { x: 0, y: 0 },
+  hasMoved: false,
+  tapCount: 0,
+  lastTapTime: 0
+})
+
+// Multi-touch gesture prevention
+const preventMultiTouch = (event) => {
+  if (event.touches && event.touches.length > 1) {
+    event.preventDefault()
+    return true
+  }
+  return false
+}
+
+// Visual Game Over Warning System
+const createGameOverWarning = () => {
+  const canvas = gameCanvas.value?.querySelector('canvas')
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  let flashCount = 0
+  const maxFlashes = 6
+  let flashOpacity = 0
+
+  const animateWarning = () => {
+    ctx.save()
+
+    // Red warning overlay
+    ctx.globalAlpha = flashOpacity
+    ctx.fillStyle = 'rgba(231, 76, 60, 0.3)'
+    ctx.fillRect(0, 0, PHYSICS_CONFIG.canvas.width, gameOverHeight + 20)
+
+    // Warning line
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = flashOpacity > 0.5 ? '#e74c3c' : '#c0392b'
+    ctx.lineWidth = 3
+    ctx.setLineDash([10, 5])
+    ctx.beginPath()
+    ctx.moveTo(0, gameOverHeight)
+    ctx.lineTo(PHYSICS_CONFIG.canvas.width, gameOverHeight)
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    // Warning text
+    if (flashOpacity > 0.3) {
+      ctx.globalAlpha = flashOpacity
+      ctx.fillStyle = '#e74c3c'
+      ctx.font = 'bold 16px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText('⚠️ DANGER ZONE ⚠️', PHYSICS_CONFIG.canvas.width / 2, gameOverHeight - 10)
+    }
+
+    ctx.restore()
+
+    // Flash animation
+    flashOpacity = 0.5 + 0.5 * Math.sin(Date.now() * 0.01)
+    flashCount++
+
+    if (flashCount < maxFlashes * 10) {
+      requestAnimationFrame(animateWarning)
+    }
+  }
+
+  animateWarning()
 }
 
 // Check for game over condition
@@ -1069,6 +1665,9 @@ const handleDebugClearObjects = () => {
   }
 }
 
+const isMobile = () => {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0
+}
 
 const handleDebugPhysicsInfo = () => {
   if (props.isDev && physicsEngine.value) {
@@ -1183,7 +1782,8 @@ defineExpose({
           :class="{
             'game-play-area__canvas-container--paused': isGamePaused,
             'game-play-area__canvas-container--active': isGameActive && canDrop,
-            'game-play-area__canvas-container--cooldown': !canDrop
+            'game-play-area__canvas-container--cooldown': !canDrop,
+            'game-play-area__canvas-container--mobile': isMobile
           }"
           @mousedown="handlePointerDown"
           @mousemove="handlePointerMove"
@@ -1193,14 +1793,42 @@ defineExpose({
           @touchmove="handleTouchMove"
           @touchend="handleTouchEnd"
           @touchcancel="handlePointerLeave"
+          @contextmenu.prevent=""
         >
-          <!-- Drop Zone Indicator -->
+          <!-- Drop Zone Indicator mit Touch-Feedback -->
           <div
             v-if="isGameActive"
             class="game-play-area__drop-zone"
+            :class="{ 'game-play-area__drop-zone--mobile': isMobile }"
           ></div>
 
-          <!-- Canvas wird von Matter.js hier eingefügt -->
+          <!-- Enhanced Touch Feedback -->
+          <div
+            v-if="touchState.isActive && dropPreviewPosition"
+            class="game-play-area__touch-feedback"
+            :style="{
+              left: `${dropPreviewPosition}px`,
+              top: '50px',
+              transform: 'translate(-50%, -50%)',
+              background: `radial-gradient(circle, ${FRUIT_TYPES[nextFruitType]?.glowColor || '#00b894'}, transparent)`,
+            }"
+          >
+            <div class="game-play-area__touch-inner">
+              {{ FRUIT_TYPES[nextFruitType]?.emoji || '🍒' }}
+            </div>
+            <div class="game-play-area__touch-ripple"></div>
+          </div>
+
+          <!-- Mobile Trajectory Guide -->
+          <div
+            v-if="dropPreviewPosition && isGameActive && isMobile"
+            class="game-play-area__mobile-trajectory"
+            :style="{
+              left: `${dropPreviewPosition}px`,
+              height: `${PHYSICS_CONFIG.canvas.height - PHYSICS_CONFIG.dropZone.dropY}px`,
+              top: `${PHYSICS_CONFIG.dropZone.dropY}px`
+            }"
+          ></div>
         </div>
 
         <!-- Touch Feedback -->
@@ -1209,10 +1837,27 @@ defineExpose({
           class="game-play-area__touch-feedback"
           :style="{
             left: `${dropPreviewPosition}px`,
-            top: '50px'
+            top: '50px',
+            transform: 'translate(-100%, -50%) scale(1.2)',
+            background: `radial-gradient(circle, ${FRUIT_TYPES[nextFruitType]?.glowColor || '#00b894'}, transparent)`,
+            animation: 'touch-pulse-enhanced 0.6s ease-out infinite'
+          }"
+        >
+          <div class="game-play-area__touch-inner">
+            {{ FRUIT_TYPES[nextFruitType]?.emoji || '🍒' }}
+          </div>
+        </div>
+
+        <!-- Drop Trajectory Line -->
+        <div
+          v-if="dropPreviewPosition && isGameActive"
+          class="game-play-area__trajectory-line"
+          :style="{
+            left: `${dropPreviewPosition}px`,
+            height: `${PHYSICS_CONFIG.canvas.height - PHYSICS_CONFIG.dropZone.dropY}px`,
+            top: `${PHYSICS_CONFIG.dropZone.dropY}px`
           }"
         ></div>
-
         <!-- Drop Cooldown Indicator -->
         <div
           v-if="!canDrop"
@@ -1397,11 +2042,41 @@ defineExpose({
     &--cooldown {
       opacity: 0.7;
       cursor: not-allowed;
+      box-shadow:
+        0 0 20px rgba(253, 203, 110, 0.4),
+        inset 0 0 0 2px rgba(253, 203, 110, 0.2);
     }
 
     &--active {
-      box-shadow: 0 0 20px rgba(0, 184, 148, 0.3);
       cursor: crosshair;
+      box-shadow:
+        0 0 20px rgba(0, 184, 148, 0.3),
+        inset 0 0 0 2px rgba(0, 184, 148, 0.1);
+
+      &:hover {
+        box-shadow:
+          0 0 30px rgba(0, 184, 148, 0.5),
+          inset 0 0 0 2px rgba(0, 184, 148, 0.2);
+      }
+    }
+
+    &--mobile {
+      // Larger touch area
+      &::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: -10px;
+        right: -10px;
+        bottom: -10px;
+        z-index: -1;
+      }
+
+      // Enhanced visual feedback
+      &:active {
+        transform: scale(0.99);
+        transition: transform 0.1s ease;
+      }
     }
   }
 
@@ -1411,29 +2086,103 @@ defineExpose({
     top: 0;
     left: 30px;
     right: 30px;
-    height: 2px;
-    background: linear-gradient(90deg,
-      transparent 0%,
-      var(--accent-color) 50%,
-      transparent 100%
-    );
     opacity: 0.6;
     pointer-events: none;
     z-index: 5;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(0, 184, 148, 0.3) 20%,
+      rgba(0, 184, 148, 0.6) 50%,
+      rgba(0, 184, 148, 0.3) 80%,
+      transparent 100%
+    );
+    height: 3px;
+    box-shadow: 0 0 10px rgba(0, 184, 148, 0.4);
+    animation: drop-zone-glow 2s ease-in-out infinite;
+
+    &--mobile {
+      height: 4px; // Thicker für bessere Sichtbarkeit
+      box-shadow: 0 0 15px rgba(0, 184, 148, 0.6);
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: 10%;
+        right: 10%;
+        height: 8px;
+        background: rgba(0, 184, 148, 0.2);
+        border-radius: 4px;
+      }
+    }
   }
 
   // Touch feedback
   &__touch-feedback {
     position: absolute;
-    width: 20px;
-    height: 20px;
-    background: var(--accent-color);
+    width: 50px; // Larger for mobile
+    height: 50px;
     border-radius: 50%;
-    opacity: 0.8;
     pointer-events: none;
-    transform: translate(-50%, -50%);
-    animation: touch-pulse 0.3s ease-out;
     z-index: 10;
+    animation: touch-pulse-mobile 0.3s ease-out;
+
+    .game-play-area__touch-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .game-play-area__touch-ripple {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      right: -10px;
+      bottom: -10px;
+      border: 2px solid rgba(0, 184, 148, 0.5);
+      border-radius: 50%;
+      animation: ripple-expand 0.6s ease-out infinite;
+    }
+  }
+
+  &__touch-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  &__mobile-trajectory {
+    position: absolute;
+    width: 3px; // Thicker for mobile
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 184, 148, 0.9) 0%,
+        rgba(0, 184, 148, 0.6) 50%,
+        rgba(0, 184, 148, 0.2) 80%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 5;
+    transform: translateX(-50%);
+    border-radius: 1.5px;
+    box-shadow: 0 0 6px rgba(0, 184, 148, 0.4);
+  }
+
+  &__trajectory-line {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
   }
 
   // Drop cooldown indicator
@@ -1459,6 +2208,32 @@ defineExpose({
   }
 }
 
+@keyframes touch-pulse-mobile {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ripple-expand {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
 // Animations
 @keyframes touch-pulse {
   0% {
@@ -1466,12 +2241,48 @@ defineExpose({
     opacity: 1;
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.2);
+    transform: translate(-50%, -50%) scale(1);
     opacity: 0.8;
   }
   100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.8;
+  }
+}
+
+// Enhanced animations
+@keyframes touch-pulse-enhanced {
+  0% {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 0 20px rgba(0, 184, 148, 0.6);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 0 30px rgba(0, 184, 148, 0.8);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 0 20px rgba(0, 184, 148, 0.6);
+  }
+}
+
+@keyframes trajectory-pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes drop-zone-glow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.5);
   }
 }
 
@@ -1487,6 +2298,21 @@ defineExpose({
     &__game-placeholder {
       padding: var(--space-8);
     }
+  }
+}
+
+@media (max-width: 480px) {
+  .game-play-area__touch-feedback {
+    width: 60px;
+    height: 60px;
+
+    .game-play-area__touch-inner {
+      font-size: 28px;
+    }
+  }
+
+  .game-play-area__mobile-trajectory {
+    width: 4px;
   }
 }
 
@@ -1533,6 +2359,14 @@ defineExpose({
     &__cooldown-indicator {
       border: 2px solid var(--text-color);
     }
+  }
+}
+
+// High DPI displays optimization
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .game-play-area__canvas-container canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
   }
 }
 </style>
