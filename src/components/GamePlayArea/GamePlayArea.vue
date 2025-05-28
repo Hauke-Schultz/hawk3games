@@ -48,13 +48,18 @@ const PHYSICS_CONFIG = {
   },
   engine: {
     gravity: { x: 0, y: 0.8 },
-    enableSleeping: true
+    enableSleeping: true,
+    velocityIterations: 4,    // Reduziert von 6
+    positionIterations: 2,    // Reduziert von 6
+    constraintIterations: 1   // Neu hinzugefügt
   },
   render: {
     wireframes: false,
     background: 'transparent',
     showVelocity: false,
-    showAngleIndicator: false
+    showAngleIndicator: false,
+    pixelRatio: 1,           // Fixiere Pixel Ratio
+    hasBounds: true          // Aktiviere Bounds für bessere Performance
   }
 }
 
@@ -147,19 +152,58 @@ const fruits = ref([])
 const nextFruitType = ref('CHERRY')
 const gameOverHeight = 100 // Game over if fruit reaches this height
 
+let frameCount = 0
+let lastFPSCheck = Date.now()
+let performanceRunning = false
+
+const monitorPerformance = () => {
+  if (!performanceRunning) {
+    performanceRunning = true
+    console.log('📊 Performance monitoring started')
+  }
+
+  frameCount++
+  const now = Date.now()
+
+  if (now - lastFPSCheck > 1000) { // Alle Sekunde
+    const fps = Math.round((frameCount * 1000) / (now - lastFPSCheck))
+    if (props.isDev) {
+      console.log(`🎯 FPS: ${fps}, Bodies: ${fruits.value.length}`)
+    }
+    frameCount = 0
+    lastFPSCheck = now
+  }
+
+  // Nur weiterlaufen wenn Physics Engine noch aktiv ist
+  if (physicsEngine.value && performanceRunning) {
+    requestAnimationFrame(monitorPerformance)
+  } else {
+    performanceRunning = false
+    console.log('📊 Performance monitoring stopped')
+  }
+}
+
 // Physics Engine Initialization
 const initPhysics = async () => {
   try {
     console.log('🔧 Initializing Matter.js physics engine...')
 
-    // Create engine
+    // Create engine mit Performance-Optimierungen
     physicsEngine.value = Matter.Engine.create()
     physicsWorld.value = physicsEngine.value.world
 
-    // Configure engine
+    // Configure engine für bessere Performance
     physicsEngine.value.world.gravity.y = PHYSICS_CONFIG.engine.gravity.y
     physicsEngine.value.world.gravity.x = PHYSICS_CONFIG.engine.gravity.x
     physicsEngine.value.enableSleeping = PHYSICS_CONFIG.engine.enableSleeping
+
+    // NEUE Performance-Optimierungen
+    physicsEngine.value.velocityIterations = PHYSICS_CONFIG.engine.velocityIterations
+    physicsEngine.value.positionIterations = PHYSICS_CONFIG.engine.positionIterations
+    physicsEngine.value.constraintIterations = PHYSICS_CONFIG.engine.constraintIterations
+
+    // Broadphase-Optimierung für bessere Collision Detection
+    physicsEngine.value.broadphase.controller = Matter.Grid.create()
 
     // Wait for canvas to be mounted
     await nextTick()
@@ -316,12 +360,15 @@ const createFruit = (x, y, fruitType, options = {}) => {
     return null
   }
 
-  // Create Matter.js body
+  // Create Matter.js body mit Performance-Optimierungen
   const body = Matter.Bodies.circle(x, y, type.radius, {
     restitution: 0.4,
     friction: 0.3,
     frictionAir: 0.01,
     density: 0.001,
+    // PERFORMANCE: Aktiviere Sleeping für statische Früchte
+    sleepThreshold: 60,      // Schneller schlafen
+    sleepTimeScale: 1,       // Normal sleep time
     render: {
       fillStyle: type.color,
       strokeStyle: '#333',
@@ -374,9 +421,10 @@ const removeFruit = (fruitBody) => {
   if (index > -1) {
     const fruit = fruits.value[index]
     fruits.value.splice(index, 1)
-    console.log(`🗑️ Removed ${fruit.type} fruit`)
+    console.log(`🗑️ Removed ${fruit.type} fruit (index: ${index})`)
     return fruit
   }
+  console.warn('⚠️ Fruit not found for removal:', fruitBody.fruitType)
   return null
 }
 
@@ -431,16 +479,22 @@ const startPhysics = () => {
   }
 
   Matter.Render.run(physicsRender.value)
-  Matter.Runner.run(physicsRunner.value, physicsEngine.value)
 
-  // Add test objects for demo (T1.4: Basic Physics Test)
-  if (props.isDev && props.isGameActive) { // →
-    setTimeout(() => {
-      createTestObjects()
-    }, 500) // Delay to let physics settle
+  // Verwende einen Custom Runner für bessere Performance-Kontrolle
+  const runner = physicsRunner.value
+  runner.fps = 60           // Fixiere auf 60 FPS
+  runner.deltaSampleSize = 8  // Reduziere Delta Samples
+  runner.delta = 1000 / 60    // Fixiere Delta Time
+
+  Matter.Runner.run(runner, physicsEngine.value)
+
+  // STARTE PERFORMANCE MONITORING
+  if (props.isDev) {
+    monitorPerformance()
+    console.log('📊 Performance monitoring started')
   }
 
-  console.log('▶️ Physics simulation started')
+  console.log('▶️ Physics simulation started and ready for interaction')
   return true
 }
 
@@ -448,8 +502,16 @@ const startPhysics = () => {
 const setupFruitCollisions = () => {
   if (!physicsEngine.value) return
 
+  // Performance: Throttle collision events
+  let lastCollisionCheck = 0
+  const COLLISION_THROTTLE = 16 // ~60fps
+
   // Listen for collision events
   Matter.Events.on(physicsEngine.value, 'collisionStart', (event) => {
+    const now = Date.now()
+    if (now - lastCollisionCheck < COLLISION_THROTTLE) return
+    lastCollisionCheck = now
+
     event.pairs.forEach(pair => {
       const { bodyA, bodyB } = pair
 
@@ -460,7 +522,7 @@ const setupFruitCollisions = () => {
     })
   })
 
-  console.log('🔧 Fruit collision detection setup')
+  console.log('🔧 Optimized fruit collision detection setup')
 }
 
 // Visual Fruit Rendering System (T2.3)
@@ -479,42 +541,50 @@ const setupCustomRenderer = () => {
 }
 
 // Render emoji overlays on fruits
+// Render emoji overlays auf fruits - OPTIMIERT
 const renderFruitEmojis = (ctx) => {
   if (!ctx || fruits.value.length === 0) return
 
+  // Batch alle Rendering-Operationen
+  ctx.save()
+
+  // Performance: Setze einmal für alle Früchte
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
+  ctx.shadowBlur = 2
+  ctx.shadowOffsetX = 1
+  ctx.shadowOffsetY = 1
+
   fruits.value.forEach(fruit => {
     const body = fruit.body
+
+    // Skip if fruit is sleeping (Performance!)
+    if (body.isSleeping) return
+
     const { x, y } = body.position
     const { emoji, type } = fruit.data
     const fruitType = FRUIT_TYPES[type]
 
     if (!fruitType) return
 
-    // Calculate emoji size based on fruit radius
+    // Nur rendern wenn Frucht sich bewegt oder sichtbar ist
+    const isMoving = Math.abs(body.velocity.x) > 0.1 || Math.abs(body.velocity.y) > 0.1
+    const isVisible = y < PHYSICS_CONFIG.canvas.height + 50 && y > -50
+
+    if (!isVisible) return
+
     const fontSize = fruitType.radius * 1.2
 
     ctx.save()
-
-    // Position at fruit center
     ctx.translate(x, y)
     ctx.rotate(body.angle)
-
-    // Set font and alignment
     ctx.font = `${fontSize}px Arial`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-
-    // Add emoji shadow for better visibility
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
-    ctx.shadowBlur = 2
-    ctx.shadowOffsetX = 1
-    ctx.shadowOffsetY = 1
-
-    // Draw emoji
     ctx.fillText(emoji, 0, 0)
-
     ctx.restore()
   })
+
+  ctx.restore()
 }
 
 // Visual effect for merging
@@ -571,26 +641,40 @@ const createMergeEffect = (x, y, fruitType) => {
 
 // Handle fruit collision and potential merging
 const handleFruitCollision = (fruitA, fruitB) => {
-  // Only merge if same type and neither has been merged recently
+  // Prüfe ob beide Früchte noch existieren
+  const fruitAExists = fruits.value.find(f => f.body === fruitA)
+  const fruitBExists = fruits.value.find(f => f.body === fruitB)
+
+  if (!fruitAExists || !fruitBExists) {
+    return // Früchte bereits entfernt
+  }
+
+  // Nur mergen wenn gleicher Typ und noch nicht merged
   if (fruitA.fruitType === fruitB.fruitType &&
     !fruitA.fruitData.hasBeenMerged &&
     !fruitB.fruitData.hasBeenMerged) {
 
     console.log(`💥 ${fruitA.fruitType} collision detected!`)
 
-    // Schedule merge (slight delay to prevent multiple merges)
-    setTimeout(() => {
-      mergeFruits(fruitA, fruitB)
-    }, 50)
+    // SOFORTIGER Merge ohne setTimeout um Race Conditions zu vermeiden
+    mergeFruits(fruitA, fruitB)
   }
 }
 
 // Merge two fruits into next type
-
 const mergeFruits = (fruitA, fruitB) => {
   if (!physicsWorld.value) return
 
-  // Mark as merged to prevent duplicate merges
+  // Sofortige Überprüfung: Sind die Früchte bereits entfernt?
+  const fruitAExists = fruits.value.find(f => f.body === fruitA)
+  const fruitBExists = fruits.value.find(f => f.body === fruitB)
+
+  if (!fruitAExists || !fruitBExists) {
+    console.log('⚠️ Merge cancelled: One fruit already removed')
+    return
+  }
+
+  // Markiere als merged BEVOR wir sie aus der Physics-Welt entfernen
   fruitA.fruitData.hasBeenMerged = true
   fruitB.fruitData.hasBeenMerged = true
 
@@ -602,38 +686,44 @@ const mergeFruits = (fruitA, fruitB) => {
     return
   }
 
-  // Calculate merge position (midpoint)
+  // Berechne Merge-Position
   const mergeX = (fruitA.position.x + fruitB.position.x) / 2
   const mergeY = (fruitA.position.y + fruitB.position.y) / 2
 
-  // Create visual effect // →
+  // SOFORT aus Physics World und Tracking entfernen
+  Matter.World.remove(physicsWorld.value, [fruitA, fruitB])
+
+  // Entferne aus unserem Tracking Array
+  const indexA = fruits.value.findIndex(f => f.body === fruitA)
+  const indexB = fruits.value.findIndex(f => f.body === fruitB)
+
+  if (indexA > -1) fruits.value.splice(indexA, 1)
+  if (indexB > -1) {
+    // Nach dem ersten splice könnte sich der Index geändert haben
+    const newIndexB = fruits.value.findIndex(f => f.body === fruitB)
+    if (newIndexB > -1) fruits.value.splice(newIndexB, 1)
+  }
+
+  // Visueller Effekt
   createMergeEffect(mergeX, mergeY, nextType)
 
-  // Remove old fruits
-  Matter.World.remove(physicsWorld.value, [fruitA, fruitB])
-  removeFruit(fruitA)
-  removeFruit(fruitB)
+  // Erstelle neues Fruit mit leichtem Delay für bessere Physik
+  setTimeout(() => {
+    const newFruit = createFruit(mergeX, mergeY, nextType, {
+      velocity: { x: 0, y: -2 }
+    })
 
-  // Create new merged fruit
-  const newFruit = createFruit(mergeX, mergeY, nextType, {
-    // Add some upward velocity for juice
-    velocity: { x: 0, y: -2 }
-  })
+    if (newFruit) {
+      Matter.World.add(physicsWorld.value, newFruit)
 
-  if (newFruit) {
-    Matter.World.add(physicsWorld.value, newFruit)
+      // Score berechnen
+      const baseScore = FRUIT_TYPES[nextType].scoreValue
+      console.log(`🎉 Merged ${fruitType} → ${nextType} (+${baseScore} points)`)
 
-    // Calculate score
-    const baseScore = FRUIT_TYPES[nextType].scoreValue
-    const totalScore = baseScore
-
-    // Update session store
-    if (props.currentSession) {
-      emit('score-update', totalScore)
+      // Emit score update if needed
+      // emit('score-update', baseScore)
     }
-
-    console.log(`🎉 Merged ${fruitType} → ${nextType} (+${totalScore} points)`)
-  }
+  }, 100) // Kurzes Delay für stabilere Physik
 }
 
 // Game Logic and Fruit Type System (T2.4)
@@ -752,11 +842,19 @@ const stopPhysics = () => {
     Matter.Runner.stop(physicsRunner.value)
   }
 
+  // STOPPE PERFORMANCE MONITORING
+  frameCount = 0 // Reset counter
+  console.log('📊 Performance monitoring stopped')
+
   console.log('⏹️ Physics simulation stopped')
 }
 
 // Cleanup physics resources
 const cleanupPhysics = () => {
+  // STOPPE PERFORMANCE MONITORING
+  performanceRunning = false
+  frameCount = 0
+
   stopPhysics()
 
   if (physicsRender.value) {
@@ -832,8 +930,10 @@ const handleDebugClearObjects = () => {
 }
 
 const handleDebugPhysicsInfo = () => {
-  if (props.isDev && physicsEngine.value) { // →
+  if (props.isDev && physicsEngine.value) {
     const bodies = Matter.Composite.allBodies(physicsWorld.value)
+    const fps = frameCount > 0 ? Math.round((frameCount * 1000) / (Date.now() - lastFPSCheck)) : 0
+
     console.log('🔧 Physics Debug Info:', {
       engine: !!physicsEngine.value,
       world: !!physicsWorld.value,
@@ -842,7 +942,10 @@ const handleDebugPhysicsInfo = () => {
       totalBodies: bodies.length,
       staticBodies: bodies.filter(b => b.isStatic).length,
       dynamicBodies: bodies.filter(b => !b.isStatic).length,
-      gravity: physicsEngine.value.world.gravity
+      gravity: physicsEngine.value.world.gravity,
+      currentFPS: fps,
+      fruits: fruits.value.length,
+      performanceRunning: performanceRunning
     })
   }
 }
