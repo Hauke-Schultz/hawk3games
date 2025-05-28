@@ -7,7 +7,6 @@ import LevelSelection from "../LevelSelection/LevelSelection.vue"
 import GamePlayArea from "../GamePlayArea/GamePlayArea.vue"
 import DebugPanel from "../DebugPanel/DebugPanel.vue"
 import GameStatsHeader from "../GameStatsHeader/GameStatsHeader.vue"
-import SessionInfoBar from "../SessionInfoBar/SessionInfoBar.vue"
 import GameControls from "../GameControls/GameControls.vue"
 
 // Emit events to parent component
@@ -15,6 +14,7 @@ const emit = defineEmits(['back-to-menu'])
 
 // Component refs for accessing child components
 const gameStateManager = ref(null)
+const gamePlayArea = ref(null) // NEU: Für Physics Debug Integration
 
 // Event handlers for child components
 const handleBackClick = () => {
@@ -56,6 +56,24 @@ const handleDebugCompleteLevel = () => {
   gameStateManager.value?.debugCompleteCurrentLevel()
 }
 
+const handleDebugAddTestObjects = () => {
+  if (gamePlayArea.value) {
+    gamePlayArea.value.handleDebugAddTestObjects()
+  }
+}
+
+const handleDebugClearObjects = () => {
+  if (gamePlayArea.value) {
+    gamePlayArea.value.handleDebugClearObjects()
+  }
+}
+
+const handleDebugPhysicsInfo = () => {
+  if (gamePlayArea.value) {
+    gamePlayArea.value.handleDebugPhysicsInfo()
+  }
+}
+
 // Debug Panel Events
 const handleDebugUnlockAllLevels = () => {
   gameStateManager.value?.debugUnlockAllLevels()
@@ -70,7 +88,6 @@ const handleDebugCompleteCurrentLevel = () => {
 }
 
 const handleDebugResetProgress = () => {
-  // This would need to be implemented in GameStateManager
   console.log('🔄 Reset progress requested')
 }
 
@@ -90,7 +107,6 @@ const handleDebugExportData = () => {
 
 const handleDebugImportData = (data) => {
   console.log('📥 Import data requested:', data)
-  // Import logic would be implemented here
 }
 
 const handleToggleAutoSimulation = (enabled) => {
@@ -101,7 +117,6 @@ const handleToggleAutoSimulation = (enabled) => {
 // GameStateManager Events
 const handleLevelCompleted = (completionData) => {
   console.log('🎉 Level completed:', completionData)
-  // Could show completion modal, confetti, etc.
 }
 
 const handleSessionStarted = (sessionData) => {
@@ -114,6 +129,10 @@ const handleSessionEnded = (sessionData) => {
 
 const handleStoresReady = (stores) => {
   console.log('✅ Stores ready:', Object.keys(stores))
+}
+
+const getPhysicsState = () => {
+  return gamePlayArea.value?.getPhysicsState() || {}
 }
 </script>
 
@@ -173,17 +192,6 @@ const handleStoresReady = (stores) => {
           :format-number="formatNumber"
         />
 
-        <!-- Session Info Bar (when active) -->
-        <SessionInfoBar
-          v-if="(isGameActive || isGamePaused) && !showLevelSelection"
-          :current-session="currentSession"
-          :is-game-active="isGameActive"
-          :is-game-paused="isGamePaused"
-          :format-number="formatNumber"
-          @pause-game="handlePauseGame"
-          @resume-game="handleResumeGame"
-        />
-
         <!-- Main Game Content -->
         <main class="app__main fruit-merge-game__content">
           <!-- Level Selection Screen -->
@@ -200,6 +208,7 @@ const handleStoresReady = (stores) => {
           <!-- Game Play Area -->
           <GamePlayArea
             v-else
+            ref="gamePlayArea"
             :current-level="currentLevel"
             :current-session="currentSession"
             :is-game-active="isGameActive"
@@ -209,7 +218,10 @@ const handleStoresReady = (stores) => {
             @pause-game="handlePauseGame"
             @resume-game="handleResumeGame"
             @back-to-level-selection="handleBackToLevelSelection"
-            @debug-complete-level="handleDebugCompleteLevel"
+            @move-made="() => {}"
+            @debug-add-test-objects="handleDebugAddTestObjects"
+            @debug-clear-objects="handleDebugClearObjects"
+            @debug-physics-info="handleDebugPhysicsInfo"
           />
         </main>
 
@@ -221,21 +233,28 @@ const handleStoresReady = (stores) => {
           :current-level="currentLevel"
           :is-dev="isDev"
           :show-back-button="true"
-          :show-debug-controls="true"
+          :show-debug-controls="false"
           @back-to-level-selection="handleBackToLevelSelection"
           @pause-game="handlePauseGame"
           @resume-game="handleResumeGame"
-          @debug-complete-level="handleDebugCompleteLevel"
         />
 
-        <!-- Debug Panel (DEV only) -->
+        <!-- Enhanced Debug Panel (DEV only) -->
         <DebugPanel
           :is-dev="isDev"
           :visible="true"
           :position="'bottom-right'"
-          :stores="{ levelStore: gameStateManager?.levelStore, currencyStore: gameStateManager?.currencyStore, sessionStore: gameStateManager?.sessionStore }"
+          :stores="{
+            levelStore: gameStateManager?.levelStore,
+            currencyStore: gameStateManager?.currencyStore,
+            sessionStore: gameStateManager?.sessionStore
+          }"
           :current-level="currentLevel"
           :is-game-active="isGameActive"
+          :is-game-paused="isGamePaused"
+          :current-session="currentSession"
+          :format-number="formatNumber"
+          v-bind="getPhysicsState()"
           @unlock-all-levels="handleDebugUnlockAllLevels"
           @add-currency="handleDebugAddCurrencyCustom"
           @complete-current-level="handleDebugCompleteCurrentLevel"
@@ -243,6 +262,11 @@ const handleStoresReady = (stores) => {
           @export-data="handleDebugExportData"
           @import-data="handleDebugImportData"
           @toggle-auto-simulation="handleToggleAutoSimulation"
+          @debug-add-test-objects="handleDebugAddTestObjects"
+          @debug-clear-objects="handleDebugClearObjects"
+          @debug-physics-info="handleDebugPhysicsInfo"
+          @pause-game="handlePauseGame"
+          @resume-game="handleResumeGame"
         />
 
       </template>

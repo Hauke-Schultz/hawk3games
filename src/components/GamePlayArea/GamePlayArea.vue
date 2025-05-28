@@ -207,6 +207,17 @@ const getCanvasPosition = (event) => {
   return { x: clampedX, y }
 }
 
+const getPhysicsState = () => {
+  return {
+    engine: physicsEngine.value,
+    world: physicsWorld.value,
+    render: physicsRender.value,
+    runner: physicsRunner.value,
+    canDrop: canDrop.value,
+    dropPreviewPosition: dropPreviewPosition.value
+  }
+}
+
 const handlePointerMove = (event) => {
   if (!props.isGameActive) return
 
@@ -1011,8 +1022,10 @@ const emit = defineEmits([
   'pause-game',
   'resume-game',
   'back-to-level-selection',
-  'debug-complete-level',
-  'move-made'  // ← NEU
+  'move-made',
+  'debug-add-test-objects',
+  'debug-clear-objects',
+  'debug-physics-info'
 ])
 
 // Format numbers for display
@@ -1041,29 +1054,27 @@ const handleBackToLevelSelection = () => {
   emit('back-to-level-selection')
 }
 
-const handleDebugCompleteLevel = () => {
-  console.log('🏁 Debug complete level requested from GamePlayArea')
-  emit('debug-complete-level')
-}
-
 // Debug Functions (DEV only)
 const handleDebugAddTestObjects = () => {
-  if (props.isDev) { // →
+  if (props.isDev) {
     createTestObjects()
+    emit('debug-add-test-objects') // Benachrichtige DebugPanel
   }
 }
 
 const handleDebugClearObjects = () => {
-  if (props.isDev) { // →
+  if (props.isDev) {
     removeTestObjects()
+    emit('debug-clear-objects') // Benachrichtige DebugPanel
   }
 }
+
 
 const handleDebugPhysicsInfo = () => {
   if (props.isDev && physicsEngine.value) {
     const bodies = Matter.Composite.allBodies(physicsWorld.value)
 
-    console.log('🔧 Physics Debug Info:', {
+    const debugInfo = {
       engine: !!physicsEngine.value,
       world: !!physicsWorld.value,
       render: !!physicsRender.value,
@@ -1074,7 +1085,10 @@ const handleDebugPhysicsInfo = () => {
       gravity: physicsEngine.value.world.gravity,
       fruits: fruits.value.length,
       performanceRunning: performanceRunning
-    })
+    }
+
+    console.log('🔧 Physics Debug Info:', debugInfo)
+    emit('debug-physics-info', debugInfo) // Sende Info an DebugPanel
   }
 }
 
@@ -1092,6 +1106,7 @@ const gameStatusSubtitle = computed(() => {
   }
   return 'Game is active'
 })
+
 
 // Show game info when game is active or paused
 const showGameInfo = computed(() => {
@@ -1130,13 +1145,28 @@ watch(() => props.isGamePaused, (isPaused) => {
   }
 })
 
+defineExpose({
+  // Physics state
+  physicsEngine,
+  physicsWorld,
+  physicsRender,
+  physicsRunner,
+  canDrop,
+  dropPreviewPosition,
+
+  // Debug functions
+  handleDebugAddTestObjects,
+  handleDebugClearObjects,
+  handleDebugPhysicsInfo,
+  getPhysicsState
+})
 </script>
 
 <template>
   <div class="game-play-area">
     <div class="game-play-area__game-container">
 
-      <!-- Fruit Drop Preview - NEU! -->
+      <!-- Fruit Drop Preview -->
       <FruitDropPreview
         :next-fruit-type="nextFruitType"
         :canvas-width="PHYSICS_CONFIG.canvas.width"
@@ -1158,7 +1188,7 @@ watch(() => props.isGamePaused, (isPaused) => {
 
       <!-- Physics Game Area -->
       <div class="game-play-area__game-physics">
-        <!-- Physics Canvas Container - ERWEITERTE EVENTS! -->
+        <!-- Physics Canvas Container -->
         <div
           ref="gameCanvas"
           class="game-play-area__canvas-container"
@@ -1176,7 +1206,7 @@ watch(() => props.isGamePaused, (isPaused) => {
           @touchend="handleTouchEnd"
           @touchcancel="handlePointerLeave"
         >
-          <!-- Drop Zone Indicator - NEU! -->
+          <!-- Drop Zone Indicator -->
           <div
             v-if="isGameActive"
             class="game-play-area__drop-zone"
@@ -1185,7 +1215,7 @@ watch(() => props.isGamePaused, (isPaused) => {
           <!-- Canvas wird von Matter.js hier eingefügt -->
         </div>
 
-        <!-- Touch Feedback - NEU! -->
+        <!-- Touch Feedback -->
         <div
           v-if="isPointerDown && dropPreviewPosition"
           class="game-play-area__touch-feedback"
@@ -1195,36 +1225,16 @@ watch(() => props.isGamePaused, (isPaused) => {
           }"
         ></div>
 
-        <!-- Drop Cooldown Indicator - NEU! -->
+        <!-- Drop Cooldown Indicator -->
         <div
           v-if="!canDrop"
           class="game-play-area__cooldown-indicator"
         >
           <span>⏳ Wait {{ Math.ceil(dropCooldown / 1000) }}s...</span>
         </div>
-
-        <!-- Physics Debug Info (DEV only) -->
-        <div v-if="props.isDev" class="game-play-area__physics-debug">
-          <p>Engine: {{ physicsEngine ? '✅' : '❌' }}</p>
-          <p>Render: {{ physicsRender ? '✅' : '❌' }}</p>
-          <p>Runner: {{ physicsRunner ? '✅' : '❌' }}</p>
-          <p>Can Drop: {{ canDrop ? '✅' : '❌' }}</p>
-          <p>Touch Position: {{ dropPreviewPosition || 'None' }}</p>
-          <div class="game-play-area__debug-controls">
-            <button @click="handleDebugAddTestObjects" class="btn btn--small">
-              🧪 Add Objects
-            </button>
-            <button @click="handleDebugClearObjects" class="btn btn--small">
-              🧹 Clear Objects
-            </button>
-            <button @click="handleDebugPhysicsInfo" class="btn btn--small">
-              📊 Physics Info
-            </button>
-          </div>
-        </div>
       </div>
 
-      <!-- Original placeholder als fallback -->
+      <!-- Fallback für nicht-initialisierte Physics -->
       <div v-if="!physicsEngine" class="game-play-area__game-placeholder">
         <p class="game-play-area__placeholder-text">
           Initializing Physics Engine...
@@ -1233,7 +1243,7 @@ watch(() => props.isGamePaused, (isPaused) => {
           {{ gameStatusSubtitle }}
         </p>
 
-        <!-- Game Controls -->
+        <!-- Basic Game Controls -->
         <div class="game-play-area__game-controls">
           <button
             v-if="!isGamePaused"
@@ -1256,15 +1266,6 @@ watch(() => props.isGamePaused, (isPaused) => {
             class="btn btn--ghost"
           >
             🔙 Back to Level Selection
-          </button>
-
-          <button
-            v-if="isDev"
-            @click="handleDebugCompleteLevel"
-            class="btn btn--small"
-            style="margin-top: 1rem;"
-          >
-            🏁 Complete Level (DEBUG)
           </button>
         </div>
       </div>
@@ -1328,7 +1329,7 @@ watch(() => props.isGamePaused, (isPaused) => {
     }
   }
 
-  // Game Placeholder Element (will be replaced with actual game)
+  // Game Placeholder Element (fallback während Physics-Init)
   &__game-placeholder {
     padding: var(--space-6);
     text-align: center;
@@ -1352,7 +1353,7 @@ watch(() => props.isGamePaused, (isPaused) => {
     color: var(--text-secondary);
   }
 
-  // Game Controls Element
+  // Game Controls Element - VEREINFACHT
   &__game-controls {
     display: flex;
     flex-direction: column;
@@ -1376,6 +1377,7 @@ watch(() => props.isGamePaused, (isPaused) => {
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
+    position: relative;
   }
 
   // Canvas Container Element
@@ -1386,8 +1388,8 @@ watch(() => props.isGamePaused, (isPaused) => {
     overflow: hidden;
     position: relative;
     cursor: pointer;
-    user-select: none; // Prevent text selection during drag
-    touch-action: none; // Optimize touch handling
+    user-select: none;
+    touch-action: none;
 
     &:hover {
       border-color: var(--accent-color);
@@ -1401,7 +1403,7 @@ watch(() => props.isGamePaused, (isPaused) => {
     &--paused {
       opacity: 0.7;
       filter: grayscale(0.3);
-      cursor: not-allowed; // →
+      cursor: not-allowed;
     }
 
     &--cooldown {
@@ -1412,34 +1414,6 @@ watch(() => props.isGamePaused, (isPaused) => {
     &--active {
       box-shadow: 0 0 20px rgba(0, 184, 148, 0.3);
       cursor: crosshair;
-    }
-  }
-
-  // Physics Debug Element (DEV only)
-  &__physics-debug {
-    margin-top: var(--space-2);
-    padding: var(--space-2);
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    border-radius: var(--border-radius-md);
-    font-family: 'Courier New', monospace;
-    font-size: var(--font-size-xs);
-
-    p {
-      margin: 0;
-      line-height: 1.2;
-    }
-  }
-
-  &__debug-controls {
-    display: flex;
-    gap: var(--space-1);
-    margin-top: var(--space-2);
-    flex-wrap: wrap;
-
-    button {
-      font-size: 10px;
-      padding: var(--space-1) var(--space-2);
     }
   }
 
@@ -1457,6 +1431,7 @@ watch(() => props.isGamePaused, (isPaused) => {
     );
     opacity: 0.6;
     pointer-events: none;
+    z-index: 5;
   }
 
   // Touch feedback
@@ -1470,19 +1445,60 @@ watch(() => props.isGamePaused, (isPaused) => {
     pointer-events: none;
     transform: translate(-50%, -50%);
     animation: touch-pulse 0.3s ease-out;
+    z-index: 10;
+  }
+
+  // Drop cooldown indicator
+  &__cooldown-indicator {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(253, 203, 110, 0.9);
+    color: var(--text-color);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+    z-index: 15;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
   }
 }
 
+// Animations
 @keyframes touch-pulse {
-  0% { transform: translate(-50%, -50%) scale(0); }
-  50% { transform: translate(-50%, -50%) scale(1.2); }
-  100% { transform: translate(-50%, -50%) scale(1); }
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
 }
 
 // Responsive adjustments
 @media (min-width: vars.$breakpoint-md) {
   .game-play-area {
     padding: var(--space-8);
+
+    &__game-status {
+      padding: var(--space-6);
+    }
+
+    &__game-placeholder {
+      padding: var(--space-8);
+    }
   }
 }
 
@@ -1490,12 +1506,45 @@ watch(() => props.isGamePaused, (isPaused) => {
 .game-play-area__game-container {
   // Paused state styling
   &[data-game-paused="true"] {
-    opacity: 0.8;
+    .game-play-area__canvas-container {
+      filter: grayscale(0.5);
+    }
+  }
 
-    .game-play-area__game-placeholder {
-      filter: grayscale(0.3);
+  // Active state styling
+  &[data-game-active="true"] {
+    .game-play-area__canvas-container {
+      border-color: var(--accent-color);
     }
   }
 }
 
+// Accessibility improvements
+@media (prefers-reduced-motion: reduce) {
+  .game-play-area__touch-feedback {
+    animation: none;
+  }
+
+  .game-play-area__canvas-container:hover {
+    transform: none;
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .game-play-area {
+    &__canvas-container {
+      border-width: 3px;
+    }
+
+    &__drop-zone {
+      height: 3px;
+      opacity: 1;
+    }
+
+    &__cooldown-indicator {
+      border: 2px solid var(--text-color);
+    }
+  }
+}
 </style>

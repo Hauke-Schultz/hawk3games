@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 
 // Props for debug configuration
 const props = defineProps({
@@ -27,6 +27,18 @@ const props = defineProps({
   isGameActive: {
     type: Boolean,
     default: false
+  },
+  currentSession: {
+    type: Object,
+    default: () => ({})
+  },
+  isGamePaused: {
+    type: Boolean,
+    default: false
+  },
+  formatNumber: {
+    type: Function,
+    default: (num) => num.toString()
   }
 })
 
@@ -38,12 +50,19 @@ const emit = defineEmits([
   'reset-progress',
   'export-data',
   'import-data',
-  'toggle-auto-simulation'
+  'toggle-auto-simulation',
+  'debug-add-test-objects',
+  'debug-clear-objects',
+  'debug-physics-info',
+  'pause-game',
+  'resume-game'
 ])
 
 // Local state
 const isExpanded = ref(false)
 const showAdvancedTools = ref(false)
+const showPhysicsDebug = ref(false)
+const showSessionInfo = ref(true)
 const customCoinAmount = ref(1000)
 const customDiamondAmount = ref(100)
 const autoSimulation = ref(false)
@@ -52,6 +71,40 @@ const showFPS = ref(false)
 // Computed visibility
 const shouldShow = computed(() => {
   return props.isDev && props.visible
+})
+
+// Physics monitoring
+const physicsStats = ref({
+  totalBodies: 0,
+  staticBodies: 0,
+  dynamicBodies: 0,
+  performanceRunning: false
+})
+
+// Session stats formatting
+const formattedScore = computed(() => {
+  return props.formatNumber(props.currentSession?.score || 0)
+})
+
+const showCombo = computed(() => {
+  return (props.currentSession?.combo || 0) > 1
+})
+
+const sessionStats = computed(() => {
+  if (!props.currentSession) return []
+
+  return [
+    {
+      icon: '🎯',
+      label: 'moves',
+      value: props.currentSession.moves || 0
+    },
+    {
+      icon: '📊',
+      label: 'points',
+      value: formattedScore.value
+    }
+  ]
 })
 
 const positionClasses = computed(() => {
@@ -131,6 +184,48 @@ const handleToggleFPS = () => {
   showFPS.value = !showFPS.value
   console.log(`📊 Debug: FPS display ${showFPS.value ? 'enabled' : 'disabled'}`)
 }
+const handleDebugAddTestObjects = () => {
+  console.log('🧪 Debug: Add test physics objects')
+  emit('debug-add-test-objects')
+}
+
+const handleDebugClearObjects = () => {
+  console.log('🧹 Debug: Clear physics objects')
+  emit('debug-clear-objects')
+}
+
+const handleDebugPhysicsInfo = () => {
+  console.log('📊 Debug: Show physics info')
+  emit('debug-physics-info')
+  updatePhysicsStats()
+}
+
+// NEU: Session control handlers
+const handlePauseGame = () => {
+  console.log('⏸️ Debug: Pause game')
+  emit('pause-game')
+}
+
+const handleResumeGame = () => {
+  console.log('▶️ Debug: Resume game')
+  emit('resume-game')
+}
+
+const updatePhysicsStats = () => {
+  if (props.physicsWorld) {
+    try {
+      const bodies = props.physicsWorld.bodies || []
+      physicsStats.value = {
+        totalBodies: bodies.length,
+        staticBodies: bodies.filter(b => b.isStatic).length,
+        dynamicBodies: bodies.filter(b => !b.isStatic).length,
+        performanceRunning: !!props.physicsRunner
+      }
+    } catch (error) {
+      console.warn('Could not update physics stats:', error)
+    }
+  }
+}
 
 // Store statistics display
 const getStoreInfo = () => {
@@ -148,14 +243,11 @@ const getStoreInfo = () => {
   }
 }
 
-// Keyboard shortcuts
 const handleKeydown = (event) => {
   if (!shouldShow.value) return
 
-  // Only trigger shortcuts when not in input fields
   if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
 
-  // Check if user is typing in any input field
   const activeElement = document.activeElement
   if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
     return
@@ -198,20 +290,42 @@ const handleKeydown = (event) => {
         handleToggleAutoSimulation()
       }
       break
+    case 'p':
+      if (event.ctrlKey && event.shiftKey) {
+        event.preventDefault()
+        showPhysicsDebug.value = !showPhysicsDebug.value
+      }
+      break
+    case 'space':
+      if (event.ctrlKey) {
+        event.preventDefault()
+        if (props.isGamePaused) {
+          handleResumeGame()
+        } else if (props.isGameActive) {
+          handlePauseGame()
+        }
+      }
+      break
   }
 }
 
-// Lifecycle
+watch([() => props.physicsWorld, () => props.physicsEngine], () => {
+  if (showPhysicsDebug.value) {
+    updatePhysicsStats()
+  }
+}, { deep: true })
 onMounted(() => {
   if (shouldShow.value) {
     document.addEventListener('keydown', handleKeydown, { passive: false })
-    console.log('🛠️ Debug Panel mounted. Keyboard shortcuts:')
+    console.log('🛠️ Debug Panel mounted. Enhanced keyboard shortcuts:')
     console.log('  Ctrl+U: Unlock all levels')
     console.log('  Ctrl+Shift+C: Add currency')
     console.log('  Ctrl+Shift+L: Complete level')
     console.log('  Ctrl+Shift+D: Toggle debug panel')
     console.log('  Ctrl+Shift+F: Toggle FPS display')
     console.log('  Ctrl+Shift+S: Toggle auto simulation')
+    console.log('  Ctrl+Shift+P: Toggle physics debug')
+    console.log('  Ctrl+Space: Pause/Resume game')
   }
 })
 
@@ -254,14 +368,83 @@ const formatNumber = (num) => {
     >
       <!-- Header -->
       <div class="debug-panel__header">
-        <h3 class="debug-panel__title">Debug Tools</h3>
-        <button
-          @click="showAdvancedTools = !showAdvancedTools"
-          class="debug-panel__advanced-toggle"
-          :class="{ 'active': showAdvancedTools }"
-        >
-          {{ showAdvancedTools ? '🔽' : '▶️' }} Advanced
-        </button>
+        <h3 class="debug-panel__title">Debug Console</h3>
+        <div class="debug-panel__header-controls">
+          <button
+            @click="showAdvancedTools = !showAdvancedTools"
+            class="debug-panel__toggle-btn"
+            :class="{ 'active': showAdvancedTools }"
+          >
+            {{ showAdvancedTools ? '🔽' : '▶️' }} Advanced
+          </button>
+          <button
+            @click="showSessionInfo = !showSessionInfo"
+            class="debug-panel__toggle-btn"
+            :class="{ 'active': showSessionInfo }"
+          >
+            {{ showSessionInfo ? '🔽' : '▶️' }} Session
+          </button>
+          <button
+            @click="showPhysicsDebug = !showPhysicsDebug"
+            class="debug-panel__toggle-btn"
+            :class="{ 'active': showPhysicsDebug }"
+          >
+            {{ showPhysicsDebug ? '🔽' : '▶️' }} Physics
+          </button>
+        </div>
+      </div>
+
+      <!-- NEU: Session Info Section -->
+      <div v-if="showSessionInfo" class="debug-panel__section">
+        <h4 class="debug-panel__section-title">Live Session Info</h4>
+
+        <!-- Session Statistics -->
+        <div class="debug-panel__session-stats">
+          <span
+            v-for="stat in sessionStats"
+            :key="stat.label"
+            class="debug-panel__session-stat"
+          >
+            {{ stat.icon }} {{ stat.value }} {{ stat.label }}
+          </span>
+
+          <!-- Combo Display -->
+          <span
+            v-if="showCombo"
+            class="debug-panel__session-stat debug-panel__session-stat--combo"
+          >
+            🔥 {{ currentSession.combo }}x combo
+          </span>
+        </div>
+
+        <!-- Session Controls -->
+        <div class="debug-panel__session-controls">
+          <!-- Pause Button -->
+          <button
+            v-if="isGameActive && !isGamePaused"
+            @click="handlePauseGame"
+            class="debug-panel__button debug-panel__button--warning"
+          >
+            ⏸️ Pause
+          </button>
+
+          <!-- Resume Button -->
+          <button
+            v-else-if="isGamePaused"
+            @click="handleResumeGame"
+            class="debug-panel__button debug-panel__button--success"
+          >
+            ▶️ Resume
+          </button>
+
+          <!-- Status when game not active -->
+          <span
+            v-else-if="!isGameActive"
+            class="debug-panel__session-status"
+          >
+            Game Ready
+          </span>
+        </div>
       </div>
 
       <!-- Quick Actions -->
@@ -328,7 +511,7 @@ const formatNumber = (num) => {
             Level: {{ currentLevel }}
           </div>
           <div class="debug-panel__status-item">
-            Game: {{ isGameActive ? '🟢 Active' : '🔴 Inactive' }}
+            Game: {{ isGameActive ? '🟢 Active' : (isGamePaused ? '🟡 Paused' : '🔴 Inactive') }}
           </div>
           <div class="debug-panel__status-item">
             <label>
@@ -350,6 +533,68 @@ const formatNumber = (num) => {
               Show FPS
             </label>
           </div>
+        </div>
+      </div>
+
+      <!-- Physics Debug Section -->
+      <div v-if="showPhysicsDebug" class="debug-panel__section">
+        <h4 class="debug-panel__section-title">Physics Debug</h4>
+
+        <!-- Physics Status -->
+        <div class="debug-panel__physics-status">
+          <div class="debug-panel__status-item">
+            Engine: {{ physicsEngine ? '✅' : '❌' }}
+          </div>
+          <div class="debug-panel__status-item">
+            Render: {{ physicsRender ? '✅' : '❌' }}
+          </div>
+          <div class="debug-panel__status-item">
+            Runner: {{ physicsRunner ? '✅' : '❌' }}
+          </div>
+          <div class="debug-panel__status-item">
+            Can Drop: {{ canDrop ? '✅' : '❌' }}
+          </div>
+          <div class="debug-panel__status-item">
+            Touch Pos: {{ dropPreviewPosition || 'None' }}
+          </div>
+        </div>
+
+        <!-- Physics Statistics -->
+        <div v-if="physicsWorld" class="debug-panel__physics-stats">
+          <div class="debug-panel__status-item">
+            Total Bodies: {{ physicsStats.totalBodies }}
+          </div>
+          <div class="debug-panel__status-item">
+            Static: {{ physicsStats.staticBodies }}
+          </div>
+          <div class="debug-panel__status-item">
+            Dynamic: {{ physicsStats.dynamicBodies }}
+          </div>
+          <div class="debug-panel__status-item">
+            Performance: {{ physicsStats.performanceRunning ? '🟢' : '🔴' }}
+          </div>
+        </div>
+
+        <!-- Physics Controls -->
+        <div class="debug-panel__physics-controls">
+          <button
+            @click="handleDebugAddTestObjects"
+            class="debug-panel__button"
+          >
+            🧪 Add Objects
+          </button>
+          <button
+            @click="handleDebugClearObjects"
+            class="debug-panel__button"
+          >
+            🧹 Clear Objects
+          </button>
+          <button
+            @click="handleDebugPhysicsInfo"
+            class="debug-panel__button"
+          >
+            📊 Physics Info
+          </button>
         </div>
       </div>
 
@@ -380,7 +625,7 @@ const formatNumber = (num) => {
 
       <!-- Store Statistics -->
       <div v-if="showAdvancedTools && getStoreInfo()" class="debug-panel__section">
-        <h4 class="debug-panel__section-title">Statistics</h4>
+        <h4 class="debug-panel__section-title">Store Statistics</h4>
         <div class="debug-panel__stats">
           <div class="debug-panel__stat">
             Levels: {{ getStoreInfo()?.levels?.completedCount || 0 }}/{{ getStoreInfo()?.levels?.totalLevels || 9 }}
@@ -389,14 +634,14 @@ const formatNumber = (num) => {
             Stars: {{ getStoreInfo()?.levels?.totalStars || 0 }}
           </div>
           <div v-if="showFPS && getStoreInfo()" class="debug-panel__stat">
-            FPS: {{ Math.round(averageFPS.value || 60) }}
+            FPS: {{ Math.round(averageFPS || 60) }}
           </div>
         </div>
       </div>
 
-      <!-- Keyboard Shortcuts Help -->
+      <!-- Enhanced Keyboard Shortcuts Help -->
       <div v-if="showAdvancedTools" class="debug-panel__section">
-        <h4 class="debug-panel__section-title">Shortcuts</h4>
+        <h4 class="debug-panel__section-title">Keyboard Shortcuts</h4>
         <div class="debug-panel__shortcuts">
           <div>Ctrl+U: Unlock levels</div>
           <div>Ctrl+Shift+C: Add currency</div>
@@ -404,6 +649,8 @@ const formatNumber = (num) => {
           <div>Ctrl+Shift+D: Toggle panel</div>
           <div>Ctrl+Shift+F: Toggle FPS</div>
           <div>Ctrl+Shift+S: Toggle simulation</div>
+          <div>Ctrl+Shift+P: Toggle physics</div>
+          <div>Ctrl+Space: Pause/Resume</div>
         </div>
       </div>
     </div>
@@ -475,9 +722,9 @@ const formatNumber = (num) => {
     color: white;
     border-radius: 8px;
     padding: 16px;
-    min-width: 280px;
-    max-width: 350px;
-    max-height: 80vh;
+    min-width: 320px;
+    max-width: 400px;
+    max-height: 85vh;
     overflow-y: auto;
     margin-top: -1px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
@@ -487,8 +734,8 @@ const formatNumber = (num) => {
   // Header Element
   &__header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 8px;
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -498,20 +745,27 @@ const formatNumber = (num) => {
     margin: 0;
     font-size: 14px;
     font-weight: bold;
+    color: #00b894;
   }
 
-  &__advanced-toggle {
+  &__header-controls {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  &__toggle-btn {
     background: transparent;
-    color: #00b894;
-    border: 1px solid #00b894;
+    color: #74b9ff;
+    border: 1px solid #74b9ff;
     border-radius: 4px;
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: 9px;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover, &.active {
-      background: #00b894;
+      background: #74b9ff;
       color: white;
     }
   }
@@ -534,6 +788,55 @@ const formatNumber = (num) => {
     font-weight: bold;
     color: #00b894;
     text-transform: uppercase;
+  }
+
+  // NEU: Session Info Elements
+  &__session-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  &__session-stat {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &--combo {
+      color: #00b894;
+      font-weight: bold;
+      animation: pulse-combo 0.5s ease-in-out;
+    }
+  }
+
+  &__session-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  &__session-status {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+  }
+
+  // NEU: Physics Debug Elements
+  &__physics-status,
+  &__physics-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  &__physics-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
   }
 
   // Buttons Element
@@ -570,6 +873,25 @@ const formatNumber = (num) => {
 
       &:hover:not(:disabled) {
         background: #00a085;
+      }
+    }
+
+    &--success {
+      background: #00b894;
+      border-color: #00b894;
+
+      &:hover:not(:disabled) {
+        background: #00cec9;
+      }
+    }
+
+    &--warning {
+      background: #fdcb6e;
+      border-color: #fdcb6e;
+      color: #2d3436;
+
+      &:hover:not(:disabled) {
+        background: #f39c12;
       }
     }
 
@@ -668,11 +990,27 @@ const formatNumber = (num) => {
   }
 }
 
+// Animations
+@keyframes pulse-combo {
+  0% {
+    transform: scale(1);
+    text-shadow: none;
+  }
+  50% {
+    transform: scale(1.05);
+    text-shadow: 0 0 10px rgba(0, 184, 148, 0.5);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: none;
+  }
+}
+
 // Responsive adjustments for smaller screens
 @media (max-width: vars.$breakpoint-sm) {
   .debug-panel {
     &__content {
-      min-width: 250px;
+      min-width: 280px;
       max-width: calc(100vw - 40px);
     }
 
@@ -687,6 +1025,46 @@ const formatNumber = (num) => {
 
     &--bottom-left {
       left: 10px;
+    }
+
+    &__header-controls {
+      justify-content: center;
+    }
+
+    &__session-stats {
+      text-align: center;
+    }
+
+    &__physics-status,
+    &__physics-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Accessibility improvements
+@media (prefers-reduced-motion: reduce) {
+  .debug-panel__session-stat--combo {
+    animation: none;
+  }
+
+  .debug-panel__toggle:hover {
+    transform: none;
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .debug-panel {
+    &__content {
+      border-width: 2px;
+    }
+
+    &__session-stat--combo {
+      text-shadow: none;
+      outline: 1px solid #00b894;
+      padding: 2px 4px;
+      border-radius: 2px;
     }
   }
 }
