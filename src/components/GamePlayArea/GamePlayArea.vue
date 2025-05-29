@@ -1,7 +1,6 @@
 <script setup>
 import {computed, ref, onMounted, onUnmounted, nextTick, watch} from 'vue'
 import Matter from 'matter-js'
-import FruitDropPreview from '../FruitDropPreview/FruitDropPreview.vue'
 
 // Props for game state and session data
 const props = defineProps({
@@ -43,6 +42,7 @@ const physicsRunner = ref(null)
 const dropPreviewPosition = ref(null)
 const isPointerDown = ref(false)
 const canDrop = ref(true)
+const activeFruit = ref(null)
 const dropCooldown = 500 // Milliseconds between drops
 let dropCooldownTimer = null
 
@@ -88,18 +88,18 @@ const PHYSICS_CONFIG = {
 
 // Fruit Configuration System
 const FRUIT_TYPES = {
-  CHERRY: {
+  BLUEBERRY: {
     id: 1,
-    emoji: '🍒',
+    emoji: '🫐',
     radius: 15,
     nextType: 'STRAWBERRY',
-    color: '#ff6b6b',
+    color: '#4c6ef5',
     scoreValue: 10,
-    gradient: ['#ff8a80', '#ff6b6b', '#e53935'],
-    shadow: '0 2px 8px rgba(229, 57, 53, 0.4)',
-    glowColor: 'rgba(255, 107, 107, 0.6)',
+    gradient: ['#748ffc', '#4c6ef5', '#364fc7'],
+    shadow: '0 2px 8px rgba(54, 79, 199, 0.4)',
+    glowColor: 'rgba(76, 110, 245, 0.6)',
     bounceScale: 1.1,
-    sparkleColor: '#ffcdd2'
+    sparkleColor: '#c5dbff'
   },
   STRAWBERRY: {
     id: 2,
@@ -209,10 +209,10 @@ const FRUIT_TYPES = {
 
 // Fruit spawning probability (for random drops)
 const FRUIT_SPAWN_WEIGHTS = {
-  CHERRY: 0.4,      // 40% chance
-  STRAWBERRY: 0.3,  // 30% chance
-  GRAPE: 0.2,       // 20% chance
-  ORANGE: 0.1       // 10% chance
+  BLUEBERRY: 0.4,    // 40% chance
+  STRAWBERRY: 0.3,   // 30% chance
+  GRAPE: 0.2,        // 20% chance
+  ORANGE: 0.1        // 10% chance
   // Higher fruits only through merging
 }
 
@@ -322,22 +322,7 @@ const getPhysicsState = () => {
   }
 }
 
-const handlePointerMove = (event) => {
-  if (!props.isGameActive) return
-
-  const position = getCanvasPosition(event)
-  if (position) {
-    const oldPosition = dropPreviewPosition.value
-    dropPreviewPosition.value = position.x
-    lastTouchPosition.value = position
-
-    // Smooth preview animation on position change
-    if (oldPosition !== null && Math.abs(oldPosition - position.x) > 5) {
-      createPreviewUpdateEffect(position.x)
-    }
-  }
-}
-
+// Enhanced Touch/Click Event Handlers - Immediate fruit creation on pointer down
 const handlePointerDown = (event) => {
   if (!props.isGameActive || !canDrop.value) return
 
@@ -346,8 +331,41 @@ const handlePointerDown = (event) => {
 
   const position = getCanvasPosition(event)
   if (position) {
+    // Store the position where user wants to drop
     dropPreviewPosition.value = position.x
     lastTouchPosition.value = position
+
+    // Visual feedback for touch start
+    createTouchStartEffect(position.x, PHYSICS_CONFIG.dropZone.dropY)
+
+    // Haptic feedback for modern browsers
+    if (navigator.vibrate) {
+      navigator.vibrate(5) // Short vibration
+    }
+
+    console.log(`👆 Fruit ready to drop at x: ${position.x}`)
+  }
+}
+
+const handlePointerMove = (event) => {
+  if (!props.isGameActive) return
+
+  const position = getCanvasPosition(event)
+  if (!position) return
+
+  // Always update preview position (whether pressed or not)
+  const oldPosition = dropPreviewPosition.value
+  dropPreviewPosition.value = position.x
+  lastTouchPosition.value = position
+
+  // Smooth preview animation on position change
+  if (oldPosition !== null && Math.abs(oldPosition - position.x) > 5) {
+    createPreviewUpdateEffect(position.x)
+  }
+
+  // Create touch trail effect during drag
+  if (isPointerDown.value) {
+    createTouchTrailEffect(position.x, PHYSICS_CONFIG.dropZone.dropY)
   }
 }
 
@@ -358,13 +376,44 @@ const handlePointerUp = (event) => {
   isPointerDown.value = false
 
   const position = getCanvasPosition(event)
-  if (position) {
-    performDrop(position.x)
+  if (position && dropPreviewPosition.value) {
+    // Create and drop the actual fruit at the preview position
+    const droppedFruit = dropNextFruit(dropPreviewPosition.value)
+
+    if (droppedFruit) {
+      // Enhanced haptic feedback for successful drop
+      if (navigator.vibrate) {
+        navigator.vibrate([10, 5, 10]) // Pattern vibration
+      }
+
+      // Visual feedback for the drop
+      createDropFeedback(dropPreviewPosition.value)
+
+      // Emit move event for session tracking
+      emit('move-made')
+
+      // Check for game over after a delay
+      setTimeout(() => {
+        checkGameOver()
+      }, 1000)
+
+      console.log(`🎯 Dropped ${nextFruitType.value} at x: ${dropPreviewPosition.value}`)
+    }
+
+    // Start cooldown
+    canDrop.value = false
+    if (dropCooldownTimer) clearTimeout(dropCooldownTimer)
+    dropCooldownTimer = setTimeout(() => {
+      canDrop.value = true
+    }, dropCooldown)
   }
+
+  // Reset touch state
+  isDragging.value = false
 }
 
 const handlePointerLeave = () => {
-  dropPreviewPosition.value = null
+  //dropPreviewPosition.value = null
   isPointerDown.value = false
   isDragging.value = false
 }
@@ -464,7 +513,7 @@ const handleTouchEnd = (event) => {
   // Clear preview after delay
   setTimeout(() => {
     if (!touchState.value.isActive) {
-      dropPreviewPosition.value = null
+      //dropPreviewPosition.value = null
     }
   }, 100)
 }
@@ -619,7 +668,7 @@ const performDrop = (x) => {
   }, dropCooldown)
 
   // Hide preview
-  dropPreviewPosition.value = null
+  //dropPreviewPosition.value = null
 }
 
 // Visual drop feedback
@@ -922,7 +971,7 @@ const getRandomFruitType = () => {
     }
   }
 
-  return 'CHERRY' // Fallback
+  return 'BLUEBERRY'
 }
 
 // Remove fruit from tracking
@@ -1032,110 +1081,133 @@ const setupCustomRenderer = () => {
 
 // Visual Fruit Rendering with Gradients and Animations
 const renderFruitEmojis = (ctx) => {
-  if (!ctx || fruits.value.length === 0) return
+  if (!ctx) return
 
   ctx.save()
 
-  fruits.value.forEach(fruit => {
-    const body = fruit.body
+  // 1. Render all existing fruits in the physics world
+  if (fruits.value.length > 0) {
+    fruits.value.forEach(fruit => {
+      const body = fruit.body
 
-    // Skip if fruit is sleeping (Performance!)
-    if (body.isSleeping) return
+      // Skip if fruit is sleeping (Performance!)
+      if (body.isSleeping) return
 
-    const { x, y } = body.position
-    const { emoji, type } = fruit.data
-    const fruitType = FRUIT_TYPES[type]
+      const { x, y } = body.position
+      const { emoji, type } = fruit.data
+      const fruitType = FRUIT_TYPES[type]
 
-    if (!fruitType) return
+      if (!fruitType) return
 
-    const isMoving = Math.abs(body.velocity.x) > 0.1 || Math.abs(body.velocity.y) > 0.1
-    const isVisible = y < PHYSICS_CONFIG.canvas.height + 50 && y > -50
+      const isMoving = Math.abs(body.velocity.x) > 0.1 || Math.abs(body.velocity.y) > 0.1
+      const isVisible = y < PHYSICS_CONFIG.canvas.height + 50 && y > -50
 
-    if (!isVisible) return
+      if (!isVisible) return
 
-    const radius = fruitType.radius
-    const fontSize = radius * 1.2
+      // Render real fruit with full effects
+      renderSingleFruit(ctx, x, y, fruitType, body, 1.0) // Full opacity
+    })
+  }
 
-    // Animation scale from creation or bouncing
-    const animationScale = body.animationScale || 1
-    const animationOpacity = body.animationOpacity !== undefined ? body.animationOpacity : 1
-    const bounceScale = isMoving ? fruitType.bounceScale : 1
-    const finalScale = animationScale * bounceScale
+  // 2. Render preview fruit at mouse position (always visible when game active)
+  if (dropPreviewPosition.value && props.isGameActive && nextFruitType.value) {
+    const previewType = FRUIT_TYPES[nextFruitType.value]
+    if (previewType) {
+      const previewX = dropPreviewPosition.value
+      const previewY = PHYSICS_CONFIG.dropZone.dropY
 
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.rotate(body.angle)
-    ctx.scale(finalScale, finalScale)
-    ctx.globalAlpha = animationOpacity
-
-    // 1. Glow effect for moving fruits
-    if (isMoving) {
-      ctx.shadowColor = fruitType.glowColor
-      ctx.shadowBlur = 12
-      ctx.shadowOffsetX = 0
-      ctx.shadowOffsetY = 0
+      // Render preview fruit with same effects but slightly transparent
+      const previewOpacity = isPointerDown.value ? 0.9 : 0.7 // More solid when dragging
+      renderSingleFruit(ctx, previewX, previewY, previewType, null, previewOpacity)
     }
+  }
 
-    // 2. Gradient background circle - KORRIGIERT
-    const gradient = ctx.createRadialGradient(
-      -radius * 0.3, -radius * 0.3, 0,
-      0, 0, radius
-    )
+  ctx.restore()
+}
 
-    // Verwende das gradient Array direkt
-    gradient.addColorStop(0, fruitType.gradient[0])
-    gradient.addColorStop(0.6, fruitType.gradient[1])
-    gradient.addColorStop(1, fruitType.gradient[2])
+// Helper function to render a single fruit with all effects
+const renderSingleFruit = (ctx, x, y, fruitType, body = null, opacity = 1.0) => {
+  const radius = fruitType.radius
+  const fontSize = radius * 1.2
 
-    // 3. Draw gradient circle
-    ctx.fillStyle = gradient
-    ctx.beginPath()
-    ctx.arc(0, 0, radius, 0, Math.PI * 2)
-    ctx.fill()
+  // Animation properties (only for real physics bodies)
+  const animationScale = body?.animationScale || 1
+  const animationOpacity = body?.animationOpacity !== undefined ? body.animationOpacity : 1
+  const isMoving = body ? (Math.abs(body.velocity.x) > 0.1 || Math.abs(body.velocity.y) > 0.1) : false
+  const bounceScale = isMoving ? fruitType.bounceScale : 1
+  const finalScale = animationScale * bounceScale
+  const finalOpacity = opacity * animationOpacity
 
-    // 4. Subtle border
+  ctx.save()
+  ctx.translate(x, y)
+  if (body) ctx.rotate(body.angle) // Only rotate real physics bodies
+  ctx.scale(finalScale, finalScale)
+  ctx.globalAlpha = finalOpacity
+
+  // 1. Glow effect for moving fruits
+  if (isMoving) {
+    ctx.shadowColor = fruitType.glowColor
+    ctx.shadowBlur = 12
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+  }
+
+  // 2. Gradient background circle
+  const gradient = ctx.createRadialGradient(
+    -radius * 0.3, -radius * 0.3, 0,
+    0, 0, radius
+  )
+
+  gradient.addColorStop(0, fruitType.gradient[0])
+  gradient.addColorStop(0.6, fruitType.gradient[1])
+  gradient.addColorStop(1, fruitType.gradient[2])
+
+  // 3. Draw gradient circle
+  ctx.fillStyle = gradient
+  ctx.beginPath()
+  ctx.arc(0, 0, radius, 0, Math.PI * 2)
+  ctx.fill()
+
+  // 4. Subtle border
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'
+  ctx.lineWidth = 1
+  ctx.stroke()
+
+  // 5. Highlight spot for depth
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
+  ctx.beginPath()
+  ctx.arc(-radius * 0.25, -radius * 0.25, radius * 0.15, 0, Math.PI * 2)
+  ctx.fill()
+
+  // 6. Secondary highlight
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
+  ctx.beginPath()
+  ctx.arc(-radius * 0.4, -radius * 0.4, radius * 0.08, 0, Math.PI * 2)
+  ctx.fill()
+
+  // 7. Emoji overlay with enhanced shadow
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+  ctx.shadowBlur = 3
+  ctx.shadowOffsetX = 1
+  ctx.shadowOffsetY = 1
+  ctx.fillStyle = 'transparent'
+  ctx.font = `${fontSize}px Arial`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(fruitType.emoji, 0, fontSize * 0.05)
+
+  // 8. Sparkle effect for high-value preview fruits
+  if (fruitType.id >= 6 && Math.random() > 0.95) {
     ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'
-    ctx.lineWidth = 1
-    ctx.stroke()
-
-    // 5. Highlight spot for depth
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
+    ctx.fillStyle = fruitType.sparkleColor
+    const sparkleX = (Math.random() - 0.5) * radius * 1.5
+    const sparkleY = (Math.random() - 0.5) * radius * 1.5
     ctx.beginPath()
-    ctx.arc(-radius * 0.25, -radius * 0.25, radius * 0.15, 0, Math.PI * 2)
+    ctx.arc(sparkleX, sparkleY, 1, 0, Math.PI * 2)
     ctx.fill()
-
-    // 6. Secondary highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
-    ctx.beginPath()
-    ctx.arc(-radius * 0.4, -radius * 0.4, radius * 0.08, 0, Math.PI * 2)
-    ctx.fill()
-
-    // 7. Emoji overlay with enhanced shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-    ctx.shadowBlur = 3
-    ctx.shadowOffsetX = 1
-    ctx.shadowOffsetY = 1
-    ctx.fillStyle = 'transparent'
-    ctx.font = `${fontSize}px Arial`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(emoji, 0, fontSize * 0.05) // Slight offset for better centering
-
-    // 8. Sparkle effect for high-value fruits (optional)
-    if (fruitType.id >= 6 && Math.random() > 0.95) {
-      ctx.shadowColor = 'transparent'
-      ctx.fillStyle = fruitType.sparkleColor
-      const sparkleX = (Math.random() - 0.5) * radius * 1.5
-      const sparkleY = (Math.random() - 0.5) * radius * 1.5
-      ctx.beginPath()
-      ctx.arc(sparkleX, sparkleY, 1, 0, Math.PI * 2)
-      ctx.fill()
-    }
-
-    ctx.restore()
-  })
+  }
 
   ctx.restore()
 }
@@ -1624,14 +1696,6 @@ const emit = defineEmits([
   'debug-physics-info'
 ])
 
-// Format numbers for display
-const formatNumber = (num) => {
-  if (num >= 1000) {
-    return `${Math.floor(num / 100) / 10}k`
-  }
-  return num.toString()
-}
-
 // Event handlers
 const handlePauseGame = () => {
   console.log('🎮 Pause game requested from GamePlayArea')
@@ -1765,14 +1829,6 @@ defineExpose({
   <div class="game-play-area">
     <div class="game-play-area__game-container">
 
-      <!-- Fruit Drop Preview -->
-      <FruitDropPreview
-        :next-fruit-type="nextFruitType"
-        :canvas-width="PHYSICS_CONFIG.canvas.width"
-        :is-game-active="isGameActive"
-        :drop-position="dropPreviewPosition"
-      />
-
       <!-- Physics Game Area -->
       <div class="game-play-area__game-physics">
         <!-- Physics Canvas Container -->
@@ -1801,24 +1857,6 @@ defineExpose({
             class="game-play-area__drop-zone"
             :class="{ 'game-play-area__drop-zone--mobile': isMobile }"
           ></div>
-
-          <!-- Enhanced Touch Feedback -->
-          <div
-            v-if="touchState.isActive && dropPreviewPosition"
-            class="game-play-area__touch-feedback"
-            :style="{
-              left: `${dropPreviewPosition}px`,
-              top: '50px',
-              transform: 'translate(-50%, -50%)',
-              background: `radial-gradient(circle, ${FRUIT_TYPES[nextFruitType]?.glowColor || '#00b894'}, transparent)`,
-            }"
-          >
-            <div class="game-play-area__touch-inner">
-              {{ FRUIT_TYPES[nextFruitType]?.emoji || '🍒' }}
-            </div>
-            <div class="game-play-area__touch-ripple"></div>
-          </div>
-
           <!-- Mobile Trajectory Guide -->
           <div
             v-if="dropPreviewPosition && isGameActive && isMobile"
@@ -1829,23 +1867,6 @@ defineExpose({
               top: `${PHYSICS_CONFIG.dropZone.dropY}px`
             }"
           ></div>
-        </div>
-
-        <!-- Touch Feedback -->
-        <div
-          v-if="isPointerDown && dropPreviewPosition"
-          class="game-play-area__touch-feedback"
-          :style="{
-            left: `${dropPreviewPosition}px`,
-            top: '50px',
-            transform: 'translate(-100%, -50%) scale(1.2)',
-            background: `radial-gradient(circle, ${FRUIT_TYPES[nextFruitType]?.glowColor || '#00b894'}, transparent)`,
-            animation: 'touch-pulse-enhanced 0.6s ease-out infinite'
-          }"
-        >
-          <div class="game-play-area__touch-inner">
-            {{ FRUIT_TYPES[nextFruitType]?.emoji || '🍒' }}
-          </div>
         </div>
 
         <!-- Drop Trajectory Line -->
@@ -2071,12 +2092,6 @@ defineExpose({
         bottom: -10px;
         z-index: -1;
       }
-
-      // Enhanced visual feedback
-      &:active {
-        transform: scale(0.99);
-        transition: transform 0.1s ease;
-      }
     }
   }
 
@@ -2114,40 +2129,6 @@ defineExpose({
         background: rgba(0, 184, 148, 0.2);
         border-radius: 4px;
       }
-    }
-  }
-
-  // Touch feedback
-  &__touch-feedback {
-    position: absolute;
-    width: 50px; // Larger for mobile
-    height: 50px;
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 10;
-    animation: touch-pulse-mobile 0.3s ease-out;
-
-    .game-play-area__touch-inner {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.95);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    }
-
-    .game-play-area__touch-ripple {
-      position: absolute;
-      top: -10px;
-      left: -10px;
-      right: -10px;
-      bottom: -10px;
-      border: 2px solid rgba(0, 184, 148, 0.5);
-      border-radius: 50%;
-      animation: ripple-expand 0.6s ease-out infinite;
     }
   }
 
@@ -2302,15 +2283,6 @@ defineExpose({
 }
 
 @media (max-width: 480px) {
-  .game-play-area__touch-feedback {
-    width: 60px;
-    height: 60px;
-
-    .game-play-area__touch-inner {
-      font-size: 28px;
-    }
-  }
-
   .game-play-area__mobile-trajectory {
     width: 4px;
   }
@@ -2335,10 +2307,6 @@ defineExpose({
 
 // Accessibility improvements
 @media (prefers-reduced-motion: reduce) {
-  .game-play-area__touch-feedback {
-    animation: none;
-  }
-
   .game-play-area__canvas-container:hover {
     transform: none;
   }

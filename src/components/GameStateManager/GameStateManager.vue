@@ -267,13 +267,6 @@ const getStoreStatistics = () => {
   }
 }
 
-const formatNumber = (num) => {
-  if (num >= 1000) {
-    return `${Math.floor(num / 100) / 10}k`
-  }
-  return num.toString()
-}
-
 // Debug functions (DEV only)
 const debugUnlockAllLevels = () => {
   if (import.meta.env.DEV) {
@@ -366,7 +359,6 @@ provide('gameStateManager', {
   debugCompleteCurrentLevel,
   toggleAutoSimulation,
   getStoreStatistics,
-  formatNumber
 })
 
 // Expose reactive state and functions for parent component
@@ -396,7 +388,6 @@ defineExpose({
   debugCompleteCurrentLevel,
   toggleAutoSimulation,
   getStoreStatistics,
-  formatNumber,
 
   // Store instances (for advanced usage)
   levelStore,
@@ -431,7 +422,6 @@ defineExpose({
       :debug-add-currency="debugAddCurrency"
       :debug-complete-current-level="debugCompleteCurrentLevel"
       :toggle-auto-simulation="toggleAutoSimulation"
-      :format-number="formatNumber"
       :get-store-statistics="getStoreStatistics"
     />
   </div>

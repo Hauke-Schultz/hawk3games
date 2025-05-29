@@ -24,10 +24,6 @@ const props = defineProps({
     type: String,
     default: '00:00'
   },
-  formatNumber: {
-    type: Function,
-    required: true
-  },
   currentSession: {
     type: Object,
     required: true,
@@ -40,14 +36,6 @@ const props = defineProps({
 // Computed properties for display
 const currentLevelPadded = computed(() => {
   return props.currentLevel.toString().padStart(2, '0')
-})
-
-const formattedCoins = computed(() => {
-  return props.formatNumber(props.coins)
-})
-
-const formattedDiamonds = computed(() => {
-  return props.formatNumber(props.diamonds)
 })
 </script>
 
@@ -67,7 +55,7 @@ const formattedDiamonds = computed(() => {
     <!-- Game Stats Section -->
     <div class="game-stats-header__game-section">
       <div class="game-stats-header__stat game-stats-header__stat--score">
-        <span class="game-stats-header__stat-value">{{ formatNumber(currentSession.score) }}</span>
+        <span class="game-stats-header__stat-value">{{ currentSession.score }}</span>
         <span class="game-stats-header__stat-label">SCORE</span>
       </div>
       <div class="game-stats-header__stat game-stats-header__stat--moves">
@@ -79,11 +67,11 @@ const formattedDiamonds = computed(() => {
     <!-- Currency Section -->
     <div class="game-stats-header__currency-section">
       <div class="game-stats-header__currency game-stats-header__currency--coins">
-        <span class="game-stats-header__currency-value">{{ formattedCoins }}</span>
+        <span class="game-stats-header__currency-value">{{ props.coins }}</span>
         <GameIcon name="coin" :size="16" class="game-stats-header__currency-icon" />
       </div>
       <div class="game-stats-header__currency game-stats-header__currency--diamonds">
-        <span class="game-stats-header__currency-value">{{ formattedDiamonds }}</span>
+        <span class="game-stats-header__currency-value">{{ props.diamonds }}</span>
         <GameIcon name="diamond" :size="19" class="game-stats-header__currency-icon" />
       </div>
     </div>
