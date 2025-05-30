@@ -1,4 +1,4 @@
-# User Story 005: Debug Panel entfernt
+# User Story 006: Debug Panel entfernt
 
 ## Story Details
 
