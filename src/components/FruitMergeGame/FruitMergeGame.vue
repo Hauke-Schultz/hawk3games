@@ -8,7 +8,6 @@ import GamePlayArea from "../GamePlayArea/GamePlayArea.vue"
 import DebugPanel from "../DebugPanel/DebugPanel.vue"
 import GameStatsHeader from "../GameStatsHeader/GameStatsHeader.vue"
 import GameControls from "../GameControls/GameControls.vue"
-import UIToggle from "../UIToggle/UIToggle.vue"
 
 // Emit events to parent component
 const emit = defineEmits(['back-to-menu'])
@@ -16,7 +15,6 @@ const emit = defineEmits(['back-to-menu'])
 // Component refs for accessing child components
 const gameStateManager = ref(null)
 const gamePlayArea = ref(null)
-const isUIHidden = ref(false)
 
 // Event handlers for child components
 const handleBackClick = () => {
@@ -136,54 +134,10 @@ const handleStoresReady = (stores) => {
 const getPhysicsState = () => {
   return gamePlayArea.value?.getPhysicsState() || {}
 }
-
-
-// Load saved preference on mount
-onMounted(() => {
-  const saved = localStorage.getItem('hawk3games_ui_hidden')
-  if (saved) {
-    isUIHidden.value = JSON.parse(saved)
-  }
-})
-
-// Save preference when changed
-watch(isUIHidden, (newValue) => {
-  localStorage.setItem('hawk3games_ui_hidden', JSON.stringify(newValue))
-  console.log(`🎮 UI ${newValue ? 'hidden' : 'visible'}`)
-})
-
-// Simple toggle function
-const toggleUI = () => {
-  isUIHidden.value = !isUIHidden.value
-}
-
-// Keyboard shortcut handler
-const handleKeydown = (event) => {
-  if (event.key === 'f' && !event.ctrlKey && !event.altKey && !event.metaKey) {
-    // Only trigger if not typing in input fields
-    if (!['INPUT', 'TEXTAREA'].includes(event.target.tagName) &&
-      event.target.contentEditable !== 'true') {
-      event.preventDefault()
-      toggleUI()
-    }
-  }
-}
-
-// Add/remove keyboard listener
-onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
-})
 </script>
 
 <template>
-  <div
-    class="fruit-merge-game"
-    :class="{ 'ui-hidden': isUIHidden }"
-  >
+  <div class="fruit-merge-game">
     <!-- Game State Manager - Central store management -->
     <GameStateManager
       ref="gameStateManager"
@@ -212,7 +166,6 @@ onUnmounted(() => {
 
         <!-- Game Header -->
         <header
-          v-show="!isUIHidden"
           class="app__header"
           role="banner"
         >
@@ -230,14 +183,6 @@ onUnmounted(() => {
             </div>
           </div>
         </header>
-        <!-- UI Toggle Button -->
-        <UIToggle
-          v-if="!showLevelSelection"
-          :is-active="isUIHidden"
-          position="top-right"
-          size="medium"
-          @toggle="toggleUI"
-        />
 
         <!-- Game Stats Header (enhanced with session data) -->
         <GameStatsHeader
@@ -286,7 +231,6 @@ onUnmounted(() => {
 
         <!-- Game Controls (only show when not in level selection) -->
         <GameControls
-          v-show="!isUIHidden"
           v-if="!showLevelSelection"
           :is-game-active="isGameActive"
           :is-game-paused="isGamePaused"

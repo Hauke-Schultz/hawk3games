@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import UIToggle from './components/UIToggle/UIToggle.vue'
 import ThemeSwitch from './components/ThemeSwitch/ThemeSwitch.vue'
 import GameCard from './components/GameCard/GameCard.vue'
 import BottomNavigation from './components/BottomNavigation/BottomNavigation.vue'
@@ -8,6 +9,8 @@ import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
 // Application state
 const activeTab = ref('home') // Track active navigation tab
 const currentView = ref('home') // Track current view/page
+// Global UI toggle state - controls entire app UI
+const isUIHidden = ref(false)
 
 // Games data - designed for mobile-first approach
 const games = ref([
@@ -38,6 +41,23 @@ const games = ref([
   // }
 ])
 
+// Global UI toggle functions
+const toggleUI = () => {
+  isUIHidden.value = !isUIHidden.value
+}
+
+// Global keyboard shortcut handler
+const handleGlobalKeydown = (event) => {
+  if (event.key === 'f' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    // Only trigger if not typing in input fields
+    if (!['INPUT', 'TEXTAREA'].includes(event.target.tagName) &&
+      event.target.contentEditable !== 'true') {
+      event.preventDefault()
+      toggleUI()
+    }
+  }
+}
+
 // Event handlers
 const handleGameSelected = (game) => {
   console.log('Game selected:', game.name)
@@ -61,12 +81,42 @@ const handleTabChanged = (tabId) => {
   }
   console.log('Tab changed to:', tabId)
 }
+
+// Load saved preference on app start
+onMounted(() => {
+  const saved = localStorage.getItem('hawk3games_ui_hidden')
+  if (saved) {
+    isUIHidden.value = JSON.parse(saved)
+  }
+
+  // Add global keyboard shortcut
+  document.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleGlobalKeydown)
+})
+
+// Save preference when changed
+watch(isUIHidden, (newValue) => {
+  localStorage.setItem('hawk3games_ui_hidden', JSON.stringify(newValue))
+  console.log(`🌐 Global UI ${newValue ? 'hidden' : 'visible'}`)
+})
 </script>
 
 <template>
-  <div class="app">
+  <div
+    class="app"
+    :class="{ 'ui-hidden': isUIHidden }"
+  >
     <div class="app__container" role="application">
-
+      <!-- Global UI Toggle - appears on all pages -->
+      <UIToggle
+        :is-active="isUIHidden"
+        position="top-right"
+        size="medium"
+        @toggle="toggleUI"
+      />
       <!-- Show FruitMerge Game -->
       <FruitMergeGame
           v-if="currentView === 'fruitmerge'"
@@ -76,7 +126,11 @@ const handleTabChanged = (tabId) => {
       <!-- Show Main App with Navigation -->
       <template v-else>
         <!-- App Header -->
-        <header class="app__header" role="banner">
+        <header
+          v-show="!isUIHidden"
+          class="app__header"
+          role="banner"
+        >
           <div class="app__header-content">
             <div class="app__logo">
               <span class="app__logo-emoji">😊</span>
@@ -89,7 +143,11 @@ const handleTabChanged = (tabId) => {
         </header>
 
         <!-- Main Content -->
-        <main id="main-content" class="app__main">
+        <main
+          id="main-content"
+          class="app__main"
+          :class="{ 'app__main--expanded': isUIHidden }"
+        >
           <!-- Games Section -->
           <section class="app__section" v-if="activeTab === 'home'">
             <h2 class="app__section-title">Games</h2>
@@ -133,8 +191,9 @@ const handleTabChanged = (tabId) => {
 
       <!-- Bottom Navigation -->
       <BottomNavigation
-          :active-tab="activeTab"
-          @tab-changed="handleTabChanged"
+        v-show="!isUIHidden"
+        :active-tab="activeTab"
+        @tab-changed="handleTabChanged"
       />
     </div>
   </div>
@@ -261,6 +320,12 @@ const handleTabChanged = (tabId) => {
     &:focus {
       outline: none;
     }
+
+    &--expanded {
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      min-height: 100vh;
+    }
   }
 
   // Section Element - Content sections (Games, Profile, Trophy)
@@ -353,5 +418,58 @@ const handleTabChanged = (tabId) => {
       max-width: 400px;
     }
   }
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Global UI Hidden State
+  &.ui-hidden {
+    // Header slides up
+    .app__header {
+      transform: translateY(-100%);
+      opacity: 0;
+      height: 0;
+    }
+
+    // Bottom navigation slides down
+    .bottom-navigation {
+      transform: translateY(100%);
+      opacity: 0;
+      height: 0;
+    }
+
+    // Main content expands
+    .app__main--expanded {
+      padding-top: 20px;
+      padding-bottom: 20px;
+      min-height: 100vh;
+    }
+
+    // Game-specific expansions
+    .fruit-merge-game__content {
+      min-height: calc(100vh - 40px);
+    }
+
+    // Profile/Trophy page expansion
+    .app__placeholder-content {
+      min-height: calc(100vh - 40px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    // Debug panel global hiding
+    .debug-panel {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.8);
+      transition: all 0.4s ease;
+    }
+  }
 }
+// Smooth transitions for all UI elements
+.app__header,
+.bottom-navigation,
+.app__main,
+.debug-panel {
+  transition: all 0.4s ease;
+}
+
 </style>
