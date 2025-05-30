@@ -37,6 +37,14 @@ const props = defineProps({
       }
       return num.toString()
     }
+  },
+  comboTimeLeft: {
+    type: Number,
+    default: 0
+  },
+  comboResetDelay: {
+    type: Number,
+    default: 4000
   }
 })
 

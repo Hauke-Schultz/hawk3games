@@ -115,7 +115,45 @@ const positionClasses = computed(() => {
     'debug-panel--top-left': props.position === 'top-left'
   }
 })
+// Enhanced computed for combo statistics
+const comboStats = computed(() => {
+  if (!props.currentSession) return null
 
+  return {
+    current: props.currentSession.combo || 0,
+    max: props.currentSession.maxCombo || 0,
+    timeLeft: Math.round((props.comboTimeLeft || 0) / 1000 * 10) / 10,
+    level: getComboLevel(props.currentSession.combo || 0)
+  }
+})
+
+const getComboLevel = (combo) => {
+  if (combo >= 10) return 'MEGA'
+  if (combo >= 7) return 'EPIC'
+  if (combo >= 5) return 'FIRE'
+  if (combo >= 3) return 'HOT'
+  return 'NORMAL'
+}
+const handleDebugComboTest = () => {
+  console.log('🧪 Debug: Starting combo test chain')
+  emit('debug-combo-test')
+}
+
+const handleDebugResetCombo = () => {
+  console.log('🧪 Debug: Reset combo requested')
+  emit('debug-reset-combo')
+}
+
+const handleDebugComboInfo = () => {
+  if (comboStats.value) {
+    console.log('📊 Debug Combo Info:', {
+      current: comboStats.value.current,
+      max: comboStats.value.max,
+      timeLeft: comboStats.value.timeLeft,
+      level: comboStats.value.level
+    })
+  }
+}
 // Debug action handlers
 const handleUnlockAllLevels = () => {
   console.log('🔓 Debug: Unlock all levels')
@@ -332,17 +370,6 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
 })
-
-// Format large numbers
-const formatNumber = (num) => {
-  if (num >= 1000000) {
-    return `${Math.floor(num / 100000) / 10}M`
-  }
-  if (num >= 1000) {
-    return `${Math.floor(num / 100) / 10}k`
-  }
-  return num.toString()
-}
 </script>
 
 <template>
@@ -395,10 +422,33 @@ const formatNumber = (num) => {
       </div>
 
       <!-- NEU: Session Info Section -->
+      <!-- Enhanced Session Info mit Combo Stats -->
       <div v-if="showSessionInfo" class="debug-panel__section">
-        <h4 class="debug-panel__section-title">Live Session Info</h4>
+        <h4 class="debug-panel__section-title">Live Session + Combo Info</h4>
 
-        <!-- Session Statistics -->
+        <!-- New Combo Controls -->
+        <div class="debug-panel__combo-controls">
+          <button
+            @click="handleDebugComboTest"
+            class="debug-panel__button debug-panel__button--primary"
+          >
+            🧪 Test Combo Chain
+          </button>
+          <button
+            @click="handleDebugResetCombo"
+            class="debug-panel__button"
+          >
+            🔄 Reset Combo
+          </button>
+          <button
+            @click="handleDebugComboInfo"
+            class="debug-panel__button"
+          >
+            📊 Combo Info
+          </button>
+        </div>
+
+        <!-- Existing Session Statistics -->
         <div class="debug-panel__session-stats">
           <span
             v-for="stat in sessionStats"
@@ -408,12 +458,21 @@ const formatNumber = (num) => {
             {{ stat.icon }} {{ stat.value }} {{ stat.label }}
           </span>
 
-          <!-- Combo Display -->
+          <!-- Enhanced Combo Display -->
           <span
-            v-if="showCombo"
+            v-if="comboStats && comboStats.current > 1"
             class="debug-panel__session-stat debug-panel__session-stat--combo"
+            :class="`debug-panel__session-stat--combo-${comboStats.level.toLowerCase()}`"
           >
-            🔥 {{ currentSession.combo }}x combo
+            🔥 {{ comboStats.current }}x {{ comboStats.level }} ({{ comboStats.timeLeft }}s left)
+          </span>
+
+          <!-- Max Combo Achieved -->
+          <span
+            v-if="comboStats && comboStats.max > 1"
+            class="debug-panel__session-stat"
+          >
+            ⭐ Max Combo: {{ comboStats.max }}x
           </span>
         </div>
 
@@ -650,6 +709,8 @@ const formatNumber = (num) => {
           <div>Ctrl+Shift+F: Toggle FPS</div>
           <div>Ctrl+Shift+S: Toggle simulation</div>
           <div>Ctrl+Shift+P: Toggle physics</div>
+          <div>Ctrl+Shift+X: Test combo chain</div>
+          <div>Ctrl+Shift+R: Reset combo</div>
           <div>Ctrl+Space: Pause/Resume</div>
         </div>
       </div>
@@ -988,6 +1049,100 @@ const formatNumber = (num) => {
       margin-bottom: 2px;
     }
   }
+
+  &__session-stat--combo {
+    font-weight: bold;
+
+    &--hot {
+      color: #e17055;
+    }
+
+    &--fire {
+      color: #e74c3c;
+      text-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+    }
+
+    &--epic {
+      color: #9b59b6;
+      text-shadow: 0 0 8px rgba(155, 89, 182, 0.6);
+    }
+
+    &--mega {
+      background: linear-gradient(45deg, #e74c3c, #f39c12, #f1c40f, #27ae60);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+    }
+  }
+  &__session-stat--combo {
+    font-weight: bold;
+
+    &--normal {
+      color: #fdcb6e;
+    }
+
+    &--warm {
+      color: #e17055;
+    }
+
+    &--hot {
+      color: #e74c3c;
+    }
+
+    &--fire {
+      color: #e74c3c;
+      text-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+    }
+
+    &--epic {
+      color: #9b59b6;
+      text-shadow: 0 0 8px rgba(155, 89, 182, 0.6);
+    }
+
+    &--mega {
+      background: linear-gradient(45deg, #e74c3c, #f39c12, #f1c40f, #27ae60);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      animation: rainbow-shift 2s ease-in-out infinite;
+    }
+  }
+
+  &__session-stat--multiplier {
+    color: #00cec9;
+    font-weight: bold;
+  }
+
+  &__session-stat--timer {
+    color: #fdcb6e;
+
+    &.critical {
+      color: #e74c3c;
+      animation: timer-flash 0.5s ease-in-out infinite;
+    }
+  }
+
+  &__combo-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+@keyframes timer-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes rainbow-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 // Animations

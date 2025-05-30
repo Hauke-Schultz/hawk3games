@@ -1,5 +1,6 @@
 <script setup>
 import {computed, ref, onMounted, onUnmounted, nextTick, watch} from 'vue'
+import { useSessionStore } from '../../stores/index.js'
 import Matter from 'matter-js'
 
 // Props for game state and session data
@@ -48,6 +49,8 @@ let dropCooldownTimer = null
 // Touch tracking for mobile
 const lastTouchPosition = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
+
+const sessionStore = useSessionStore()
 
 // Physics configuration
 const PHYSICS_CONFIG = {
@@ -259,6 +262,214 @@ const getCanvasPosition = (event) => {
   return { x: clampedX, y }
 }
 
+// Enhanced Combo State Management
+const comboState = ref({
+  current: 0,
+  maxThisSession: 0,
+  lastMergeTime: null,
+  timeoutId: null,
+  resetDelay: 4000, // 4 seconds
+  comboTimeLeft: 0,
+  comboTimerInterval: null
+})
+
+// Combo configuration
+const COMBO_CONFIG = {
+  resetDelay: 4000, // 4 seconds
+  minComboForDisplay: 2,
+  scoreMultipliers: {
+    1: 1.0,   // Single merge
+    2: 1.2,   // 2x combo = 20% bonus
+    3: 1.5,   // 3x combo = 50% bonus
+    4: 1.8,   // 4x combo = 80% bonus
+    5: 2.0,   // 5x combo = 100% bonus
+    6: 2.2,   // 6x combo = 120% bonus
+    7: 2.5,   // 7x combo = 150% bonus
+    8: 2.8,   // 8x combo = 180% bonus
+    9: 3.0,   // 9x combo = 200% bonus
+    10: 3.5   // 10+ combo = 250% bonus
+  }
+}
+
+// Calculate combo score multiplier
+const getComboMultiplier = (comboLevel) => {
+  if (comboLevel <= 10) {
+    return COMBO_CONFIG.scoreMultipliers[comboLevel] || 1.0
+  }
+  // For combos > 10: 3.5 + 0.2 for each additional combo
+  return 3.5 + ((comboLevel - 10) * 0.2)
+}
+
+// Calculate score with combo bonus
+const calculateComboScore = (baseScore, comboLevel) => {
+  const multiplier = getComboMultiplier(comboLevel)
+  const bonusScore = Math.floor(baseScore * multiplier)
+
+  if (comboLevel > 1) {
+    console.log(`🔥 Combo x${comboLevel}! Score: ${baseScore} → ${bonusScore} (${multiplier}x multiplier)`)
+  }
+
+  return bonusScore
+}
+const handleDebugComboTest = () => {
+  if (props.isDev) {
+    console.log('🧪 Starting combo test chain...')
+
+    // Simulate rapid combos for testing
+    let comboCount = 0
+    const maxCombos = 12 // Test up to mega level
+
+    const testInterval = setInterval(() => {
+      comboCount++
+
+      // Simulate different base scores
+      const baseScore = 50 + (comboCount * 25)
+      const finalScore = handleComboMerge(baseScore)
+
+      console.log(`🧪 Debug combo ${comboCount}: Base=${baseScore}, Final=${finalScore}, Multiplier=${getComboMultiplier(comboCount)}`)
+
+      if (comboCount >= maxCombos) {
+        clearInterval(testInterval)
+        console.log('🧪 Combo test chain completed!')
+
+        // Reset after test
+        setTimeout(() => {
+          resetCombo()
+          console.log('🧪 Test combo reset')
+        }, 2000)
+      }
+    }, 300) // 300ms intervals for rapid testing
+  }
+}
+
+const handleDebugResetCombo = () => {
+  if (props.isDev) {
+    const oldCombo = comboState.value.current
+    resetCombo()
+    console.log(`🧪 Debug: Combo manually reset (was ${oldCombo}x)`)
+  }
+}
+
+const handleDebugComboInfo = () => {
+  if (props.isDev) {
+    const info = {
+      current: comboState.value.current,
+      max: comboState.value.maxThisSession,
+      timeLeft: Math.round(comboState.value.comboTimeLeft / 1000 * 10) / 10,
+      multiplier: getComboMultiplier(comboState.value.current),
+      resetDelay: COMBO_CONFIG.resetDelay / 1000,
+      level: getComboLevelName(comboState.value.current)
+    }
+
+    console.log('📊 Combo Debug Info:', info)
+
+    // Also log multiplier table
+    console.log('📊 Multiplier Table:')
+    for (let i = 1; i <= 15; i++) {
+      console.log(`  ${i}x combo = ${getComboMultiplier(i)}x multiplier`)
+    }
+  }
+}
+
+const getComboLevelName = (combo) => {
+  if (combo >= 10) return 'MEGA'
+  if (combo >= 7) return 'EPIC'
+  if (combo >= 5) return 'FIRE'
+  if (combo >= 3) return 'HOT'
+  if (combo >= 2) return 'WARM'
+  return 'NORMAL'
+}
+
+// Enhanced merge handling with combo
+const handleComboMerge = (baseScore) => {
+  const now = Date.now()
+
+  // Increment combo
+  comboState.value.current++
+  comboState.value.lastMergeTime = now
+
+  // Update max combo for session
+  comboState.value.maxThisSession = Math.max(
+    comboState.value.maxThisSession,
+    comboState.value.current
+  )
+
+  // Calculate final score with combo bonus
+  const finalScore = calculateComboScore(baseScore, comboState.value.current)
+
+  // Update session store with combo
+  sessionStore.updateCombo(comboState.value.current)
+
+  // Start/reset combo timer
+  startComboTimer()
+
+  // Create visual effects based on combo level
+  if (comboState.value.current >= 3) {
+    createComboEffect(comboState.value.current)
+  }
+
+  // Haptic feedback for high combos
+  if (comboState.value.current >= 5 && navigator.vibrate) {
+    navigator.vibrate([50, 25, 50]) // Triple vibration pattern
+  }
+
+  console.log(`🎯 Combo x${comboState.value.current} achieved! Max this session: ${comboState.value.maxThisSession}`)
+
+  return finalScore
+}
+
+// Start combo countdown timer
+const startComboTimer = () => {
+  // Clear existing timers
+  if (comboState.value.timeoutId) {
+    clearTimeout(comboState.value.timeoutId)
+  }
+  if (comboState.value.comboTimerInterval) {
+    clearInterval(comboState.value.comboTimerInterval)
+  }
+
+  // Reset combo time left
+  comboState.value.comboTimeLeft = COMBO_CONFIG.resetDelay
+
+  // Visual countdown timer (updates every 100ms)
+  comboState.value.comboTimerInterval = setInterval(() => {
+    comboState.value.comboTimeLeft -= 100
+
+    if (comboState.value.comboTimeLeft <= 0) {
+      clearInterval(comboState.value.comboTimerInterval)
+      comboState.value.comboTimerInterval = null
+    }
+  }, 100)
+
+  // Combo reset timeout
+  comboState.value.timeoutId = setTimeout(() => {
+    resetCombo()
+  }, COMBO_CONFIG.resetDelay)
+}
+
+// Reset combo state
+const resetCombo = () => {
+  if (comboState.value.current > 1) {
+    console.log(`💫 Combo ended at x${comboState.value.current}`)
+  }
+
+  comboState.value.current = 0
+  comboState.value.comboTimeLeft = 0
+
+  // Clear timers
+  if (comboState.value.timeoutId) {
+    clearTimeout(comboState.value.timeoutId)
+    comboState.value.timeoutId = null
+  }
+  if (comboState.value.comboTimerInterval) {
+    clearInterval(comboState.value.comboTimerInterval)
+    comboState.value.comboTimerInterval = null
+  }
+
+  // Reset combo in session store
+  sessionStore.resetCombo()
+}
+
 // Mobile Performance Optimization
 const mobileOptimizations = {
   reducedParticles: window.innerWidth < 768,
@@ -311,13 +522,16 @@ const createPreviewUpdateEffect = (x) => {
 }
 
 const getPhysicsState = () => {
+  const baseState = gamePlayArea.value?.getPhysicsState() || {}
   return {
-    engine: physicsEngine.value,
-    world: physicsWorld.value,
-    render: physicsRender.value,
-    runner: physicsRunner.value,
-    canDrop: canDrop.value,
-    dropPreviewPosition: dropPreviewPosition.value
+    ...baseState,
+    // Enhanced combo properties
+    combo: baseState.combo || 0,
+    maxCombo: baseState.maxCombo || 0,
+    comboTimeLeft: baseState.comboTimeLeft || 0,
+    comboLevel: baseState.comboLevel || 'normal',
+    // Add combo multiplier info
+    comboMultiplier: gamePlayArea.value?.getComboMultiplier?.(baseState.combo || 0) || 1.0
   }
 }
 
@@ -1415,26 +1629,30 @@ const mergeFruits = (fruitA, fruitB) => {
     return
   }
 
-  // Berechne Merge-Position
+  // Calculate merge position
   const mergeX = (fruitA.position.x + fruitB.position.x) / 2
   const mergeY = (fruitA.position.y + fruitB.position.y) / 2
 
-  // SOFORT aus Physics World und Tracking entfernen
+  // Remove fruits from physics world immediately
   Matter.World.remove(physicsWorld.value, [fruitA, fruitB])
 
-  // Entferne aus unserem Tracking Array
+  // Remove from tracking
   const indexA = fruits.value.findIndex(f => f.body === fruitA)
   const indexB = fruits.value.findIndex(f => f.body === fruitB)
-
   if (indexA > -1) fruits.value.splice(indexA, 1)
   if (indexB > -1) {
-    // Nach dem ersten splice könnte sich der Index geändert haben
     const newIndexB = fruits.value.findIndex(f => f.body === fruitB)
     if (newIndexB > -1) fruits.value.splice(newIndexB, 1)
   }
 
-  // Visueller Effekt
-  createMergeEffect(mergeX, mergeY, nextType)
+  // Calculate base score
+  const baseScore = FRUIT_TYPES[nextType].scoreValue
+
+  // Handle combo and get final score
+  const finalScore = handleComboMerge(baseScore)
+
+  // Create enhanced merge effect with combo info
+  createEnhancedMergeEffect(mergeX, mergeY, nextType, comboState.value.current)
 
   setTimeout(() => {
     const newFruit = createFruit(mergeX, mergeY, nextType, {
@@ -1443,14 +1661,285 @@ const mergeFruits = (fruitA, fruitB) => {
 
     if (newFruit) {
       Matter.World.add(physicsWorld.value, newFruit)
-      // Score calculation and emission
-      const baseScore = FRUIT_TYPES[nextType].scoreValue
-      emit('score-update', baseScore)
-      console.log(`🎉 Merged ${fruitType} → ${nextType} (+${baseScore} points)`)
-      // Emit score update if needed
-      // emit('score-update', baseScore)
+
+      // Emit final score (with combo bonus)
+      emit('score-update', finalScore)
+
+      console.log(`🎉 Merged ${fruitType} → ${nextType} (Score: ${baseScore} → ${finalScore})`)
     }
-  }, 100) // Kurzes Delay für stabilere Physik
+  }, 100)
+}
+// Enhanced merge effect with combo visualization
+const createEnhancedMergeEffect = (x, y, fruitType, comboLevel) => {
+  if (!physicsRender.value) return
+
+  const ctx = physicsRender.value.canvas.getContext('2d')
+  if (!ctx) return
+
+  const type = FRUIT_TYPES[fruitType]
+  if (!type) return
+
+  // Create different particle types based on combo level
+  const particles = []
+  let particleCount = getParticleCount(Math.min(15 + (type.id * 2), 25))
+
+  // Increase particles for higher combos
+  if (comboLevel >= 3) {
+    particleCount = Math.floor(particleCount * (1 + (comboLevel * 0.2)))
+  }
+
+  // Explosion particles with combo colors
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5
+    const speed = 3 + Math.random() * 4 + (comboLevel * 0.5) // Faster for higher combos
+    const size = 2 + Math.random() * 3
+
+    particles.push({
+      type: 'explosion',
+      x: x,
+      y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 1,
+      life: 1.0,
+      maxLife: 1.0,
+      size: size,
+      color: comboLevel >= 3 ? getComboColor(comboLevel) : type.gradient[Math.floor(Math.random() * type.gradient.length)],
+      gravity: 0.1,
+      fadeSpeed: 0.02
+    })
+  }
+
+  // Special combo particles for high combos
+  if (comboLevel >= 3) {
+    for (let i = 0; i < comboLevel; i++) {
+      particles.push({
+        type: 'combo-star',
+        x: x + (Math.random() - 0.5) * type.radius * 2,
+        y: y + (Math.random() - 0.5) * type.radius * 2,
+        vx: (Math.random() - 0.5) * 3,
+        vy: (Math.random() - 0.5) * 3 - 2,
+        life: 1.5,
+        maxLife: 1.5,
+        size: 3 + comboLevel * 0.5,
+        color: getComboColor(comboLevel),
+        gravity: 0.05,
+        fadeSpeed: 0.01,
+        rotation: 0,
+        rotationSpeed: 0.2
+      })
+    }
+  }
+
+  // Enhanced score popup with combo info
+  const scoreText = comboLevel > 1 ?
+    `+${type.scoreValue} x${comboLevel}!` :
+    `+${type.scoreValue}`
+
+  particles.push({
+    type: 'score',
+    x: x,
+    y: y - type.radius - 10,
+    vx: 0,
+    vy: -2,
+    life: 1.5,
+    maxLife: 1.5,
+    size: 16 + (type.id * 2) + (comboLevel * 2),
+    text: scoreText,
+    color: comboLevel >= 3 ? getComboColor(comboLevel) : type.gradient[1],
+    gravity: 0,
+    fadeSpeed: 0.008
+  })
+
+  // Enhanced ring wave for combos
+  particles.push({
+    type: 'ring',
+    x: x,
+    y: y,
+    life: 1.0,
+    maxLife: 1.0,
+    size: 0,
+    maxSize: type.radius * (3 + comboLevel * 0.5),
+    color: comboLevel >= 3 ? getComboColor(comboLevel) : type.glowColor,
+    gravity: 0,
+    fadeSpeed: 0.025
+  })
+
+  // Animate all particles
+  const animateParticles = () => {
+    ctx.save()
+
+    particles.forEach((particle, index) => {
+      if (particle.life <= 0) return
+
+      const alpha = particle.life / particle.maxLife
+
+      switch (particle.type) {
+        case 'explosion':
+          ctx.globalAlpha = alpha
+          ctx.fillStyle = particle.color
+          ctx.beginPath()
+          ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2)
+          ctx.fill()
+          break
+
+        case 'combo-star':
+          ctx.globalAlpha = alpha
+          ctx.fillStyle = particle.color
+          ctx.save()
+          ctx.translate(particle.x, particle.y)
+          ctx.rotate(particle.rotation)
+
+          // Draw star shape
+          const starSize = particle.size
+          ctx.beginPath()
+          for (let i = 0; i < 5; i++) {
+            const angle = (i * Math.PI * 2) / 5
+            const x = Math.cos(angle) * starSize
+            const y = Math.sin(angle) * starSize
+            if (i === 0) ctx.moveTo(x, y)
+            else ctx.lineTo(x, y)
+          }
+          ctx.closePath()
+          ctx.fill()
+
+          particle.rotation += particle.rotationSpeed
+          ctx.restore()
+          break
+
+        case 'score':
+          ctx.globalAlpha = alpha
+          ctx.fillStyle = particle.color
+          ctx.font = `bold ${particle.size}px Arial`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+          ctx.lineWidth = 2
+          ctx.strokeText(particle.text, particle.x, particle.y)
+          ctx.fillText(particle.text, particle.x, particle.y)
+          break
+
+        case 'ring':
+          const ringProgress = 1 - (particle.life / particle.maxLife)
+          const currentSize = particle.maxSize * ringProgress
+          ctx.globalAlpha = alpha * 0.6
+          ctx.strokeStyle = particle.color
+          ctx.lineWidth = 3
+          ctx.beginPath()
+          ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2)
+          ctx.stroke()
+          break
+      }
+
+      // Update particle physics
+      particle.x += particle.vx
+      particle.y += particle.vy
+      particle.vy += particle.gravity
+      particle.life -= particle.fadeSpeed
+    })
+
+    ctx.restore()
+
+    // Continue animation if particles are alive
+    const aliveParticles = particles.filter(p => p.life > 0)
+    if (aliveParticles.length > 0) {
+      particles.length = 0
+      particles.push(...aliveParticles)
+      requestAnimationFrame(animateParticles)
+    }
+  }
+
+  animateParticles()
+  console.log(`✨ Enhanced merge effect created for ${fruitType} with combo x${comboLevel}`)
+}
+
+// Get combo-specific colors
+const getComboColor = (comboLevel) => {
+  const comboColors = {
+    2: '#fdcb6e',  // Yellow
+    3: '#e17055',  // Orange
+    4: '#e84393',  // Pink
+    5: '#a29bfe',  // Purple
+    6: '#6c5ce7',  // Deep purple
+    7: '#fd79a8',  // Hot pink
+    8: '#e84393',  // Magenta
+    9: '#9b59b6',  // Royal purple
+    10: '#8e44ad' // Deep purple
+  }
+
+  if (comboLevel >= 10) {
+    // Rainbow effect for 10+ combos
+    const colors = ['#e74c3c', '#f39c12', '#f1c40f', '#27ae60', '#3498db', '#9b59b6']
+    return colors[comboLevel % colors.length]
+  }
+
+  return comboColors[comboLevel] || '#fdcb6e'
+}
+
+// Special combo effect for high combos
+const createComboEffect = (comboLevel) => {
+  const canvas = gameCanvas.value?.querySelector('canvas')
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // Screen-wide flash for high combos
+  if (comboLevel >= 5) {
+    let flashOpacity = 0.3
+    const flashColor = getComboColor(comboLevel)
+
+    const animateFlash = () => {
+      ctx.save()
+      ctx.globalAlpha = flashOpacity
+      ctx.fillStyle = flashColor
+      ctx.fillRect(0, 0, PHYSICS_CONFIG.canvas.width, PHYSICS_CONFIG.canvas.height)
+      ctx.restore()
+
+      flashOpacity -= 0.05
+
+      if (flashOpacity > 0) {
+        requestAnimationFrame(animateFlash)
+      }
+    }
+
+    animateFlash()
+  }
+
+  // Combo text announcement for very high combos
+  if (comboLevel >= 7) {
+    let textLife = 1.0
+    const comboText = comboLevel >= 10 ? 'INCREDIBLE!' :
+      comboLevel >= 9 ? 'AMAZING!' :
+        comboLevel >= 8 ? 'FANTASTIC!' : 'AWESOME!'
+
+    const animateComboText = () => {
+      ctx.save()
+      ctx.globalAlpha = textLife
+      ctx.fillStyle = getComboColor(comboLevel)
+      ctx.font = `bold ${32 + comboLevel}px Arial`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+      ctx.lineWidth = 3
+
+      const x = PHYSICS_CONFIG.canvas.width / 2
+      const y = PHYSICS_CONFIG.canvas.height / 2 - 50
+
+      ctx.strokeText(comboText, x, y)
+      ctx.fillText(comboText, x, y)
+      ctx.restore()
+
+      textLife -= 0.02
+
+      if (textLife > 0) {
+        requestAnimationFrame(animateComboText)
+      }
+    }
+
+    animateComboText()
+  }
+
+  console.log(`🎆 Special combo effect for x${comboLevel}!`)
 }
 
 // Game Logic and Fruit Type System (T2.4)
@@ -1745,6 +2234,12 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (comboState.value.timeoutId) {
+    clearTimeout(comboState.value.timeoutId)
+  }
+  if (comboState.value.comboTimerInterval) {
+    clearInterval(comboState.value.comboTimerInterval)
+  }
   console.log('🎮 GamePlayArea unmounting, cleaning up physics...')
   cleanupPhysics()
 })
@@ -1779,10 +2274,33 @@ defineExpose({
   handleDebugAddTestObjects,
   handleDebugClearObjects,
   handleDebugPhysicsInfo,
-  getPhysicsState,
 
   // UI toggle handler
-  handleUIToggle
+  handleUIToggle,
+
+  comboState,
+  resetCombo,
+  getComboMultiplier,
+
+  // Enhanced debug functions
+  handleDebugComboTest,
+  handleDebugResetCombo,
+
+  // Enhanced physics state including combo
+  getPhysicsState: () => {
+    return {
+      engine: physicsEngine.value,
+      world: physicsWorld.value,
+      render: physicsRender.value,
+      runner: physicsRunner.value,
+      canDrop: canDrop.value,
+      dropPreviewPosition: dropPreviewPosition.value,
+      // Add combo state
+      combo: comboState.value.current,
+      maxCombo: comboState.value.maxThisSession,
+      comboTimeLeft: comboState.value.comboTimeLeft
+    }
+  }
 })
 </script>
 

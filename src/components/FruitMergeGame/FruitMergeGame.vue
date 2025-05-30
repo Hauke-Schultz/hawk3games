@@ -90,6 +90,32 @@ const handleDebugResetProgress = () => {
   console.log('🔄 Reset progress requested')
 }
 
+const handleDebugComboTest = () => {
+  if (gamePlayArea.value) {
+    gamePlayArea.value.handleDebugComboTest()
+    console.log('🧪 FruitMergeGame: Combo test chain initiated')
+  }
+}
+
+const handleDebugResetCombo = () => {
+  if (gamePlayArea.value) {
+    gamePlayArea.value.handleDebugResetCombo()
+    console.log('🧪 FruitMergeGame: Combo manually reset')
+  }
+}
+
+const handleDebugComboInfo = () => {
+  if (gamePlayArea.value) {
+    const physicsState = gamePlayArea.value.getPhysicsState()
+    console.log('📊 FruitMergeGame Combo Debug Info:', {
+      currentCombo: physicsState.combo,
+      maxCombo: physicsState.maxCombo,
+      timeLeft: physicsState.comboTimeLeft,
+      comboLevel: physicsState.comboLevel
+    })
+  }
+}
+
 const handleDebugExportData = () => {
   const stats = gameStateManager.value?.getStoreStatistics()
   if (stats) {
@@ -148,8 +174,16 @@ const handleScoreUpdate = (points) => {
   }
 }
 
+// Enhanced physics state getter mit combo data
 const getPhysicsState = () => {
-  return gamePlayArea.value?.getPhysicsState() || {}
+  const baseState = gamePlayArea.value?.getPhysicsState() || {}
+  return {
+    ...baseState,
+    // Ensure combo properties are always available
+    combo: baseState.combo || 0,
+    maxCombo: baseState.maxCombo || 0,
+    comboTimeLeft: baseState.comboTimeLeft || 0
+  }
 }
 </script>
 
@@ -208,6 +242,8 @@ const getPhysicsState = () => {
           :current-session="currentSession"
           :is-game-active="isGameActive"
           :format-number="formatNumber"
+          :combo-time-left="getPhysicsState().comboTimeLeft || 0"
+          :combo-reset-delay="4000"
         />
 
         <!-- Main Game Content -->
@@ -249,15 +285,17 @@ const getPhysicsState = () => {
           :visible="true"
           :position="'bottom-right'"
           :stores="{
-            levelStore: gameStateManager?.levelStore,
-            currencyStore: gameStateManager?.currencyStore,
-            sessionStore: gameStateManager?.sessionStore
-          }"
+    levelStore: gameStateManager?.levelStore,
+    currencyStore: gameStateManager?.currencyStore,
+    sessionStore: gameStateManager?.sessionStore
+  }"
           :current-level="currentLevel"
           :is-game-active="isGameActive"
           :is-game-paused="isGamePaused"
           :current-session="currentSession"
           :format-number="formatNumber"
+          :combo-time-left="getPhysicsState().comboTimeLeft || 0"
+          :combo-reset-delay="4000"
           v-bind="getPhysicsState()"
           @unlock-all-levels="handleDebugUnlockAllLevels"
           @add-currency="handleDebugAddCurrencyCustom"
@@ -269,6 +307,9 @@ const getPhysicsState = () => {
           @debug-add-test-objects="handleDebugAddTestObjects"
           @debug-clear-objects="handleDebugClearObjects"
           @debug-physics-info="handleDebugPhysicsInfo"
+          @debug-combo-test="handleDebugComboTest"
+          @debug-reset-combo="handleDebugResetCombo"
+          @debug-combo-info="handleDebugComboInfo"
           @pause-game="handlePauseGame"
           @resume-game="handleResumeGame"
         />
