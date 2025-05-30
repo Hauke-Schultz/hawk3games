@@ -1,208 +1,189 @@
-<template>
-  <div v-if="combo > 0" class="combo-display">
-    <!-- Circular progress ring -->
-    <div class="combo-circle">
-      <svg class="progress-ring" width="80" height="80">
-        <!-- Background circle -->
-        <circle
-          class="progress-ring-background"
-          cx="40"
-          cy="40"
-          r="35"
-          fill="transparent"
-          stroke="#333"
-          stroke-width="4"
-        />
-        <!-- Progress circle -->
-        <circle
-          class="progress-ring-progress"
-          cx="40"
-          cy="40"
-          r="35"
-          fill="transparent"
-          :stroke="progressColor"
-          stroke-width="4"
-          stroke-linecap="round"
-          :stroke-dasharray="circumference"
-          :stroke-dashoffset="strokeDashoffset"
-          transform="rotate(-90 40 40)"
-        />
-      </svg>
-
-      <!-- Combo number in center -->
-      <div class="combo-content">
-        <div class="combo-number">{{ combo }}</div>
-        <div class="combo-label">COMBO</div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { computed, watch } from 'vue'
 
-// Props - these would come from parent component or store
 const props = defineProps({
   combo: {
     type: Number,
     default: 0
   },
-  maxComboTime: {
+  comboTimeLeft: {
     type: Number,
-    default: 5000 // 5 seconds in milliseconds
+    default: 0
   },
-  currentComboTime: {
+  comboResetDelay: {
     type: Number,
-    default: 5000
+    default: 6000
+  },
+  size: {
+    type: Number,
+    default: 80
   }
 })
 
-// Reactive data
-const combo = ref(props.combo)
-const currentTime = ref(props.currentComboTime)
-const maxTime = ref(props.maxComboTime)
+// Show combo only when > 0
+const showCombo = computed(() => props.combo > 0)
 
-// Circle calculations
-const radius = 35
-const circumference = 2 * Math.PI * radius
-
-// Computed properties
-const timePercentage = computed(() => {
-  if (maxTime.value === 0) return 0
-  return (currentTime.value / maxTime.value) * 100
+// Time calculations
+const comboTimePercentage = computed(() => {
+  if (props.comboResetDelay === 0) return 0
+  return Math.max(0, Math.min(100, (props.comboTimeLeft / props.comboResetDelay) * 100))
 })
 
-const strokeDashoffset = computed(() => {
-  const progress = timePercentage.value / 100
-  return circumference * (1 - progress)
-})
-
-const progressColor = computed(() => {
-  const percentage = timePercentage.value
+const comboProgressColor = computed(() => {
+  const percentage = comboTimePercentage.value
   if (percentage > 66) return '#22c55e' // Green
   if (percentage > 33) return '#f97316' // Orange
   return '#ef4444' // Red
 })
 
-// Watch for prop changes
-watch(() => props.combo, (newCombo) => {
-  combo.value = newCombo
+// Circle calculations for SVG
+const radius = computed(() => (props.size - 10) / 2)
+const circumference = computed(() => 2 * Math.PI * radius.value)
+const strokeDashoffset = computed(() => {
+  const progress = comboTimePercentage.value / 100
+  return circumference.value * (1 - progress)
 })
 
-watch(() => props.currentComboTime, (newTime) => {
-  currentTime.value = newTime
+// Center position
+const center = computed(() => props.size / 2)
+
+// Font size based on circle size
+const fontSize = computed(() => {
+  return Math.max(16, props.size * 0.25)
 })
 
-watch(() => props.maxComboTime, (newMaxTime) => {
-  maxTime.value = newMaxTime
+const labelSize = computed(() => {
+  return Math.max(8, props.size * 0.1)
 })
 
-// Timer for smooth countdown (if needed)
-let countdownInterval = null
-
-const startCountdown = () => {
-  if (countdownInterval) {
-    clearInterval(countdownInterval)
-  }
-
-  countdownInterval = setInterval(() => {
-    if (currentTime.value > 0) {
-      currentTime.value -= 16 // ~60fps updates
-    } else {
-      clearInterval(countdownInterval)
-      combo.value = 0 // Reset combo when time runs out
+// Debug logging
+if (import.meta.env.DEV) {
+  watch([() => props.combo, () => props.comboTimeLeft], ([combo, timeLeft]) => {
+    if (combo > 0) {
+      console.log('🔥 ComboCircle:', {
+        combo,
+        timeLeft,
+        percentage: comboTimePercentage.value,
+        showCombo: showCombo.value
+      })
     }
-  }, 16)
+  })
 }
-
-// Lifecycle hooks
-onMounted(() => {
-  if (combo.value > 0 && currentTime.value > 0) {
-    startCountdown()
-  }
-})
-
-onUnmounted(() => {
-  if (countdownInterval) {
-    clearInterval(countdownInterval)
-  }
-})
-
-// Watch combo changes to restart timer
-watch(combo, (newCombo, oldCombo) => {
-  if (newCombo > oldCombo && newCombo > 0) {
-    // Combo increased, restart timer
-    currentTime.value = maxTime.value
-    startCountdown()
-  } else if (newCombo === 0) {
-    // Combo reset
-    if (countdownInterval) {
-      clearInterval(countdownInterval)
-    }
-  }
-})
 </script>
 
-<style scoped>
-.combo-display {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: comboAppear 0.3s ease-out;
-}
+<template>
+  <div
+    class="combo-circle"
+    :style="{ width: `${size}px`, height: `${size}px` }"
+  >
+    <!-- SVG Circle Timer -->
+    <svg
+      class="combo-circle__ring"
+      :width="size"
+      :height="size"
+      viewBox="0 0 80 80"
+    >
+      <!-- Background circle -->
+      <circle
+        class="combo-circle__background"
+        :cx="center"
+        :cy="center"
+        :r="radius"
+        fill="transparent"
+        stroke="rgba(255, 255, 255, 0.2)"
+        stroke-width="4"
+      />
+      <!-- Progress circle -->
+      <circle
+        class="combo-circle__progress"
+        :cx="center"
+        :cy="center"
+        :r="radius"
+        fill="transparent"
+        :stroke="comboProgressColor"
+        stroke-width="4"
+        stroke-linecap="round"
+        :stroke-dasharray="circumference"
+        :stroke-dashoffset="strokeDashoffset"
+        transform="rotate(-90 40 40)"
+      />
+    </svg>
 
+    <!-- Combo content in center -->
+    <div class="combo-circle__content">
+      <div
+        class="combo-circle__number"
+        :style="{ fontSize: `${fontSize}px` }"
+      >
+        {{ combo }}
+      </div>
+      <div
+        class="combo-circle__label"
+        :style="{ fontSize: `${labelSize}px` }"
+      >
+        COMBO
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
+// Combo Circle Block
 .combo-circle {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
+  animation: combo-appear 0.3s ease-out;
+
+  // Ring Element
+  &__ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  &__background {
+    opacity: 0.3;
+  }
+
+  &__progress {
+    transition: stroke-dashoffset 0.1s ease-out, stroke 0.3s ease-out;
+  }
+
+  // Content Element
+  &__content {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-color);
+    font-weight: bold;
+    z-index: 1;
+  }
+
+  &__number {
+    line-height: 1;
+    margin-bottom: 2px;
+    animation: combo-number-pulse 0.2s ease-out;
+    color: var(--accent-color);
+    font-weight: 900;
+  }
+
+  &__label {
+    letter-spacing: 1px;
+    opacity: 0.9;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+    line-height: 1;
+  }
 }
 
-.progress-ring {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform: rotate(-90deg);
-}
-
-.progress-ring-background {
-  opacity: 0.3;
-}
-
-.progress-ring-progress {
-  transition: stroke-dashoffset 0.1s ease-out, stroke 0.3s ease-out;
-}
-
-.combo-content {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: white;
-  font-weight: bold;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-}
-
-.combo-number {
-  font-size: 1.5rem;
-  line-height: 1;
-  margin-bottom: 2px;
-  animation: comboNumberPulse 0.2s ease-out;
-}
-
-.combo-label {
-  font-size: 0.6rem;
-  letter-spacing: 1px;
-  opacity: 0.9;
-}
-
-/* Animations */
-@keyframes comboAppear {
+// Animations
+@keyframes combo-appear {
   0% {
     opacity: 0;
     transform: scale(0.8);
@@ -213,36 +194,61 @@ watch(combo, (newCombo, oldCombo) => {
   }
 }
 
-@keyframes comboNumberPulse {
+@keyframes combo-number-pulse {
   0% {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.2);
+    transform: scale(1.15);
   }
   100% {
     transform: scale(1);
   }
 }
 
-/* Responsive adjustments */
+// Responsive optimizations
 @media (max-width: 768px) {
   .combo-circle {
-    width: 60px;
-    height: 60px;
+    // Ensure mobile touch targets are adequate
+    min-width: 44px;
+    min-height: 44px;
   }
+}
 
-  .progress-ring {
-    width: 60px;
-    height: 60px;
+// Dark theme adjustments
+[data-theme="dark"] .combo-circle {
+  &__background {
+    stroke: rgba(255, 255, 255, 0.1);
   }
+}
 
-  .combo-number {
-    font-size: 1.2rem;
+[data-theme="light"] .combo-circle {
+  &__background {
+    stroke: rgba(0, 0, 0, 0.15);
   }
+}
 
-  .combo-label {
-    font-size: 0.5rem;
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .combo-circle {
+    &__background {
+      opacity: 1;
+      stroke-width: 2px;
+    }
+
+    &__progress {
+      stroke-width: 3px;
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .combo-circle,
+  .combo-circle__number,
+  .combo-circle__progress {
+    animation: none;
+    transition: none;
   }
 }
 </style>

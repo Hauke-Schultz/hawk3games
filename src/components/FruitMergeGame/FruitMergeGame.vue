@@ -77,18 +77,37 @@ const handleScoreUpdate = (points) => {
   }
 }
 
+// Enhanced Combo State Management
+const comboState = ref({
+  current: 0,
+  maxThisSession: 0,
+  lastMergeTime: null,
+  timeoutId: null,
+  resetDelay: 4000, // 4 seconds
+  comboTimeLeft: 0,
+  comboTimerInterval: null
+})
+
+const getComboLevelName = (combo) => {
+  if (combo >= 10) return 'MEGA'
+  if (combo >= 7) return 'EPIC'
+  if (combo >= 5) return 'FIRE'
+  if (combo >= 3) return 'HOT'
+  if (combo >= 2) return 'WARM'
+  return 'NORMAL'
+}
+
 // Enhanced physics state getter mit combo data
 const getPhysicsState = () => {
   const baseState = gamePlayArea.value?.getPhysicsState() || {}
   return {
     ...baseState,
-    // Ensure combo properties are always available
+    // Get combo data directly from GamePlayArea's comboState
     combo: baseState.combo || 0,
     maxCombo: baseState.maxCombo || 0,
     comboTimeLeft: baseState.comboTimeLeft || 0
   }
-}
-</script>
+}</script>
 
 <template>
   <div class="fruit-merge-game">
@@ -141,11 +160,14 @@ const getPhysicsState = () => {
           :current-level="currentLevel"
           :coins="coins"
           :diamonds="diamonds"
-          :current-session="currentSession"
+          :current-session="{
+            ...currentSession,
+            combo: gamePlayArea?.comboState?.current || currentSession?.combo || 0
+          }"
           :is-game-active="isGameActive"
           :format-number="formatNumber"
-          :combo-time-left="getPhysicsState().comboTimeLeft || 0"
-          :combo-reset-delay="4000"
+          :combo-time-left="gamePlayArea?.comboState?.comboTimeLeft || 0"
+          :combo-reset-delay="gamePlayArea?.comboState?.resetDelay || 6000"
         />
 
         <!-- Main Game Content -->

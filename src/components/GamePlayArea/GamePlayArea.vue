@@ -262,21 +262,10 @@ const getCanvasPosition = (event) => {
   return { x: clampedX, y }
 }
 
-// Enhanced Combo State Management
-const comboState = ref({
-  current: 0,
-  maxThisSession: 0,
-  lastMergeTime: null,
-  timeoutId: null,
-  resetDelay: 4000, // 4 seconds
-  comboTimeLeft: 0,
-  comboTimerInterval: null
-})
-
 // Combo configuration
 const COMBO_CONFIG = {
-  resetDelay: 4000, // 4 seconds
-  minComboForDisplay: 2,
+  resetDelay: 6000,
+  minComboForDisplay: 1,
   scoreMultipliers: {
     1: 1.0,   // Single merge
     2: 1.2,   // 2x combo = 20% bonus
@@ -290,6 +279,17 @@ const COMBO_CONFIG = {
     10: 3.5   // 10+ combo = 250% bonus
   }
 }
+
+// Enhanced Combo State Management
+const comboState = ref({
+  current: 0,
+  maxThisSession: 0,
+  lastMergeTime: null,
+  timeoutId: null,
+  resetDelay: COMBO_CONFIG.resetDelay, // 6 seconds
+  comboTimeLeft: 0,
+  comboTimerInterval: null
+})
 
 // Calculate combo score multiplier
 const getComboMultiplier = (comboLevel) => {
@@ -310,15 +310,6 @@ const calculateComboScore = (baseScore, comboLevel) => {
   }
 
   return bonusScore
-}
-
-const getComboLevelName = (combo) => {
-  if (combo >= 10) return 'MEGA'
-  if (combo >= 7) return 'EPIC'
-  if (combo >= 5) return 'FIRE'
-  if (combo >= 3) return 'HOT'
-  if (combo >= 2) return 'WARM'
-  return 'NORMAL'
 }
 
 // Enhanced merge handling with combo
@@ -2178,7 +2169,6 @@ defineExpose({
   resetCombo,
   getComboMultiplier,
 
-  // Enhanced physics state including combo
   getPhysicsState: () => {
     return {
       engine: physicsEngine.value,
@@ -2187,10 +2177,11 @@ defineExpose({
       runner: physicsRunner.value,
       canDrop: canDrop.value,
       dropPreviewPosition: dropPreviewPosition.value,
-      // Add combo state
+      // Enhanced combo state
       combo: comboState.value.current,
       maxCombo: comboState.value.maxThisSession,
-      comboTimeLeft: comboState.value.comboTimeLeft
+      comboTimeLeft: comboState.value.comboTimeLeft,
+      comboLevel: getComboLevelName(comboState.value.current)
     }
   }
 })
@@ -2263,9 +2254,6 @@ defineExpose({
       <div v-if="!physicsEngine" class="game-play-area__game-placeholder">
         <p class="game-play-area__placeholder-text">
           Initializing Physics Engine...
-        </p>
-        <p class="game-play-area__placeholder-subtitle">
-          {{ gameStatusSubtitle }}
         </p>
       </div>
     </div>

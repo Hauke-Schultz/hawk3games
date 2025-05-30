@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import GameIcon from '../GameIcon/GameIcon.vue'
+import ComboCircle from '../ComboCircle/ComboCircle.vue'
 
 const props = defineProps({
   currentLevel: {
@@ -44,7 +45,7 @@ const props = defineProps({
   },
   comboResetDelay: {
     type: Number,
-    default: 4000
+    default: 6000
   }
 })
 
@@ -61,33 +62,34 @@ const currentMoves = computed(() => {
   return props.currentSession?.moves || 0
 })
 
-const showCombo = computed(() => {
-  return (props.currentSession?.combo || 0) > 1
-})
-
 const currentCombo = computed(() => {
   return props.currentSession?.combo || 0
 })
 
-// Debug logging to see if data is updating
-if (import.meta.env.DEV) {
-  console.log('🎯 GameStatsHeader props:', {
-    level: props.currentLevel,
-    score: props.currentSession?.score,
-    moves: props.currentSession?.moves,
-    isActive: props.isGameActive
+// Debug logging for combo
+if (import.meta.env.DEV && props.currentSession?.combo > 0) {
+  console.log('🔥 GameStatsHeader Combo Data:', {
+    combo: props.currentSession?.combo,
+    comboTimeLeft: props.comboTimeLeft,
+    comboResetDelay: props.comboResetDelay,
+    isGameActive: props.isGameActive
   })
 }
 </script>
 
 <template>
   <div class="game-stats-header">
-    <!-- Level Section -->
-    <div class="game-stats-header__level-section">
-      <span class="game-stats-header__level-text">LEVEL {{ currentLevelPadded }}</span>
+    <!-- Combo Section (Left) -->
+    <div class="game-stats-header__combo-section">
+      <ComboCircle
+        :combo="currentCombo"
+        :combo-time-left="comboTimeLeft"
+        :combo-reset-delay="comboResetDelay"
+        :size="80"
+      />
     </div>
 
-    <!-- Game Stats Section -->
+    <!-- Game Stats Section (Center) -->
     <div class="game-stats-header__game-section">
       <div class="game-stats-header__stat game-stats-header__stat--score">
         <span class="game-stats-header__stat-value">{{ formattedScore }}</span>
@@ -97,25 +99,20 @@ if (import.meta.env.DEV) {
         <span class="game-stats-header__stat-value">{{ currentMoves }}</span>
         <span class="game-stats-header__stat-label">MOVES</span>
       </div>
-      <!-- Combo Display (when active) -->
-      <div
-        v-if="showCombo"
-        class="game-stats-header__stat game-stats-header__stat--combo"
-      >
-        <span class="game-stats-header__stat-value">{{ currentCombo }}x</span>
-        <span class="game-stats-header__stat-label">COMBO</span>
-      </div>
     </div>
 
-    <!-- Currency Section -->
+    <!-- Currency Section (Right) -->
     <div class="game-stats-header__currency-section">
-      <div class="game-stats-header__currency game-stats-header__currency--coins">
-        <span class="game-stats-header__currency-value">{{ coins }}</span>
-        <GameIcon name="coin" :size="16" class="game-stats-header__currency-icon" />
-      </div>
-      <div class="game-stats-header__currency game-stats-header__currency--diamonds">
-        <span class="game-stats-header__currency-value">{{ diamonds }}</span>
-        <GameIcon name="diamond" :size="19" class="game-stats-header__currency-icon" />
+      <div class="game-stats-header__level-text">LEVEL {{ currentLevelPadded }}</div>
+      <div class="game-stats-header__currency-container">
+        <div class="game-stats-header__currency game-stats-header__currency--coins">
+          <span class="game-stats-header__currency-value">{{ coins }}</span>
+          <GameIcon name="coin" :size="16" class="game-stats-header__currency-icon" />
+        </div>
+        <div class="game-stats-header__currency game-stats-header__currency--diamonds">
+          <span class="game-stats-header__currency-value">{{ diamonds }}</span>
+          <GameIcon name="diamond" :size="19" class="game-stats-header__currency-icon" />
+        </div>
       </div>
     </div>
   </div>
@@ -144,20 +141,35 @@ if (import.meta.env.DEV) {
     grid-template-columns: 1fr;
     gap: var(--space-2);
     text-align: center;
-  }
 
-  // Level Section Element
-  &__level-section {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-1);
+    // Stack vertically on mobile
+    .game-stats-header__combo-section {
+      order: 1;
+    }
 
-    @media (max-width: vars.$breakpoint-sm) {
-      align-items: center;
+    .game-stats-header__game-section {
+      order: 2;
+    }
+
+    .game-stats-header__currency-section {
+      order: 3;
     }
   }
 
+  // Combo Section Element (Left)
+  &__combo-section {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 80px; // Reserve space even when combo not shown
+
+    @media (max-width: vars.$breakpoint-sm) {
+      justify-content: center;
+      min-height: 60px;
+    }
+  }
+
+  // Level Text (moved to currency section)
   &__level-text {
     font-size: var(--font-size-sm);
     font-weight: bold;
@@ -166,9 +178,11 @@ if (import.meta.env.DEV) {
     background: rgba(0, 184, 148, 0.1);
     border-radius: var(--border-radius-md);
     animation: subtle-pulse 3s ease-in-out infinite;
+    text-align: center;
+    margin-bottom: var(--space-1);
   }
 
-  // Game Section Element
+  // Game Section Element (Center)
   &__game-section {
     display: flex;
     gap: var(--space-4);
@@ -206,16 +220,21 @@ if (import.meta.env.DEV) {
     text-transform: uppercase;
   }
 
-  // Currency Section Element
+  // Currency Section Element (Right)
   &__currency-section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
     align-items: flex-end;
 
     @media (max-width: vars.$breakpoint-sm) {
       align-items: center;
     }
+  }
+
+  &__currency-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
 
     @media (min-width: vars.$breakpoint-md) {
       gap: var(--space-2);
@@ -249,7 +268,7 @@ if (import.meta.env.DEV) {
     flex-shrink: 0;
   }
 
-  // Stat Color Modifiers with animations
+  // Stat Color Modifiers
   &__stat--score {
     .game-stats-header__stat-value {
       color: var(--accent-color);
@@ -261,41 +280,15 @@ if (import.meta.env.DEV) {
       color: var(--info-color);
     }
   }
-
-  &__stat--combo {
-    .game-stats-header__stat-value {
-      color: var(--warning-color);
-      animation: combo-pulse 0.6s ease-in-out;
-    }
-
-    .game-stats-header__stat-label {
-      color: var(--warning-color);
-    }
-  }
 }
 
-// Animation for active game state
+// Animations
 @keyframes subtle-pulse {
   0%, 100% {
     box-shadow: 0 0 0 rgba(0, 184, 148, 0.4);
   }
   50% {
     box-shadow: 0 0 20px rgba(0, 184, 148, 0.2);
-  }
-}
-
-@keyframes combo-pulse {
-  0% {
-    transform: scale(1);
-    text-shadow: none;
-  }
-  50% {
-    transform: scale(1.1);
-    text-shadow: 0 0 10px rgba(253, 203, 110, 0.6);
-  }
-  100% {
-    transform: scale(1);
-    text-shadow: none;
   }
 }
 
