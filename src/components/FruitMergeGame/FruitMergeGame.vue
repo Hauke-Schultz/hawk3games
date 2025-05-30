@@ -130,6 +130,24 @@ const handleStoresReady = (stores) => {
   console.log('✅ Stores ready:', Object.keys(stores))
 }
 
+const handleMoveaMade = () => {
+  // Update session store
+  const stateManager = gameStateManager.value
+  if (stateManager && stateManager.sessionStore) {
+    stateManager.sessionStore.incrementMoves()
+    console.log(`🎯 Move incremented via GameStateManager`)
+  }
+}
+
+const handleScoreUpdate = (points) => {
+  // Update session store
+  const stateManager = gameStateManager.value
+  if (stateManager && stateManager.sessionStore) {
+    stateManager.sessionStore.addToScore(points)
+    console.log(`📊 Score updated: +${points} points`)
+  }
+}
+
 const getPhysicsState = () => {
   return gamePlayArea.value?.getPhysicsState() || {}
 }
@@ -153,10 +171,8 @@ const getPhysicsState = () => {
         coins,
         diamonds,
         currentLevel,
-        currentLevelPadded,
         isGameActive,
         isGamePaused,
-        formattedGameTime,
         currentSession,
         showLevelSelection,
         isDev,
@@ -191,7 +207,6 @@ const getPhysicsState = () => {
           :diamonds="diamonds"
           :current-session="currentSession"
           :is-game-active="isGameActive"
-          :formatted-game-time="formattedGameTime"
           :format-number="formatNumber"
         />
 
@@ -216,12 +231,12 @@ const getPhysicsState = () => {
             :current-session="currentSession"
             :is-game-active="isGameActive"
             :is-game-paused="isGamePaused"
-            :formatted-game-time="formattedGameTime"
             :is-dev="isDev"
             @pause-game="handlePauseGame"
             @resume-game="handleResumeGame"
             @back-to-level-selection="handleBackToLevelSelection"
-            @move-made="() => {}"
+            @move-made="handleMoveaMade"
+            @score-update="handleScoreUpdate"
             @debug-add-test-objects="handleDebugAddTestObjects"
             @debug-clear-objects="handleDebugClearObjects"
             @debug-physics-info="handleDebugPhysicsInfo"

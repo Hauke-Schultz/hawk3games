@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import GameIcon from '../GameIcon/GameIcon.vue'
 
-// Props for game state data
 const props = defineProps({
   currentLevel: {
     type: Number,
@@ -20,58 +19,94 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  formattedGameTime: {
-    type: String,
-    default: '00:00'
-  },
   currentSession: {
     type: Object,
     required: true,
     validator: (session) => {
       return session && typeof session.score === 'number' && typeof session.moves === 'number'
     }
+  },
+  formatNumber: {
+    type: Function,
+    default: (num) => {
+      if (num >= 1000000) {
+        return `${Math.floor(num / 100000) / 10}M`
+      }
+      if (num >= 1000) {
+        return `${Math.floor(num / 100) / 10}k`
+      }
+      return num.toString()
+    }
   }
 })
 
-// Computed properties for display
+// Computed properties for live updates
 const currentLevelPadded = computed(() => {
   return props.currentLevel.toString().padStart(2, '0')
 })
+
+const formattedScore = computed(() => {
+  return props.formatNumber(props.currentSession?.score || 0)
+})
+
+const currentMoves = computed(() => {
+  return props.currentSession?.moves || 0
+})
+
+const showCombo = computed(() => {
+  return (props.currentSession?.combo || 0) > 1
+})
+
+const currentCombo = computed(() => {
+  return props.currentSession?.combo || 0
+})
+
+// Debug logging to see if data is updating
+if (import.meta.env.DEV) {
+  console.log('🎯 GameStatsHeader props:', {
+    level: props.currentLevel,
+    score: props.currentSession?.score,
+    moves: props.currentSession?.moves,
+    isActive: props.isGameActive
+  })
+}
 </script>
 
 <template>
   <div class="game-stats-header">
-    <!-- Level & Time Section -->
+    <!-- Level Section -->
     <div class="game-stats-header__level-section">
       <span class="game-stats-header__level-text">LEVEL {{ currentLevelPadded }}</span>
-      <span
-        v-if="isGameActive"
-        class="game-stats-header__time-display"
-      >
-        {{ formattedGameTime }}
-      </span>
     </div>
 
     <!-- Game Stats Section -->
     <div class="game-stats-header__game-section">
       <div class="game-stats-header__stat game-stats-header__stat--score">
-        <span class="game-stats-header__stat-value">{{ currentSession.score }}</span>
+        <span class="game-stats-header__stat-value">{{ formattedScore }}</span>
         <span class="game-stats-header__stat-label">SCORE</span>
       </div>
       <div class="game-stats-header__stat game-stats-header__stat--moves">
-        <span class="game-stats-header__stat-value">{{ currentSession.moves }}</span>
+        <span class="game-stats-header__stat-value">{{ currentMoves }}</span>
         <span class="game-stats-header__stat-label">MOVES</span>
+      </div>
+      <!-- Combo Display (when active) -->
+      <div
+        v-if="showCombo"
+        class="game-stats-header__stat game-stats-header__stat--combo"
+      >
+        <span class="game-stats-header__stat-value">{{ currentCombo }}x</span>
+        <span class="game-stats-header__stat-label">COMBO</span>
       </div>
     </div>
 
     <!-- Currency Section -->
     <div class="game-stats-header__currency-section">
       <div class="game-stats-header__currency game-stats-header__currency--coins">
-        <span class="game-stats-header__currency-value">{{ props.coins }}</span>
+        <span class="game-stats-header__currency-value">{{ coins }}</span>
         <GameIcon name="coin" :size="16" class="game-stats-header__currency-icon" />
       </div>
       <div class="game-stats-header__currency game-stats-header__currency--diamonds">
-        <span class="game-stats-header__currency-value">{{ props.diamonds }}</span>
+        <span class="game-stats-header__currency-value">{{ diamonds }}</span>
         <GameIcon name="diamond" :size="19" class="game-stats-header__currency-icon" />
       </div>
     </div>
@@ -115,6 +150,16 @@ const currentLevelPadded = computed(() => {
     }
   }
 
+  &__level-text {
+    font-size: var(--font-size-sm);
+    font-weight: bold;
+    color: var(--accent-color);
+    padding: var(--space-1) var(--space-2);
+    background: rgba(0, 184, 148, 0.1);
+    border-radius: var(--border-radius-md);
+    animation: subtle-pulse 3s ease-in-out infinite;
+  }
+
   // Game Section Element
   &__game-section {
     display: flex;
@@ -131,12 +176,14 @@ const currentLevelPadded = computed(() => {
     flex-direction: column;
     align-items: center;
     gap: var(--space-1);
+    min-width: 60px;
   }
 
   &__stat-value {
     font-size: var(--font-size-lg);
     font-weight: bold;
     color: var(--text-color);
+    transition: all 0.3s ease;
 
     @media (min-width: vars.$breakpoint-md) {
       font-size: var(--font-size-xl);
@@ -167,7 +214,34 @@ const currentLevelPadded = computed(() => {
     }
   }
 
-  // Stat Color Modifiers
+  &__currency {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: var(--card-bg-hover);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--card-border);
+  }
+
+  &__currency-value {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-color);
+    min-width: 40px;
+    text-align: right;
+
+    @media (min-width: vars.$breakpoint-md) {
+      font-size: var(--font-size-base);
+      min-width: 50px;
+    }
+  }
+
+  &__currency-icon {
+    flex-shrink: 0;
+  }
+
+  // Stat Color Modifiers with animations
   &__stat--score {
     .game-stats-header__stat-value {
       color: var(--accent-color);
@@ -179,19 +253,41 @@ const currentLevelPadded = computed(() => {
       color: var(--info-color);
     }
   }
+
+  &__stat--combo {
+    .game-stats-header__stat-value {
+      color: var(--warning-color);
+      animation: combo-pulse 0.6s ease-in-out;
+    }
+
+    .game-stats-header__stat-label {
+      color: var(--warning-color);
+    }
+  }
 }
 
 // Animation for active game state
-.game-stats-header__level-text {
-  animation: subtle-pulse 3s ease-in-out infinite;
-}
-
 @keyframes subtle-pulse {
   0%, 100% {
     box-shadow: 0 0 0 rgba(0, 184, 148, 0.4);
   }
   50% {
     box-shadow: 0 0 20px rgba(0, 184, 148, 0.2);
+  }
+}
+
+@keyframes combo-pulse {
+  0% {
+    transform: scale(1);
+    text-shadow: none;
+  }
+  50% {
+    transform: scale(1.1);
+    text-shadow: 0 0 10px rgba(253, 203, 110, 0.6);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: none;
   }
 }
 

@@ -388,9 +388,6 @@ const handlePointerUp = (event) => {
       // Visual feedback for the drop
       createDropFeedback(dropPreviewPosition.value)
 
-      // Emit move event for session tracking
-      emit('move-made')
-
       // Check for game over after a delay
       setTimeout(() => {
         checkGameOver()
@@ -645,9 +642,6 @@ const performDrop = (x) => {
   const droppedFruit = dropNextFruit(x)
 
   if (droppedFruit) {
-    // Emit move event for session tracking
-    emit('move-made')
-
     // Visual feedback
     createDropFeedback(x)
 
@@ -1410,7 +1404,6 @@ const mergeFruits = (fruitA, fruitB) => {
     return
   }
 
-  // Markiere als merged BEVOR wir sie aus der Physics-Welt entfernen
   fruitA.fruitData.hasBeenMerged = true
   fruitB.fruitData.hasBeenMerged = true
 
@@ -1443,7 +1436,6 @@ const mergeFruits = (fruitA, fruitB) => {
   // Visueller Effekt
   createMergeEffect(mergeX, mergeY, nextType)
 
-  // Erstelle neues Fruit mit leichtem Delay für bessere Physik
   setTimeout(() => {
     const newFruit = createFruit(mergeX, mergeY, nextType, {
       velocity: { x: 0, y: -2 }
@@ -1451,11 +1443,10 @@ const mergeFruits = (fruitA, fruitB) => {
 
     if (newFruit) {
       Matter.World.add(physicsWorld.value, newFruit)
-
-      // Score berechnen
+      // Score calculation and emission
       const baseScore = FRUIT_TYPES[nextType].scoreValue
+      emit('score-update', baseScore)
       console.log(`🎉 Merged ${fruitType} → ${nextType} (+${baseScore} points)`)
-
       // Emit score update if needed
       // emit('score-update', baseScore)
     }
@@ -1469,22 +1460,15 @@ const dropNextFruit = (x) => {
   const dropY = 50
   const fruitType = nextFruitType.value
 
-  // Create and drop fruit
   const newFruit = createFruit(x, dropY, fruitType, {
     isSleeping: false
   })
 
   if (newFruit) {
     Matter.World.add(physicsWorld.value, newFruit)
-
-    // Generate next fruit type
     nextFruitType.value = getRandomFruitType()
 
-    // Update moves counter
-    if (props.currentSession) {
-      emit('move-made')
-    }
-
+    emit('move-made')
     console.log(`🎯 Dropped ${fruitType} at x:${x}, next: ${nextFruitType.value}`)
     return newFruit
   }
@@ -1690,6 +1674,7 @@ const emit = defineEmits([
   'resume-game',
   'back-to-level-selection',
   'move-made',
+  'score-update',
   'debug-add-test-objects',
   'debug-clear-objects',
   'debug-physics-info'

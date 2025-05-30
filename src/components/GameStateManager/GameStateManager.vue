@@ -294,6 +294,16 @@ const debugCompleteCurrentLevel = () => {
   return false
 }
 
+const formatNumber = (num) => {
+  if (num >= 1000000) {
+    return `${Math.floor(num / 100000) / 10}M`
+  }
+  if (num >= 1000) {
+    return `${Math.floor(num / 100) / 10}k`
+  }
+  return num.toString()
+}
+
 // Lifecycle management
 onMounted(() => {
   console.log('🎮 GameStateManager mounted with store integration')
@@ -413,6 +423,7 @@ defineExpose({
       :show-level-selection="showLevelSelection"
       :is-dev="isDev"
       :auto-simulation-enabled="autoSimulationEnabled"
+      :format-number="formatNumber"
       :start-level="startLevel"
       :finish-current-level="finishCurrentLevel"
       :pause-game="pauseGame"
