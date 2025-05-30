@@ -1755,6 +1755,19 @@ const handleDebugPhysicsInfo = () => {
   }
 }
 
+// Simple UI toggle handler for canvas resize
+const handleUIToggle = () => {
+  if (!physicsRender.value || !gameCanvas.value) return
+
+  console.log('🎮 Handling UI toggle for canvas resize')
+
+  // Simple approach: trigger window resize event to recalculate layout
+  nextTick(() => {
+    const resizeEvent = new Event('resize')
+    window.dispatchEvent(resizeEvent)
+  })
+}
+
 // Computed game status text
 const gameStatusTitle = computed(() => {
   if (props.isGamePaused) {
@@ -1821,7 +1834,10 @@ defineExpose({
   handleDebugAddTestObjects,
   handleDebugClearObjects,
   handleDebugPhysicsInfo,
-  getPhysicsState
+  getPhysicsState,
+
+  // UI toggle handler
+  handleUIToggle
 })
 </script>
 
@@ -1935,7 +1951,6 @@ defineExpose({
   justify-content: center;
   align-items: flex-start;
   min-height: 60vh;
-  padding: var(--space-4);
 
   // Game Container Element
   &__game-container {
@@ -2270,8 +2285,6 @@ defineExpose({
 // Responsive adjustments
 @media (min-width: vars.$breakpoint-md) {
   .game-play-area {
-    padding: var(--space-8);
-
     &__game-status {
       padding: var(--space-6);
     }
