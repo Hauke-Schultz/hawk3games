@@ -9,7 +9,6 @@ import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
 // Application state
 const activeTab = ref('home') // Track active navigation tab
 const currentView = ref('home') // Track current view/page
-// Global UI toggle state - controls entire app UI
 const isUIHidden = ref(false)
 
 // Games data - designed for mobile-first approach
