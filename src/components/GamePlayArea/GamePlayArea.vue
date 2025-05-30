@@ -42,7 +42,6 @@ const physicsRunner = ref(null)
 const dropPreviewPosition = ref(null)
 const isPointerDown = ref(false)
 const canDrop = ref(true)
-const activeFruit = ref(null)
 const dropCooldown = 500 // Milliseconds between drops
 let dropCooldownTimer = null
 
@@ -1696,24 +1695,6 @@ const emit = defineEmits([
   'debug-physics-info'
 ])
 
-// Event handlers
-const handlePauseGame = () => {
-  console.log('🎮 Pause game requested from GamePlayArea')
-  stopPhysics()
-  emit('pause-game')
-}
-
-const handleResumeGame = () => {
-  console.log('🎮 Resume game requested from GamePlayArea')
-  startPhysics()
-  emit('resume-game')
-}
-
-const handleBackToLevelSelection = () => {
-  console.log('🔙 Back to level selection requested from GamePlayArea')
-  emit('back-to-level-selection')
-}
-
 // Debug Functions (DEV only)
 const handleDebugAddTestObjects = () => {
   if (props.isDev) {
@@ -1767,27 +1748,6 @@ const handleUIToggle = () => {
     window.dispatchEvent(resizeEvent)
   })
 }
-
-// Computed game status text
-const gameStatusTitle = computed(() => {
-  if (props.isGamePaused) {
-    return '⏸️ Game Paused'
-  }
-  return `🎮 Playing Level ${props.currentLevel}`
-})
-
-const gameStatusSubtitle = computed(() => {
-  if (props.isGamePaused) {
-    return 'Game is paused'
-  }
-  return 'Game is active'
-})
-
-
-// Show game info when game is active or paused
-const showGameInfo = computed(() => {
-  return props.isGameActive || props.isGamePaused
-})
 
 // Lifecycle Management
 onMounted(async () => {
@@ -1912,32 +1872,6 @@ defineExpose({
         <p class="game-play-area__placeholder-subtitle">
           {{ gameStatusSubtitle }}
         </p>
-
-        <!-- Basic Game Controls -->
-        <div class="game-play-area__game-controls">
-          <button
-            v-if="!isGamePaused"
-            @click="handlePauseGame"
-            class="btn"
-            :disabled="!isGameActive"
-          >
-            ⏸️ Pause Game
-          </button>
-          <button
-            v-else
-            @click="handleResumeGame"
-            class="btn"
-          >
-            ▶️ Resume Game
-          </button>
-
-          <button
-            @click="handleBackToLevelSelection"
-            class="btn btn--ghost"
-          >
-            🔙 Back to Level Selection
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -2020,22 +1954,6 @@ defineExpose({
     margin-bottom: var(--space-4);
     font-size: var(--font-size-base);
     color: var(--text-secondary);
-  }
-
-  // Game Controls Element - VEREINFACHT
-  &__game-controls {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    align-items: center;
-    width: 100%;
-    max-width: 200px;
-
-    @media (min-width: vars.$breakpoint-md) {
-      flex-direction: row;
-      max-width: none;
-      gap: var(--space-4);
-    }
   }
 
   // Physics Game Area Element

@@ -7,7 +7,6 @@ import LevelSelection from "../LevelSelection/LevelSelection.vue"
 import GamePlayArea from "../GamePlayArea/GamePlayArea.vue"
 import DebugPanel from "../DebugPanel/DebugPanel.vue"
 import GameStatsHeader from "../GameStatsHeader/GameStatsHeader.vue"
-import GameControls from "../GameControls/GameControls.vue"
 
 // Emit events to parent component
 const emit = defineEmits(['back-to-menu'])
@@ -228,20 +227,6 @@ const getPhysicsState = () => {
             @debug-physics-info="handleDebugPhysicsInfo"
           />
         </main>
-
-        <!-- Game Controls (only show when not in level selection) -->
-        <GameControls
-          v-if="!showLevelSelection"
-          :is-game-active="isGameActive"
-          :is-game-paused="isGamePaused"
-          :current-level="currentLevel"
-          :is-dev="isDev"
-          :show-back-button="true"
-          :show-debug-controls="false"
-          @back-to-level-selection="handleBackToLevelSelection"
-          @pause-game="handlePauseGame"
-          @resume-game="handleResumeGame"
-        />
 
         <!-- Enhanced Debug Panel (DEV only) -->
         <DebugPanel
