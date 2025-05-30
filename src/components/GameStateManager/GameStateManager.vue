@@ -9,10 +9,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  enableDebugMode: {
-    type: Boolean,
-    default: false
-  }
 })
 
 // Events emitted to parent component
@@ -267,33 +263,6 @@ const getStoreStatistics = () => {
   }
 }
 
-// Debug functions (DEV only)
-const debugUnlockAllLevels = () => {
-  if (import.meta.env.DEV) {
-    levelStore.unlockAllLevels()
-    console.log('🔓 All levels unlocked (DEBUG)')
-    return true
-  }
-  return false
-}
-
-const debugAddCurrency = (coinAmount = 1000, diamondAmount = 100) => {
-  if (import.meta.env.DEV) {
-    currencyStore.addCheatCurrency(coinAmount, diamondAmount)
-    console.log('💰 Added cheat currency (DEBUG)')
-    return true
-  }
-  return false
-}
-
-const debugCompleteCurrentLevel = () => {
-  if (import.meta.env.DEV && isGameActive.value) {
-    completeLevel(1500, 8)
-    return true
-  }
-  return false
-}
-
 const formatNumber = (num) => {
   if (num >= 1000000) {
     return `${Math.floor(num / 100000) / 10}M`
@@ -323,19 +292,6 @@ onMounted(() => {
     currencyStore,
     sessionStore
   })
-
-  // Expose debug functions to window in development
-  if (props.enableDebugMode && import.meta.env.DEV) {
-    window.gameStateManagerDebug = {
-      unlockAllLevels: debugUnlockAllLevels,
-      addCurrency: debugAddCurrency,
-      completeCurrentLevel: debugCompleteCurrentLevel,
-      toggleAutoSimulation: toggleAutoSimulation,
-      getStatistics: getStoreStatistics,
-      stores: { levelStore, currencyStore, sessionStore }
-    }
-    console.log('🛠️ Debug functions available at window.gameStateManagerDebug')
-  }
 })
 
 onUnmounted(() => {
@@ -346,11 +302,6 @@ onUnmounted(() => {
   if (isGameActive.value || isGamePaused.value) {
     sessionStore.abortSession()
     levelStore.finishLevel()
-  }
-
-  // Clean up debug functions
-  if (typeof window !== 'undefined' && window.gameStateManagerDebug) {
-    delete window.gameStateManagerDebug
   }
 })
 
@@ -364,9 +315,6 @@ provide('gameStateManager', {
   pauseGame,
   resumeGame,
   completeLevel,
-  debugUnlockAllLevels,
-  debugAddCurrency,
-  debugCompleteCurrentLevel,
   toggleAutoSimulation,
   getStoreStatistics,
 })
@@ -393,9 +341,6 @@ defineExpose({
   pauseGame,
   resumeGame,
   completeLevel,
-  debugUnlockAllLevels,
-  debugAddCurrency,
-  debugCompleteCurrentLevel,
   toggleAutoSimulation,
   getStoreStatistics,
 
@@ -429,9 +374,6 @@ defineExpose({
       :pause-game="pauseGame"
       :resume-game="resumeGame"
       :complete-level="completeLevel"
-      :debug-unlock-all-levels="debugUnlockAllLevels"
-      :debug-add-currency="debugAddCurrency"
-      :debug-complete-current-level="debugCompleteCurrentLevel"
       :toggle-auto-simulation="toggleAutoSimulation"
       :get-store-statistics="getStoreStatistics"
     />

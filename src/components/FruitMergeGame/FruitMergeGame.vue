@@ -5,7 +5,6 @@ import GameIcon from "../GameIcon/GameIcon.vue"
 import GameStateManager from "../GameStateManager/GameStateManager.vue"
 import LevelSelection from "../LevelSelection/LevelSelection.vue"
 import GamePlayArea from "../GamePlayArea/GamePlayArea.vue"
-import DebugPanel from "../DebugPanel/DebugPanel.vue"
 import GameStatsHeader from "../GameStatsHeader/GameStatsHeader.vue"
 
 // Emit events to parent component
@@ -30,14 +29,6 @@ const handleLevelSelected = (level) => {
   gameStateManager.value?.startLevel(level)
 }
 
-const handleDebugUnlockAll = () => {
-  gameStateManager.value?.debugUnlockAllLevels()
-}
-
-const handleDebugAddCurrency = () => {
-  gameStateManager.value?.debugAddCurrency()
-}
-
 // Game Play Area Events
 const handlePauseGame = () => {
   gameStateManager.value?.pauseGame()
@@ -49,94 +40,6 @@ const handleResumeGame = () => {
 
 const handleBackToLevelSelection = () => {
   gameStateManager.value?.finishCurrentLevel()
-}
-
-const handleDebugCompleteLevel = () => {
-  gameStateManager.value?.debugCompleteCurrentLevel()
-}
-
-const handleDebugAddTestObjects = () => {
-  if (gamePlayArea.value) {
-    gamePlayArea.value.handleDebugAddTestObjects()
-  }
-}
-
-const handleDebugClearObjects = () => {
-  if (gamePlayArea.value) {
-    gamePlayArea.value.handleDebugClearObjects()
-  }
-}
-
-const handleDebugPhysicsInfo = () => {
-  if (gamePlayArea.value) {
-    gamePlayArea.value.handleDebugPhysicsInfo()
-  }
-}
-
-// Debug Panel Events
-const handleDebugUnlockAllLevels = () => {
-  gameStateManager.value?.debugUnlockAllLevels()
-}
-
-const handleDebugAddCurrencyCustom = (amounts) => {
-  gameStateManager.value?.debugAddCurrency(amounts.coins, amounts.diamonds)
-}
-
-const handleDebugCompleteCurrentLevel = () => {
-  gameStateManager.value?.debugCompleteCurrentLevel()
-}
-
-const handleDebugResetProgress = () => {
-  console.log('🔄 Reset progress requested')
-}
-
-const handleDebugComboTest = () => {
-  if (gamePlayArea.value) {
-    gamePlayArea.value.handleDebugComboTest()
-    console.log('🧪 FruitMergeGame: Combo test chain initiated')
-  }
-}
-
-const handleDebugResetCombo = () => {
-  if (gamePlayArea.value) {
-    gamePlayArea.value.handleDebugResetCombo()
-    console.log('🧪 FruitMergeGame: Combo manually reset')
-  }
-}
-
-const handleDebugComboInfo = () => {
-  if (gamePlayArea.value) {
-    const physicsState = gamePlayArea.value.getPhysicsState()
-    console.log('📊 FruitMergeGame Combo Debug Info:', {
-      currentCombo: physicsState.combo,
-      maxCombo: physicsState.maxCombo,
-      timeLeft: physicsState.comboTimeLeft,
-      comboLevel: physicsState.comboLevel
-    })
-  }
-}
-
-const handleDebugExportData = () => {
-  const stats = gameStateManager.value?.getStoreStatistics()
-  if (stats) {
-    const dataStr = JSON.stringify(stats, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'hawk3games_debug_export.json'
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-}
-
-const handleDebugImportData = (data) => {
-  console.log('📥 Import data requested:', data)
-}
-
-const handleToggleAutoSimulation = (enabled) => {
-  console.log(`🤖 Auto simulation ${enabled ? 'enabled' : 'disabled'}`)
-  gameStateManager.value?.toggleAutoSimulation(enabled)
 }
 
 // GameStateManager Events
@@ -193,7 +96,6 @@ const getPhysicsState = () => {
     <GameStateManager
       ref="gameStateManager"
       :auto-start-simulation="false"
-      :enable-debug-mode="true"
       @level-completed="handleLevelCompleted"
       @session-started="handleSessionStarted"
       @session-ended="handleSessionEnded"
@@ -253,10 +155,7 @@ const getPhysicsState = () => {
             v-if="showLevelSelection"
             :levels="levels"
             :is-dev="isDev"
-            :show-debug-controls="true"
             @level-selected="handleLevelSelected"
-            @debug-unlock-all="handleDebugUnlockAll"
-            @debug-add-currency="handleDebugAddCurrency"
           />
 
           <!-- Game Play Area (focused on gameplay) -->
@@ -273,47 +172,8 @@ const getPhysicsState = () => {
             @back-to-level-selection="handleBackToLevelSelection"
             @move-made="handleMoveaMade"
             @score-update="handleScoreUpdate"
-            @debug-add-test-objects="handleDebugAddTestObjects"
-            @debug-clear-objects="handleDebugClearObjects"
-            @debug-physics-info="handleDebugPhysicsInfo"
           />
         </main>
-
-        <!-- Enhanced Debug Panel (DEV only) -->
-        <DebugPanel
-          :is-dev="isDev"
-          :visible="true"
-          :position="'bottom-right'"
-          :stores="{
-    levelStore: gameStateManager?.levelStore,
-    currencyStore: gameStateManager?.currencyStore,
-    sessionStore: gameStateManager?.sessionStore
-  }"
-          :current-level="currentLevel"
-          :is-game-active="isGameActive"
-          :is-game-paused="isGamePaused"
-          :current-session="currentSession"
-          :format-number="formatNumber"
-          :combo-time-left="getPhysicsState().comboTimeLeft || 0"
-          :combo-reset-delay="4000"
-          v-bind="getPhysicsState()"
-          @unlock-all-levels="handleDebugUnlockAllLevels"
-          @add-currency="handleDebugAddCurrencyCustom"
-          @complete-current-level="handleDebugCompleteCurrentLevel"
-          @reset-progress="handleDebugResetProgress"
-          @export-data="handleDebugExportData"
-          @import-data="handleDebugImportData"
-          @toggle-auto-simulation="handleToggleAutoSimulation"
-          @debug-add-test-objects="handleDebugAddTestObjects"
-          @debug-clear-objects="handleDebugClearObjects"
-          @debug-physics-info="handleDebugPhysicsInfo"
-          @debug-combo-test="handleDebugComboTest"
-          @debug-reset-combo="handleDebugResetCombo"
-          @debug-combo-info="handleDebugComboInfo"
-          @pause-game="handlePauseGame"
-          @resume-game="handleResumeGame"
-        />
-
       </template>
     </GameStateManager>
   </div>

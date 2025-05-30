@@ -453,20 +453,12 @@ watch(isUIHidden, (newValue) => {
       flex-direction: column;
       justify-content: center;
     }
-    // Debug panel global hiding
-    .debug-panel {
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(0.8);
-      transition: all 0.4s ease;
-    }
   }
 }
 // Smooth transitions for all UI elements
 .app__header,
 .bottom-navigation,
-.app__main,
-.debug-panel {
+.app__main {
   transition: all 0.4s ease;
 }
 

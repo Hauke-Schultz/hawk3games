@@ -16,17 +16,11 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  showDebugControls: {
-    type: Boolean,
-    default: false
-  }
 })
 
 // Events emitted to parent component
 const emit = defineEmits([
   'level-selected',
-  'debug-unlock-all',
-  'debug-add-currency'
 ])
 
 // Fruit emojis for level icons
@@ -40,17 +34,6 @@ const selectLevel = (level) => {
   } else {
     console.warn(`Level ${level.id} is locked`)
   }
-}
-
-// Debug handlers
-const handleDebugUnlockAll = () => {
-  console.log('🔓 Debug: Unlock all levels requested')
-  emit('debug-unlock-all')
-}
-
-const handleDebugAddCurrency = () => {
-  console.log('💰 Debug: Add currency requested')
-  emit('debug-add-currency')
 }
 
 // Convert level data to game card format for consistent display
@@ -69,11 +52,6 @@ const getLevelAsGameCard = (level) => {
     stars: level.stars
   }
 }
-
-// Computed for easier access to debug mode
-const showDebugUI = computed(() => {
-  return props.isDev && props.showDebugControls
-})
 </script>
 
 <template>
@@ -81,22 +59,6 @@ const showDebugUI = computed(() => {
     <!-- Level Selection Header -->
     <div class="level-selection__header">
       <h2 class="level-selection__title">Select a Level</h2>
-
-      <!-- Debug Controls (DEV only) -->
-      <div v-if="showDebugUI" class="level-selection__debug-controls">
-        <button
-          @click="handleDebugUnlockAll"
-          class="btn btn--small btn--ghost"
-        >
-          🔓 Unlock All
-        </button>
-        <button
-          @click="handleDebugAddCurrency"
-          class="btn btn--small btn--ghost"
-        >
-          💰 Add Currency
-        </button>
-      </div>
     </div>
 
     <!-- Levels Container -->
@@ -239,15 +201,6 @@ const showDebugUI = computed(() => {
     @media (min-width: vars.$breakpoint-md) {
       font-size: var(--font-size-3xl);
       margin-bottom: var(--space-6);
-    }
-  }
-
-  &__debug-controls {
-    display: flex;
-    gap: var(--space-2);
-
-    @media (max-width: vars.$breakpoint-sm) {
-      flex-direction: column;
     }
   }
 
@@ -442,15 +395,6 @@ const showDebugUI = computed(() => {
 
     .level-selection__level-card:hover & {
       transform: translateX(2px);
-    }
-  }
-}
-
-// Responsive adjustments
-@media (min-width: vars.$breakpoint-md) {
-  .level-selection {
-    &__debug-controls {
-      gap: var(--space-3);
     }
   }
 }

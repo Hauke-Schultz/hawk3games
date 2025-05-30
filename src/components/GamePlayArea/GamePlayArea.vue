@@ -311,65 +311,6 @@ const calculateComboScore = (baseScore, comboLevel) => {
 
   return bonusScore
 }
-const handleDebugComboTest = () => {
-  if (props.isDev) {
-    console.log('🧪 Starting combo test chain...')
-
-    // Simulate rapid combos for testing
-    let comboCount = 0
-    const maxCombos = 12 // Test up to mega level
-
-    const testInterval = setInterval(() => {
-      comboCount++
-
-      // Simulate different base scores
-      const baseScore = 50 + (comboCount * 25)
-      const finalScore = handleComboMerge(baseScore)
-
-      console.log(`🧪 Debug combo ${comboCount}: Base=${baseScore}, Final=${finalScore}, Multiplier=${getComboMultiplier(comboCount)}`)
-
-      if (comboCount >= maxCombos) {
-        clearInterval(testInterval)
-        console.log('🧪 Combo test chain completed!')
-
-        // Reset after test
-        setTimeout(() => {
-          resetCombo()
-          console.log('🧪 Test combo reset')
-        }, 2000)
-      }
-    }, 300) // 300ms intervals for rapid testing
-  }
-}
-
-const handleDebugResetCombo = () => {
-  if (props.isDev) {
-    const oldCombo = comboState.value.current
-    resetCombo()
-    console.log(`🧪 Debug: Combo manually reset (was ${oldCombo}x)`)
-  }
-}
-
-const handleDebugComboInfo = () => {
-  if (props.isDev) {
-    const info = {
-      current: comboState.value.current,
-      max: comboState.value.maxThisSession,
-      timeLeft: Math.round(comboState.value.comboTimeLeft / 1000 * 10) / 10,
-      multiplier: getComboMultiplier(comboState.value.current),
-      resetDelay: COMBO_CONFIG.resetDelay / 1000,
-      level: getComboLevelName(comboState.value.current)
-    }
-
-    console.log('📊 Combo Debug Info:', info)
-
-    // Also log multiplier table
-    console.log('📊 Multiplier Table:')
-    for (let i = 1; i <= 15; i++) {
-      console.log(`  ${i}x combo = ${getComboMultiplier(i)}x multiplier`)
-    }
-  }
-}
 
 const getComboLevelName = (combo) => {
   if (combo >= 10) return 'MEGA'
@@ -2164,50 +2105,10 @@ const emit = defineEmits([
   'back-to-level-selection',
   'move-made',
   'score-update',
-  'debug-add-test-objects',
-  'debug-clear-objects',
-  'debug-physics-info'
 ])
-
-// Debug Functions (DEV only)
-const handleDebugAddTestObjects = () => {
-  if (props.isDev) {
-    createTestObjects()
-    emit('debug-add-test-objects') // Benachrichtige DebugPanel
-  }
-}
-
-const handleDebugClearObjects = () => {
-  if (props.isDev) {
-    removeTestObjects()
-    emit('debug-clear-objects') // Benachrichtige DebugPanel
-  }
-}
 
 const isMobile = () => {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0
-}
-
-const handleDebugPhysicsInfo = () => {
-  if (props.isDev && physicsEngine.value) {
-    const bodies = Matter.Composite.allBodies(physicsWorld.value)
-
-    const debugInfo = {
-      engine: !!physicsEngine.value,
-      world: !!physicsWorld.value,
-      render: !!physicsRender.value,
-      runner: !!physicsRunner.value,
-      totalBodies: bodies.length,
-      staticBodies: bodies.filter(b => b.isStatic).length,
-      dynamicBodies: bodies.filter(b => !b.isStatic).length,
-      gravity: physicsEngine.value.world.gravity,
-      fruits: fruits.value.length,
-      performanceRunning: performanceRunning
-    }
-
-    console.log('🔧 Physics Debug Info:', debugInfo)
-    emit('debug-physics-info', debugInfo) // Sende Info an DebugPanel
-  }
 }
 
 // Simple UI toggle handler for canvas resize
@@ -2270,21 +2171,12 @@ defineExpose({
   canDrop,
   dropPreviewPosition,
 
-  // Debug functions
-  handleDebugAddTestObjects,
-  handleDebugClearObjects,
-  handleDebugPhysicsInfo,
-
   // UI toggle handler
   handleUIToggle,
 
   comboState,
   resetCombo,
   getComboMultiplier,
-
-  // Enhanced debug functions
-  handleDebugComboTest,
-  handleDebugResetCombo,
 
   // Enhanced physics state including combo
   getPhysicsState: () => {
