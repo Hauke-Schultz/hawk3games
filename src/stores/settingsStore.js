@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { saveToStorage, loadFromStorage } from '../utils/storage.js'
 
-// Settings Store - Manages game performance and user preferences
+// Settings Store - Manages game performance, user preferences, and theme
 export const useSettingsStore = defineStore('settings', () => {
 	// Performance Settings
 	const particlesEnabled = ref(true)
@@ -17,6 +17,10 @@ export const useSettingsStore = defineStore('settings', () => {
 	// Display Settings
 	const showFPS = ref(false)
 	const highContrast = ref(false)
+
+	// Theme Settings (NEW)
+	const currentTheme = ref('dark') // 'light' | 'dark' | 'auto'
+	const systemTheme = ref('dark')  // detected system preference
 
 	// Auto-detected performance settings
 	const devicePerformance = ref('high') // high, medium, low
@@ -35,6 +39,23 @@ export const useSettingsStore = defineStore('settings', () => {
 
 	const shouldShowFPS = computed(() => {
 		return showFPS.value && import.meta.env.DEV
+	})
+
+	// Theme computed values (NEW)
+	const effectiveTheme = computed(() => {
+		if (currentTheme.value === 'auto') {
+			return systemTheme.value
+		}
+		return currentTheme.value
+	})
+
+	const getThemeDescription = computed(() => {
+		switch (currentTheme.value) {
+			case 'light': return 'Always use light theme'
+			case 'dark': return 'Always use dark theme'
+			case 'auto': return `System theme (currently ${systemTheme.value})`
+			default: return 'Theme selection'
+		}
 	})
 
 	// Device detection and auto-optimization
@@ -62,6 +83,34 @@ export const useSettingsStore = defineStore('settings', () => {
 
 		devicePerformance.value = performance
 		return performance
+	}
+
+	// System theme detection (NEW)
+	const detectSystemTheme = () => {
+		if (window.matchMedia) {
+			const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+			systemTheme.value = mediaQuery.matches ? 'dark' : 'light'
+
+			// Listen for system theme changes
+			mediaQuery.addEventListener('change', (e) => {
+				systemTheme.value = e.matches ? 'dark' : 'light'
+				console.log(`🌓 System theme changed to ${systemTheme.value}`)
+
+				// Apply theme if auto mode is active
+				if (currentTheme.value === 'auto') {
+					applyTheme(systemTheme.value)
+				}
+			})
+
+			console.log(`🌓 System theme detected: ${systemTheme.value}`)
+		}
+		return systemTheme.value
+	}
+
+	// Apply theme to DOM (NEW)
+	const applyTheme = (theme) => {
+		document.documentElement.setAttribute('data-theme', theme)
+		console.log(`🎨 Applied ${theme} theme to DOM`)
 	}
 
 	// Settings actions
@@ -111,6 +160,40 @@ export const useSettingsStore = defineStore('settings', () => {
 		console.log(`🔊 Master volume set to ${Math.round(masterVolume.value * 100)}%`)
 	}
 
+	// Theme actions (NEW)
+	const setTheme = (theme) => {
+		if (!['light', 'dark', 'auto'].includes(theme)) {
+			console.warn(`Invalid theme: ${theme}`)
+			return false
+		}
+
+		currentTheme.value = theme
+		applyTheme(effectiveTheme.value)
+
+		// Save to legacy localStorage key for backward compatibility
+		localStorage.setItem('theme', effectiveTheme.value)
+
+		console.log(`🎨 Theme set to ${theme} (effective: ${effectiveTheme.value})`)
+		return true
+	}
+
+	const toggleTheme = () => {
+		// Simple two-way toggle (light <-> dark), skipping auto for compatibility
+		const themes = ['light', 'dark']
+		const currentIndex = themes.indexOf(currentTheme.value)
+		const nextTheme = themes[(currentIndex + 1) % themes.length]
+		setTheme(nextTheme)
+	}
+
+	const getThemeIcon = (theme) => {
+		switch (theme) {
+			case 'light': return '☀️'
+			case 'dark': return '🌙'
+			case 'auto': return '⚙️'
+			default: return '🎨'
+		}
+	}
+
 	// Preset modes
 	const applyPerformancePreset = (preset) => {
 		switch (preset) {
@@ -154,6 +237,11 @@ export const useSettingsStore = defineStore('settings', () => {
 		masterVolume.value = 0.8
 		showFPS.value = false
 		highContrast.value = false
+		currentTheme.value = 'dark' // Default theme
+
+		// Apply default theme
+		applyTheme(effectiveTheme.value)
+		localStorage.setItem('theme', effectiveTheme.value)
 
 		console.log('🔄 Settings reset to defaults')
 	}
@@ -176,6 +264,11 @@ export const useSettingsStore = defineStore('settings', () => {
 			display: {
 				showFPS: showFPS.value,
 				highContrast: highContrast.value
+			},
+			theme: {
+				currentTheme: currentTheme.value,
+				systemTheme: systemTheme.value,
+				effectiveTheme: effectiveTheme.value
 			}
 		}
 	}
@@ -191,6 +284,7 @@ export const useSettingsStore = defineStore('settings', () => {
 			masterVolume: masterVolume.value,
 			showFPS: showFPS.value,
 			highContrast: highContrast.value,
+			currentTheme: currentTheme.value, // NEW
 			devicePerformance: devicePerformance.value
 		}
 
@@ -198,6 +292,7 @@ export const useSettingsStore = defineStore('settings', () => {
 	}
 
 	const loadSettings = () => {
+		// Try to load from new settings first
 		const savedData = loadFromStorage('settings')
 
 		if (savedData) {
@@ -209,19 +304,29 @@ export const useSettingsStore = defineStore('settings', () => {
 			masterVolume.value = savedData.masterVolume ?? 0.8
 			showFPS.value = savedData.showFPS ?? false
 			highContrast.value = savedData.highContrast ?? false
+			currentTheme.value = savedData.currentTheme ?? 'dark' // NEW
 			devicePerformance.value = savedData.devicePerformance ?? 'high'
 
-			// Apply high contrast if enabled
-			if (highContrast.value) {
-				document.documentElement.classList.add('high-contrast')
-			}
-
 			console.log('⚙️ Settings loaded from storage')
-			return true
+		} else {
+			// Fallback: try to load legacy theme setting
+			const legacyTheme = localStorage.getItem('theme')
+			if (legacyTheme && ['light', 'dark'].includes(legacyTheme)) {
+				currentTheme.value = legacyTheme
+				console.log(`⚙️ Migrated legacy theme: ${legacyTheme}`)
+			}
 		}
 
-		console.log('⚙️ No saved settings found, using defaults')
-		return false
+		// Apply theme and high contrast
+		applyTheme(effectiveTheme.value)
+		if (highContrast.value) {
+			document.documentElement.classList.add('high-contrast')
+		}
+
+		// Detect system theme
+		detectSystemTheme()
+
+		return !!savedData
 	}
 
 	// Auto-save on changes
@@ -233,12 +338,19 @@ export const useSettingsStore = defineStore('settings', () => {
 		}, 500) // Save after 0.5 seconds of inactivity
 	}
 
-	// Watch all settings for auto-save
+	// Watch all settings for auto-save (including theme)
 	watch([
 		particlesEnabled, reducedAnimations, lowPowerMode,
 		soundEnabled, musicEnabled, masterVolume,
-		showFPS, highContrast
+		showFPS, highContrast, currentTheme // NEW
 	], debouncedSave, { deep: true })
+
+	// Watch effective theme changes and apply them
+	watch(effectiveTheme, (newTheme) => {
+		applyTheme(newTheme)
+		// Update legacy localStorage for backward compatibility
+		localStorage.setItem('theme', newTheme)
+	})
 
 	return {
 		// State - Performance
@@ -256,10 +368,16 @@ export const useSettingsStore = defineStore('settings', () => {
 		showFPS,
 		highContrast,
 
+		// State - Theme (NEW)
+		currentTheme,
+		systemTheme,
+
 		// Computed
 		effectiveParticleCount,
 		shouldUseSimpleAnimations,
 		shouldShowFPS,
+		effectiveTheme,
+		getThemeDescription,
 
 		// Actions - Performance
 		toggleParticles,
@@ -276,6 +394,13 @@ export const useSettingsStore = defineStore('settings', () => {
 		// Actions - Display
 		toggleFPS,
 		toggleHighContrast,
+
+		// Actions - Theme (NEW)
+		setTheme,
+		toggleTheme,
+		getThemeIcon,
+		detectSystemTheme,
+		applyTheme,
 
 		// Actions - Utilities
 		resetSettings,

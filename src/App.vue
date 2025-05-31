@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import UIToggle from './components/UIToggle/UIToggle.vue'
-import ThemeSwitch from './components/ThemeSwitch/ThemeSwitch.vue'
 import GameCard from './components/GameCard/GameCard.vue'
 import BottomNavigation from './components/BottomNavigation/BottomNavigation.vue'
 import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
@@ -132,13 +131,7 @@ watch(isUIHidden, (newValue) => {
           role="banner"
         >
           <div class="app__header-content">
-            <div class="app__logo">
-              <span class="app__logo-emoji">😊</span>
-            </div>
             <h1 class="app__title">Hawk3Games</h1>
-            <div class="app__theme-switch">
-              <ThemeSwitch />
-            </div>
           </div>
         </header>
 

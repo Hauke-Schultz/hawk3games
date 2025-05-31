@@ -1,6 +1,5 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import ThemeSwitch from "../ThemeSwitch/ThemeSwitch.vue"
 import GameIcon from "../GameIcon/GameIcon.vue"
 import GameStateManager from "../GameStateManager/GameStateManager.vue"
 import LevelSelection from "../LevelSelection/LevelSelection.vue"
@@ -148,9 +147,6 @@ const getPhysicsState = () => {
               <GameIcon name="back-arrow" :size="20" />
             </button>
             <h1 class="app__title">FruitMerge</h1>
-            <div class="app__theme-switch">
-              <ThemeSwitch />
-            </div>
           </div>
         </header>
 

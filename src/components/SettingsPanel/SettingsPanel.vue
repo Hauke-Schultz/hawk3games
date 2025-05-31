@@ -18,7 +18,11 @@ const {
   devicePerformance,
   effectiveParticleCount,
   shouldUseSimpleAnimations,
-  shouldShowFPS
+  shouldShowFPS,
+  currentTheme,        // NEU
+  systemTheme,         // NEU
+  effectiveTheme,      // NEU
+  getThemeDescription  // NEU
 } = storeToRefs(settingsStore)
 
 // Settings actions
@@ -33,7 +37,9 @@ const {
   toggleHighContrast,
   applyPerformancePreset,
   resetSettings,
-  getSettingsSummary
+  getSettingsSummary,
+  setTheme,            // NEU
+  getThemeIcon,        // NEU
 } = settingsStore
 
 // Computed properties for UI
@@ -55,6 +61,10 @@ const particleCountDisplay = computed(() => {
 const handleVolumeChange = (event) => {
   const volume = parseFloat(event.target.value) / 100
   setMasterVolume(volume)
+}
+
+const handleThemeSelect = (theme) => {
+  setTheme(theme)
 }
 
 const handlePresetSelect = (preset) => {
@@ -83,6 +93,62 @@ const logSettings = () => {
       <span class="settings-panel__device-info">
         Device: {{ devicePerformance }} performance
       </span>
+    </div>
+    <!-- Theme Settings Section (NEW) -->
+    <div class="settings-panel__section">
+      <h4 class="settings-panel__section-title">
+        🎨 Appearance
+        <span class="settings-panel__section-status">{{ effectiveTheme.toUpperCase() }}</span>
+      </h4>
+
+      <div class="settings-panel__setting-group">
+        <!-- Theme Mode Selection -->
+        <div class="settings-panel__setting">
+          <div class="settings-panel__setting-info">
+            <label class="settings-panel__setting-label">
+              Theme Mode
+            </label>
+            <span class="settings-panel__setting-description">
+          {{ getThemeDescription }}
+        </span>
+          </div>
+
+          <!-- Three-way theme selector -->
+          <div class="settings-panel__theme-selector">
+            <button
+              v-for="theme in ['light', 'auto', 'dark']"
+              :key="theme"
+              class="settings-panel__theme-btn"
+              :class="{ 'settings-panel__theme-btn--active': currentTheme === theme }"
+              @click="handleThemeSelect(theme)"
+              :aria-label="`Set ${theme} theme`"
+            >
+              <span class="settings-panel__theme-icon">{{ getThemeIcon(theme) }}</span>
+              <span class="settings-panel__theme-label">{{ theme.toUpperCase() }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- High Contrast Toggle verschieben hierher -->
+        <div class="settings-panel__setting">
+          <div class="settings-panel__setting-info">
+            <label class="settings-panel__setting-label">
+              High Contrast Mode
+            </label>
+            <span class="settings-panel__setting-description">
+          Enhanced visibility for accessibility
+        </span>
+          </div>
+          <button
+            class="settings-panel__toggle"
+            :class="{ 'settings-panel__toggle--active': highContrast }"
+            @click="toggleHighContrast"
+            :aria-label="`${highContrast ? 'Disable' : 'Enable'} high contrast mode`"
+          >
+            <span class="settings-panel__toggle-slider"></span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Performance Settings Section -->
@@ -246,25 +312,6 @@ const logSettings = () => {
       <h4 class="settings-panel__section-title">🖥️ Display</h4>
 
       <div class="settings-panel__setting-group">
-        <!-- High Contrast Toggle -->
-        <div class="settings-panel__setting">
-          <div class="settings-panel__setting-info">
-            <label class="settings-panel__setting-label">
-              High Contrast Mode
-            </label>
-            <span class="settings-panel__setting-description">
-              Enhanced visibility for accessibility
-            </span>
-          </div>
-          <button
-            class="settings-panel__toggle"
-            :class="{ 'settings-panel__toggle--active': highContrast }"
-            @click="toggleHighContrast"
-            :aria-label="`${highContrast ? 'Disable' : 'Enable'} high contrast mode`"
-          >
-            <span class="settings-panel__toggle-slider"></span>
-          </button>
-        </div>
 
         <!-- FPS Display Toggle (DEV only) -->
         <div
@@ -630,6 +677,57 @@ const logSettings = () => {
       outline: var(--focus-outline);
       outline-offset: 2px;
     }
+  }
+
+  &__theme-selector {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  &__theme-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-3);
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--card-border);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 60px;
+
+    &:hover {
+      background-color: var(--card-bg-hover);
+      border-color: var(--accent-color);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-outline);
+      outline-offset: 2px;
+    }
+
+    &--active {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+      color: var(--white);
+
+      .settings-panel__theme-icon,
+      .settings-panel__theme-label {
+        color: var(--white);
+      }
+    }
+  }
+
+  &__theme-icon {
+    font-size: var(--font-size-lg);
+  }
+
+  &__theme-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-color);
   }
 }
 
