@@ -1,34 +1,35 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import GameIcon from "../GameIcon/GameIcon.vue"
+import { ref } from 'vue'
 import GameStateManager from "../GameStateManager/GameStateManager.vue"
 import LevelSelection from "../LevelSelection/LevelSelection.vue"
 import GamePlayArea from "../GamePlayArea/GamePlayArea.vue"
 import GameStatsHeader from "../GameStatsHeader/GameStatsHeader.vue"
 
-// Emit events to parent component
-const emit = defineEmits(['back-to-menu'])
+// Simplified props - navigation handled globally
+const props = defineProps({
+  showLevelSelection: {
+    type: Boolean,
+    default: true
+  }
+})
 
-// Component refs for accessing child components
+// Simplified events - navigation handled globally
+const emit = defineEmits([
+  'level-selected',
+  'back-to-menu',
+  'back-to-levels'
+])
+
+// Component refs
 const gameStateManager = ref(null)
 const gamePlayArea = ref(null)
 
-// Event handlers for child components
-const handleBackClick = () => {
-  const stateManager = gameStateManager.value
-  if (stateManager?.showLevelSelection) {
-    emit('back-to-menu')
-  } else {
-    stateManager?.finishCurrentLevel()
-  }
-}
-
-// Level Selection Events
+// Simplified event handlers
 const handleLevelSelected = (level) => {
   gameStateManager.value?.startLevel(level)
+  emit('level-selected', level)
 }
 
-// Game Play Area Events
 const handlePauseGame = () => {
   gameStateManager.value?.pauseGame()
 }
@@ -39,6 +40,7 @@ const handleResumeGame = () => {
 
 const handleBackToLevelSelection = () => {
   gameStateManager.value?.finishCurrentLevel()
+  emit('back-to-levels')
 }
 
 // GameStateManager Events
@@ -59,7 +61,6 @@ const handleStoresReady = (stores) => {
 }
 
 const handleMoveaMade = () => {
-  // Update session store
   const stateManager = gameStateManager.value
   if (stateManager && stateManager.sessionStore) {
     stateManager.sessionStore.incrementMoves()
@@ -68,45 +69,13 @@ const handleMoveaMade = () => {
 }
 
 const handleScoreUpdate = (points) => {
-  // Update session store
   const stateManager = gameStateManager.value
   if (stateManager && stateManager.sessionStore) {
     stateManager.sessionStore.addToScore(points)
     console.log(`📊 Score updated: +${points} points`)
   }
 }
-
-// Enhanced Combo State Management
-const comboState = ref({
-  current: 0,
-  maxThisSession: 0,
-  lastMergeTime: null,
-  timeoutId: null,
-  resetDelay: 4000, // 4 seconds
-  comboTimeLeft: 0,
-  comboTimerInterval: null
-})
-
-const getComboLevelName = (combo) => {
-  if (combo >= 10) return 'MEGA'
-  if (combo >= 7) return 'EPIC'
-  if (combo >= 5) return 'FIRE'
-  if (combo >= 3) return 'HOT'
-  if (combo >= 2) return 'WARM'
-  return 'NORMAL'
-}
-
-// Enhanced physics state getter mit combo data
-const getPhysicsState = () => {
-  const baseState = gamePlayArea.value?.getPhysicsState() || {}
-  return {
-    ...baseState,
-    // Get combo data directly from GamePlayArea's comboState
-    combo: baseState.combo || 0,
-    maxCombo: baseState.maxCombo || 0,
-    comboTimeLeft: baseState.comboTimeLeft || 0
-  }
-}</script>
+</script>
 
 <template>
   <div class="fruit-merge-game">
@@ -128,29 +97,11 @@ const getPhysicsState = () => {
         isGameActive,
         isGamePaused,
         currentSession,
-        showLevelSelection,
         isDev,
         formatNumber
       }">
 
-        <!-- Game Header -->
-        <header
-          class="app__header"
-          role="banner"
-        >
-          <div class="app__header-content">
-            <button
-              class="btn btn--circle"
-              @click="handleBackClick"
-              :aria-label="showLevelSelection ? 'Back to menu' : 'Back to level selection'"
-            >
-              <GameIcon name="back-arrow" :size="20" />
-            </button>
-            <h1 class="app__title">FruitMerge</h1>
-          </div>
-        </header>
-
-        <!-- Game Stats Header (enhanced with session data) -->
+        <!-- Game Stats Header (only when playing) -->
         <GameStatsHeader
           v-if="!showLevelSelection"
           :current-level="currentLevel"
@@ -167,7 +118,7 @@ const getPhysicsState = () => {
         />
 
         <!-- Main Game Content -->
-        <main class="app__main fruit-merge-game__content">
+        <div class="fruit-merge-game__content">
           <!-- Level Selection Screen -->
           <LevelSelection
             v-if="showLevelSelection"
@@ -176,7 +127,7 @@ const getPhysicsState = () => {
             @level-selected="handleLevelSelected"
           />
 
-          <!-- Game Play Area (focused on gameplay) -->
+          <!-- Game Play Area -->
           <GamePlayArea
             v-else
             ref="gamePlayArea"
@@ -191,35 +142,23 @@ const getPhysicsState = () => {
             @move-made="handleMoveaMade"
             @score-update="handleScoreUpdate"
           />
-        </main>
+        </div>
       </template>
     </GameStateManager>
   </div>
 </template>
 
 <style scoped lang="scss">
-@use '../../assets/variables.scss' as vars;
-
-// Fruit Merge Game Block - Main container
+// Fruit Merge Game Block - MUCH SIMPLER
 .fruit-merge-game {
-  min-height: 100vh;
-  background-color: var(--bg-color);
-  color: var(--text-color);
   display: flex;
   flex-direction: column;
-  padding-bottom: env(safe-area-inset-bottom);
+  height: 100%;
 
   // Content Element
   &__content {
     flex: 1;
     overflow-y: auto;
-  }
-}
-
-// Responsive adjustments
-@media (min-width: vars.$breakpoint-md) {
-  .fruit-merge-game {
-    // Additional desktop-specific styling if needed
   }
 }
 </style>

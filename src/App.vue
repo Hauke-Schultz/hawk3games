@@ -1,17 +1,21 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import UIToggle from './components/UIToggle/UIToggle.vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import BurgerMenu from './components/BurgerMenu/BurgerMenu.vue'
+import NavigationOverlay from './components/NavigationOverlay/NavigationOverlay.vue'
 import GameCard from './components/GameCard/GameCard.vue'
-import BottomNavigation from './components/BottomNavigation/BottomNavigation.vue'
 import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
 import SettingsPanel from './components/SettingsPanel/SettingsPanel.vue'
 
-// Application state
-const activeTab = ref('home') // Track active navigation tab
-const currentView = ref('home') // Track current view/page
-const isUIHidden = ref(false)
+// Global application state
+const activeTab = ref('home')
+const currentView = ref('home')
+const isNavOpen = ref(false)
 
-// Games data - designed for mobile-first approach
+// Game state for navigation context
+const currentGame = ref(null)
+const showLevelSelection = ref(true) // NEW: Track level selection state
+
+// Games data
 const games = ref([
   {
     id: 1,
@@ -20,182 +24,212 @@ const games = ref([
     icon: '🍎',
     iconType: 'emoji',
     iconBg: '#ff6b6b'
-  },
-  // Additional games can be added here when implemented
-  // {
-  //   id: 2,
-  //   name: 'BlockPuzzle',
-  //   text: 'Fit blocks together in this challenging puzzle game.',
-  //   icon: '🧩',
-  //   iconType: 'emoji',
-  //   iconBg: '#4dabf7'
-  // },
-  // {
-  //   id: 3,
-  //   name: 'CardMatch',
-  //   text: 'Match pairs of cards to test your memory skills.',
-  //   icon: '🃏',
-  //   iconType: 'emoji',
-  //   iconBg: '#69db7c'
-  // }
+  }
 ])
 
-// Global UI toggle functions
-const toggleUI = () => {
-  isUIHidden.value = !isUIHidden.value
+// Global navigation functions
+const toggleNavigation = () => {
+  isNavOpen.value = !isNavOpen.value
 }
 
-// Global keyboard shortcut handler
-const handleGlobalKeydown = (event) => {
-  if (event.key === 'f' && !event.ctrlKey && !event.altKey && !event.metaKey) {
-    // Only trigger if not typing in input fields
-    if (!['INPUT', 'TEXTAREA'].includes(event.target.tagName) &&
-      event.target.contentEditable !== 'true') {
-      event.preventDefault()
-      toggleUI()
-    }
+const closeNavigation = () => {
+  isNavOpen.value = false
+}
+
+const handleTabChanged = (tabId) => {
+  activeTab.value = tabId
+
+  // Navigate based on tab
+  if (tabId === 'home') {
+    currentView.value = 'home'
+    currentGame.value = null
+    showLevelSelection.value = true
+  } else {
+    currentView.value = tabId
   }
+
+  closeNavigation()
+  console.log('Global tab changed to:', tabId)
 }
 
-// Event handlers
+// Game-specific navigation functions - NOW GLOBAL
 const handleGameSelected = (game) => {
   console.log('Game selected:', game.name)
   if (game.name === 'FruitMerge') {
     currentView.value = 'fruitmerge'
+    currentGame.value = game
+    showLevelSelection.value = true // Start with level selection
+    activeTab.value = 'game' // NEW: Set active context
   }
-  // TODO: Add navigation for other games when implemented
+}
+
+const handleLevelSelected = () => {
+  // When a level is selected in FruitMerge
+  showLevelSelection.value = false
+  closeNavigation()
 }
 
 const handleBackToMenu = () => {
   currentView.value = 'home'
   activeTab.value = 'home'
+  currentGame.value = null
+  showLevelSelection.value = true
+  closeNavigation()
 }
 
-const handleTabChanged = (tabId) => {
-  activeTab.value = tabId
-  if (tabId === 'home') {
-    currentView.value = 'home'
+const handleBackToLevelSelection = () => {
+  // From game back to level selection
+  showLevelSelection.value = true
+  closeNavigation()
+}
+
+const handleBackNavigation = () => {
+  if (currentView.value === 'fruitmerge') {
+    if (!showLevelSelection.value) {
+      // In game -> back to level selection
+      handleBackToLevelSelection()
+    } else {
+      // In level selection -> back to home
+      handleBackToMenu()
+    }
   } else {
-    currentView.value = tabId
+    // Other views -> back to home
+    handleBackToMenu()
   }
-  console.log('Tab changed to:', tabId)
 }
 
-// Load saved preference on app start
-onMounted(() => {
-  const saved = localStorage.getItem('hawk3games_ui_hidden')
-  if (saved) {
-    isUIHidden.value = JSON.parse(saved)
-  }
+// Computed properties for navigation context
+const showBackButton = computed(() => {
+  return currentView.value === 'fruitmerge' ||
+    (currentView.value !== 'home' && activeTab.value !== 'home')
+})
 
-  // Add global keyboard shortcut
+const getBackButtonLabel = computed(() => {
+  if (currentView.value === 'fruitmerge') {
+    return showLevelSelection.value ? 'Back to Home' : 'Back to Levels'
+  }
+  return 'Back to Home'
+})
+
+const getPageTitle = computed(() => {
+  switch (currentView.value) {
+    case 'fruitmerge':
+      return showLevelSelection.value ? 'FruitMerge - Levels' : 'FruitMerge - Game'
+    case 'settings':
+      return 'Settings'
+    case 'profile':
+      return 'Profile'
+    case 'trophy':
+      return 'Trophies'
+    default:
+      return 'Hawk3Games'
+  }
+})
+
+// Global keyboard handling
+const handleGlobalKeydown = (event) => {
+  if (event.key === 'Escape' && isNavOpen.value) {
+    closeNavigation()
+  }
+}
+
+onMounted(() => {
   document.addEventListener('keydown', handleGlobalKeydown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleGlobalKeydown)
 })
-
-// Save preference when changed
-watch(isUIHidden, (newValue) => {
-  localStorage.setItem('hawk3games_ui_hidden', JSON.stringify(newValue))
-  console.log(`🌐 Global UI ${newValue ? 'hidden' : 'visible'}`)
-})
 </script>
 
 <template>
-  <div
-    class="app"
-    :class="{ 'ui-hidden': isUIHidden }"
-  >
+  <div class="app">
     <div class="app__container" role="application">
-      <!-- Global UI Toggle - appears on all pages -->
-      <UIToggle
-        :is-active="isUIHidden"
-        position="top-right"
-        size="medium"
-        @toggle="toggleUI"
-      />
-      <!-- Show FruitMerge Game -->
-      <FruitMergeGame
-          v-if="currentView === 'fruitmerge'"
-          @back-to-menu="handleBackToMenu"
-      />
 
-      <!-- Show Main App with Navigation -->
-      <template v-else>
-        <!-- App Header -->
-        <header
-          v-show="!isUIHidden"
-          class="app__header"
-          role="banner"
-        >
-          <div class="app__header-content">
-            <h1 class="app__title">Hawk3Games</h1>
-          </div>
-        </header>
-
-        <!-- Main Content -->
-        <main
-          id="main-content"
-          class="app__main"
-          :class="{ 'app__main--expanded': isUIHidden }"
-        >
-          <!-- Games Section -->
-          <section class="app__section" v-if="activeTab === 'home'">
-            <h2 class="app__section-title">Games</h2>
-            <div class="app__games-list">
-              <GameCard
-                  v-for="game in games"
-                  :key="game.id"
-                  :game="game"
-                  size="medium"
-                  variant="default"
-                  @game-selected="handleGameSelected"
-              />
-            </div>
-          </section>
-
-          <!-- Settings Section (NEU) -->
-          <section class="app__section" v-else-if="activeTab === 'settings'">
-            <h2 class="app__section-title">Settings</h2>
-
-            <!-- Settings Panel -->
-            <SettingsPanel />
-          </section>
-
-          <!-- Profile Section -->
-          <section class="app__section" v-else-if="activeTab === 'profile'">
-            <h2 class="app__section-title">Profile</h2>
-            <div class="app__placeholder-content">
-              <div class="app__placeholder-icon">👤</div>
-              <h3 class="app__placeholder-title">Your Profile</h3>
-              <p class="app__placeholder-text">
-                Your profile information, achievements, and personal stats will be displayed here.
-              </p>
-            </div>
-          </section>
-
-          <!-- Trophy Section -->
-          <section class="app__section" v-else-if="activeTab === 'trophy'">
-            <h2 class="app__section-title">Trophies</h2>
-            <div class="app__placeholder-content">
-              <div class="app__placeholder-icon">🏆</div>
-              <h3 class="app__placeholder-title">Your Achievements</h3>
-              <p class="app__placeholder-text">
-                Your trophies, badges, and accomplishments from all games will be shown here.
-              </p>
-            </div>
-          </section>
-        </main>
-      </template>
-
-      <!-- Bottom Navigation -->
-      <BottomNavigation
-        v-show="!isUIHidden"
+      <!-- Global Navigation Overlay -->
+      <NavigationOverlay
+        :is-open="isNavOpen"
         :active-tab="activeTab"
-        @tab-changed="handleTabChanged"
+        :show-back-button="showBackButton"
+        :back-button-label="getBackButtonLabel"
+        @tab-select="handleTabChanged"
+        @close="closeNavigation"
+        @back="handleBackNavigation"
       />
+
+      <!-- Global Header - NOW ON ALL PAGES -->
+      <header
+        class="app__header"
+        role="banner"
+      >
+        <div class="app__header-content">
+          <BurgerMenu
+            :is-open="isNavOpen"
+            @toggle="toggleNavigation"
+          />
+          <h1 class="app__title">{{ getPageTitle }}</h1>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <main
+        id="main-content"
+        class="app__main"
+      >
+        <!-- FruitMerge Game - SIMPLIFIED -->
+        <FruitMergeGame
+          v-if="currentView === 'fruitmerge'"
+          :show-level-selection="showLevelSelection"
+          @level-selected="handleLevelSelected"
+          @back-to-menu="handleBackToMenu"
+          @back-to-levels="handleBackToLevelSelection"
+        />
+
+        <!-- Home Section -->
+        <section class="app__section" v-else-if="activeTab === 'home'">
+          <h2 class="app__section-title">Games</h2>
+          <div class="app__games-list">
+            <GameCard
+              v-for="game in games"
+              :key="game.id"
+              :game="game"
+              size="medium"
+              variant="default"
+              @game-selected="handleGameSelected"
+            />
+          </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section class="app__section" v-else-if="activeTab === 'settings'">
+          <h2 class="app__section-title">Settings</h2>
+          <SettingsPanel />
+        </section>
+
+        <!-- Profile Section -->
+        <section class="app__section" v-else-if="activeTab === 'profile'">
+          <h2 class="app__section-title">Profile</h2>
+          <div class="app__placeholder-content">
+            <div class="app__placeholder-icon">👤</div>
+            <h3 class="app__placeholder-title">Your Profile</h3>
+            <p class="app__placeholder-text">
+              Your profile information, achievements, and personal stats will be displayed here.
+            </p>
+          </div>
+        </section>
+
+        <!-- Trophy Section -->
+        <section class="app__section" v-else-if="activeTab === 'trophy'">
+          <h2 class="app__section-title">Trophies</h2>
+          <div class="app__placeholder-content">
+            <div class="app__placeholder-icon">🏆</div>
+            <h3 class="app__placeholder-title">Your Achievements</h3>
+            <p class="app__placeholder-text">
+              Your trophies, badges, and accomplishments from all games will be shown here.
+            </p>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 </template>
@@ -248,33 +282,14 @@ watch(isUIHidden, (newValue) => {
 
   &__header-content {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: var(--space-4);
     max-width: 100%;
+    gap: var(--space-4);
 
-    // Larger padding on desktop
     @media (min-width: vars.$breakpoint-md) {
       padding: var(--space-4) var(--space-8);
     }
-  }
-
-  // Logo Element - App branding
-  &__logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--border-radius-md);
-    background-color: transparent;
-    flex-shrink: 0;
-  }
-
-  &__logo-emoji {
-    font-size: 24px;
-    line-height: 1;
-    user-select: none;
   }
 
   &__back-button {
@@ -287,10 +302,9 @@ watch(isUIHidden, (newValue) => {
     font-size: var(--font-size-xl);
     font-weight: bold;
     flex: 1;
-    text-align: center;
+    text-align: left;
     color: var(--text-color);
 
-    // Larger title on desktop
     @media (min-width: vars.$breakpoint-md) {
       font-size: var(--font-size-2xl);
     }
@@ -307,27 +321,21 @@ watch(isUIHidden, (newValue) => {
   &__main {
     flex: 1;
     padding: var(--space-4);
-    /* Bottom padding accounts for fixed bottom navigation */
-    padding-bottom: calc(var(--space-4) + 80px + env(safe-area-inset-bottom));
     overflow-y: auto;
+    min-height: calc(100vh - 80px); // Account for header
 
     // Larger padding on desktop
     @media (min-width: vars.$breakpoint-md) {
       padding: var(--space-8);
-      padding-bottom: calc(var(--space-8) + 80px + env(safe-area-inset-bottom));
+      min-height: calc(100vh - 88px);
     }
 
     // Remove focus outline for main content
     &:focus {
       outline: none;
     }
-
-    &--expanded {
-      padding-top: max(20px, env(safe-area-inset-top));
-      padding-bottom: max(20px, env(safe-area-inset-bottom));
-      min-height: 100vh;
-    }
   }
+
 
   // Section Element - Content sections (Games, Profile, Trophy)
   &__section {

@@ -1,7 +1,7 @@
 <script setup>
-// Simple props for the toggle component
+// Simple props for the burger menu component
 const props = defineProps({
-  isActive: {
+  isOpen: {
     type: Boolean,
     default: false
   },
@@ -12,7 +12,7 @@ const emit = defineEmits(['toggle'])
 
 // Handle click event
 const handleClick = () => {
-  console.log('🎮 UIToggle clicked:', !props.isActive)
+  console.log('🍔 BurgerMenu clicked:', !props.isOpen)
   emit('toggle')
 }
 
@@ -27,21 +27,21 @@ const handleKeydown = (event) => {
 
 <template>
   <button
-    class="ui-toggle btn btn--circle"
+    class="burger-menu btn btn--circle"
     :class="{
-      'ui-toggle--active': isActive,
+      'burger-menu--open': isOpen,
     }"
     @click="handleClick"
     @keydown="handleKeydown"
-    :aria-label="isActive ? 'Show UI elements' : 'Hide UI elements'"
-    :aria-pressed="isActive"
+    :aria-label="isOpen ? 'Close navigation menu' : 'Open navigation menu'"
+    :aria-expanded="isOpen"
     type="button"
   >
     <!-- Pure CSS Hamburger/X Icon -->
-    <div class="ui-toggle__icon">
-      <span class="ui-toggle__line"></span>
-      <span class="ui-toggle__line"></span>
-      <span class="ui-toggle__line"></span>
+    <div class="burger-menu__icon">
+      <span class="burger-menu__line"></span>
+      <span class="burger-menu__line"></span>
+      <span class="burger-menu__line"></span>
     </div>
   </button>
 </template>
@@ -49,26 +49,17 @@ const handleKeydown = (event) => {
 <style scoped lang="scss">
 @use '../../assets/variables' as vars;
 
-// UI Toggle Block
-.ui-toggle {
-  position: absolute;
-  z-index: 9999;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+// Burger Menu Block
+.burger-menu {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-color);
-  top: var(--space-4);
-  left: var(--space-4);
-
-  @media (min-width: vars.$breakpoint-md) {
-    top: var(--space-4);
-    left: -60px;
-  }
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 // Icon Element
-.ui-toggle__icon {
+.burger-menu__icon {
   width: 20px;
   height: 19px;
   display: flex;
@@ -80,7 +71,7 @@ const handleKeydown = (event) => {
 }
 
 // Line Elements for Hamburger/X Animation
-.ui-toggle__line {
+.burger-menu__line {
   width: 18px;
   height: 2px;
   background-color: currentColor;
@@ -88,8 +79,8 @@ const handleKeydown = (event) => {
   border-radius: 1px;
   transform-origin: center;
 
-  // Active State - Transform to X
-  .ui-toggle--active .ui-toggle__icon & {
+  // Open State - Transform to X
+  .burger-menu--open .burger-menu__icon & {
     &:nth-child(1) {
       transform: rotate(45deg) translate(4px, 4px);
     }
@@ -107,20 +98,15 @@ const handleKeydown = (event) => {
 
 // Reduced motion preference
 @media (prefers-reduced-motion: reduce) {
-  .ui-toggle,
-  .ui-toggle__line,
-  .ui-toggle__tooltip {
+  .burger-menu,
+  .burger-menu__line {
     transition: none;
-  }
-
-  .ui-toggle:hover {
-    transform: none;
   }
 }
 
 // GPU acceleration for smooth animations
-.ui-toggle,
-.ui-toggle__line {
+.burger-menu,
+.burger-menu__line {
   will-change: transform;
   transform: translateZ(0);
 }
