@@ -24,6 +24,11 @@ const navItems = [
     icon: 'profile'
   },
   {
+    id: 'settings',
+    label: 'Settings',
+    icon: 'settings'
+  },
+  {
     id: 'trophy',
     label: 'Trophy',
     icon: 'trophy'
@@ -43,13 +48,13 @@ const isActive = (tabId) => {
   <nav class="bottom-navigation" role="navigation" aria-label="Main navigation">
     <div class="nav-container">
       <button
-          v-for="item in navItems"
-          :key="item.id"
-          class="nav-item"
-          :class="{ 'active': isActive(item.id) }"
-          @click="handleTabClick(item.id)"
-          :aria-label="item.label"
-          :aria-current="isActive(item.id) ? 'page' : undefined"
+        v-for="item in navItems"
+        :key="item.id"
+        class="nav-item"
+        :class="{ 'active': isActive(item.id) }"
+        @click="handleTabClick(item.id)"
+        :aria-label="item.label"
+        :aria-current="isActive(item.id) ? 'page' : undefined"
       >
         <div class="nav-icon">
           <!-- Home Icon -->
@@ -63,6 +68,14 @@ const isActive = (tabId) => {
           <!-- Profile Icon -->
           <GameIcon
             v-else-if="item.icon === 'profile'"
+            :name="item.icon"
+            :size="24"
+            :color="isActive(item.id) ? 'var(--accent-color)' : 'currentColor'"
+          />
+
+          <!-- Settings Icon (NEU) -->
+          <GameIcon
+            v-else-if="item.icon === 'settings'"
             :name="item.icon"
             :size="24"
             :color="isActive(item.id) ? 'var(--accent-color)' : 'currentColor'"
@@ -109,7 +122,7 @@ const isActive = (tabId) => {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-2); // Reduziert für mehr Platz
   max-width: 100%;
 }
 
@@ -125,8 +138,19 @@ const isActive = (tabId) => {
   border-radius: var(--border-radius-md);
   transition: all 0.2s ease;
   color: var(--text-secondary);
-  min-width: 60px;
+  min-width: 50px; // Reduziert von 60px für 4 Items
   gap: var(--space-1);
+  flex: 1; // Gleichmäßige Verteilung
+
+  // Mobile Anpassungen für 4 Tabs
+  @media (max-width: 480px) {
+    min-width: 44px;
+    padding: var(--space-1);
+
+    .nav-label {
+      font-size: 0.625rem; // Kleinere Schrift für mehr Platz
+    }
+  }
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.05);
@@ -172,6 +196,36 @@ const isActive = (tabId) => {
   .nav-container {
     max-width: 75rem;
     margin: 0 auto;
+  }
+}
+@media (max-width: 380px) {
+  .bottom-navigation {
+    .nav-container {
+      padding: var(--space-1) var(--space-1);
+    }
+
+    .nav-item {
+      min-width: 40px;
+      padding: var(--space-1);
+
+      .nav-label {
+        font-size: 0.5rem;
+        line-height: 1;
+      }
+
+      .nav-icon {
+        margin-bottom: 2px;
+      }
+    }
+  }
+}
+
+// Enhanced active state für bessere Sichtbarkeit bei 4 Tabs
+.nav-item.active {
+  background-color: rgba(0, 184, 148, 0.1);
+
+  .nav-label {
+    font-weight: 600;
   }
 }
 

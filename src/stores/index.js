@@ -6,6 +6,7 @@ export { useGameStore } from './gameStore.js'
 export { useLevelStore } from './levelStore.js'
 export { useCurrencyStore } from './currencyStore.js'
 export { useSessionStore } from './sessionStore.js'
+export { useSettingsStore } from './settingsStore.js'  // NEU HINZUGEFÜGT
 
 // Store utilities and helpers
 export const STORAGE_KEYS = {
@@ -29,16 +30,22 @@ export const initializeAllStores = async () => {
 		const {useLevelStore} = await import('./levelStore.js')
 		const {useCurrencyStore} = await import('./currencyStore.js')
 		const {useSessionStore} = await import('./sessionStore.js')
+		const {useSettingsStore} = await import('./settingsStore.js')  // NEU
 
 		const gameStore = useGameStore()
 		const levelStore = useLevelStore()
 		const currencyStore = useCurrencyStore()
 		const sessionStore = useSessionStore()
+		const settingsStore = useSettingsStore()  // NEU
 
 		// Load saved data
 		gameStore.loadGameState()
 		levelStore.loadLevelData()
 		currencyStore.loadCurrencyData()
+		settingsStore.loadSettings()  // NEU
+		// Auto-detect device performance
+		settingsStore.detectDevicePerformance()  // NEU
+
 
 		console.log('✅ All stores initialized successfully')
 
@@ -46,7 +53,8 @@ export const initializeAllStores = async () => {
 			gameStore,
 			levelStore,
 			currencyStore,
-			sessionStore
+			sessionStore,
+			settingsStore
 		}
 	} catch (error) {
 		console.error('❌ Store initialization failed:', error)

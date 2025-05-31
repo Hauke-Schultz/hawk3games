@@ -5,6 +5,7 @@ import ThemeSwitch from './components/ThemeSwitch/ThemeSwitch.vue'
 import GameCard from './components/GameCard/GameCard.vue'
 import BottomNavigation from './components/BottomNavigation/BottomNavigation.vue'
 import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
+import SettingsPanel from './components/SettingsPanel/SettingsPanel.vue'
 
 // Application state
 const activeTab = ref('home') // Track active navigation tab
@@ -160,6 +161,14 @@ watch(isUIHidden, (newValue) => {
                   @game-selected="handleGameSelected"
               />
             </div>
+          </section>
+
+          <!-- Settings Section (NEU) -->
+          <section class="app__section" v-else-if="activeTab === 'settings'">
+            <h2 class="app__section-title">Settings</h2>
+
+            <!-- Settings Panel -->
+            <SettingsPanel />
           </section>
 
           <!-- Profile Section -->

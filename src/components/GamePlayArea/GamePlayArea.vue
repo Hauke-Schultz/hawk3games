@@ -1,7 +1,9 @@
 <script setup>
 import {computed, ref, onMounted, onUnmounted, nextTick, watch} from 'vue'
 import { useSessionStore } from '../../stores/index.js'
+import { useSettingsStore } from '../../stores/settingsStore.js'
 import Matter from 'matter-js'
+import {storeToRefs} from "pinia";
 
 // Props for game state and session data
 const props = defineProps({
@@ -51,16 +53,17 @@ const lastTouchPosition = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
 
 const sessionStore = useSessionStore()
+const settingsStore = useSettingsStore()
 
 // Physics configuration
 const PHYSICS_CONFIG = {
   canvas: {
-    width: 400,
-    height: 500
+    width: 350,
+    height: 400
   },
   dropZone: {
-    minX: 35,
-    maxX: 365,
+    minX: 30,
+    maxX: 320,
     dropY: 50
   },
   engine: {
@@ -221,6 +224,12 @@ const FRUIT_SPAWN_WEIGHTS = {
 const fruits = ref([])
 const nextFruitType = ref('CHERRY')
 const gameOverHeight = 100 // Game over if fruit reaches this height
+const {
+  particlesEnabled,
+  effectiveParticleCount,
+  shouldUseSimpleAnimations,
+  lowPowerMode
+} = storeToRefs(settingsStore)
 
 let performanceRunning = false
 
@@ -245,18 +254,16 @@ const getCanvasPosition = (event) => {
   if (!canvas) return null
 
   const rect = canvas.getBoundingClientRect()
-
-  // Handle both mouse and touch events
   const clientX = event.touches ? event.touches[0].clientX : event.clientX
   const clientY = event.touches ? event.touches[0].clientY : event.clientY
 
   const x = clientX - rect.left
   const y = clientY - rect.top
 
-  // Clamp to drop zone boundaries
+  // AKTUALISIERT: Neue Drop-Zone Grenzen
   const clampedX = Math.max(
-    PHYSICS_CONFIG.dropZone.minX,
-    Math.min(PHYSICS_CONFIG.dropZone.maxX, x)
+    PHYSICS_CONFIG.dropZone.minX,   // 30px
+    Math.min(PHYSICS_CONFIG.dropZone.maxX, x)  // 320px
   )
 
   return { x: clampedX, y }
@@ -411,13 +418,47 @@ const mobileOptimizations = {
 
 // Adaptive particle count based on device
 const getParticleCount = (baseCount) => {
+  // Settings-based particle control
+  if (!particlesEnabled.value) {
+    return 0  // No particles wenn disabled
+  }
+
+  // Use settings store effective count
+  const settingsMultiplier = effectiveParticleCount.value
+  let adjustedCount = Math.floor(baseCount * settingsMultiplier)
+
+  // Additional mobile optimizations
   if (mobileOptimizations.reducedParticles) {
-    return Math.max(3, Math.floor(baseCount * 0.6))
+    adjustedCount = Math.floor(adjustedCount * 0.8)
   }
-  if (mobileOptimizations.lowPowerMode) {
-    return Math.max(5, Math.floor(baseCount * 0.8))
+
+  // Minimum particle count for visual feedback
+  return Math.max(particlesEnabled.value ? 2 : 0, adjustedCount)
+}
+
+const shouldCreateEffect = (effectType = 'normal') => {
+  if (!particlesEnabled.value) {
+    return effectType === 'essential'  // Only essential effects when disabled
   }
-  return baseCount
+
+  if (shouldUseSimpleAnimations.value) {
+    return effectType !== 'decorative'  // Skip decorative effects
+  }
+
+  return true  // All effects enabled
+}
+
+const getAnimationDuration = (baseDuration) => {
+  if (shouldUseSimpleAnimations.value) {
+    return baseDuration * 0.5  // Faster animations
+  }
+  return baseDuration
+}
+
+const getEffectIntensity = () => {
+  if (lowPowerMode.value) return 0.3
+  if (shouldUseSimpleAnimations.value) return 0.6
+  return 1.0
 }
 
 // Preview position change effect
@@ -662,6 +703,8 @@ const handleTouchEnd = (event) => {
 
 // Touch Start Visual Effect
 const createTouchStartEffect = (x, y) => {
+  if (!shouldCreateEffect('essential')) return  // Skip if all effects disabled
+
   const canvas = gameCanvas.value?.querySelector('canvas')
   if (!canvas) return
 
@@ -669,26 +712,29 @@ const createTouchStartEffect = (x, y) => {
   if (!ctx) return
 
   let scale = 0
-  const maxScale = 1.5
+  const maxScale = shouldUseSimpleAnimations.value ? 1.2 : 1.5
   let opacity = 1
+  const intensity = getEffectIntensity()
 
   const animate = () => {
     ctx.save()
-    ctx.globalAlpha = opacity
+    ctx.globalAlpha = opacity * intensity
     ctx.fillStyle = '#00b894'
     ctx.beginPath()
-    ctx.arc(x, y, 15 * scale, 0, Math.PI * 2)
+    ctx.arc(x, y, 15 * scale * intensity, 0, Math.PI * 2)
     ctx.fill()
 
-    // Inner circle
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
-    ctx.beginPath()
-    ctx.arc(x, y, 8 * scale, 0, Math.PI * 2)
-    ctx.fill()
+    // Skip inner circle in low power mode
+    if (!lowPowerMode.value) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+      ctx.beginPath()
+      ctx.arc(x, y, 8 * scale * intensity, 0, Math.PI * 2)
+      ctx.fill()
+    }
     ctx.restore()
 
-    scale += 0.1
-    opacity -= 0.1
+    scale += shouldUseSimpleAnimations.value ? 0.15 : 0.1
+    opacity -= shouldUseSimpleAnimations.value ? 0.15 : 0.1
 
     if (scale < maxScale && opacity > 0) {
       requestAnimationFrame(animate)
@@ -950,21 +996,21 @@ const initPhysics = async () => {
 
 // Create physics boundaries (walls and floor)
 const createBoundaries = () => {
-  const { width, height } = PHYSICS_CONFIG.canvas
+  const { width, height } = PHYSICS_CONFIG.canvas  // Nutzt automatisch neue Werte
   const wallThickness = 20
 
   const boundaries = [
-    // Floor
+    // Floor - automatisch angepasst durch width Variable
     Matter.Bodies.rectangle(width / 2, height + 10, width, wallThickness, {
       isStatic: true,
       render: { fillStyle: '#333' }
     }),
-    // Left wall
+    // Left wall - automatisch angepasst durch height Variable
     Matter.Bodies.rectangle(-10, height / 2, wallThickness, height, {
       isStatic: true,
       render: { fillStyle: '#333' }
     }),
-    // Right wall
+    // Right wall - automatisch angepasst durch width und height Variablen
     Matter.Bodies.rectangle(width + 10, height / 2, wallThickness, height, {
       isStatic: true,
       render: { fillStyle: '#333' }
@@ -972,7 +1018,7 @@ const createBoundaries = () => {
   ]
 
   Matter.World.add(physicsWorld.value, boundaries)
-  console.log('🏗️ Physics boundaries created')
+  console.log('🏗️ Physics boundaries created for optimized canvas size (350x400)')
 }
 
 // Test Physics Objects (für T1.4: Basic Physics Test)
@@ -1584,7 +1630,7 @@ const mergeFruits = (fruitA, fruitB) => {
   const finalScore = handleComboMerge(baseScore)
 
   // Create enhanced merge effect with combo info
-  createEnhancedMergeEffect(mergeX, mergeY, nextType, comboState.value.current)
+  createMergeEffectWithSettings(mergeX, mergeY, nextType, comboState.value.current)
 
   setTimeout(() => {
     const newFruit = createFruit(mergeX, mergeY, nextType, {
@@ -1601,8 +1647,15 @@ const mergeFruits = (fruitA, fruitB) => {
     }
   }, 100)
 }
+
 // Enhanced merge effect with combo visualization
 const createEnhancedMergeEffect = (x, y, fruitType, comboLevel) => {
+  // Performance check - skip if particles disabled
+  if (!shouldCreateEffect('normal')) {
+    console.log(`🎨 Skipping merge effect (particles disabled)`)
+    return
+  }
+
   if (!physicsRender.value) return
 
   const ctx = physicsRender.value.canvas.getContext('2d')
@@ -1611,92 +1664,100 @@ const createEnhancedMergeEffect = (x, y, fruitType, comboLevel) => {
   const type = FRUIT_TYPES[fruitType]
   if (!type) return
 
-  // Create different particle types based on combo level
+  // Settings-based particle configuration
   const particles = []
-  let particleCount = getParticleCount(Math.min(15 + (type.id * 2), 25))
+  let baseParticleCount = Math.min(15 + (type.id * 2), 25)
+  let particleCount = getParticleCount(baseParticleCount)
 
-  // Increase particles for higher combos
-  if (comboLevel >= 3) {
-    particleCount = Math.floor(particleCount * (1 + (comboLevel * 0.2)))
+  // Intensity-based adjustments
+  const intensity = getEffectIntensity()
+  const animationDuration = getAnimationDuration(1000)
+
+  // Increase particles for higher combos only if settings allow
+  if (comboLevel >= 3 && particlesEnabled.value) {
+    particleCount = Math.floor(particleCount * (1 + (comboLevel * 0.2 * intensity)))
   }
 
-  // Explosion particles with combo colors
-  for (let i = 0; i < particleCount; i++) {
-    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5
-    const speed = 3 + Math.random() * 4 + (comboLevel * 0.5) // Faster for higher combos
-    const size = 2 + Math.random() * 3
+  console.log(`✨ Creating merge effect: ${particleCount} particles (${Math.round(intensity * 100)}% intensity)`)
 
-    particles.push({
-      type: 'explosion',
-      x: x,
-      y: y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 1,
-      life: 1.0,
-      maxLife: 1.0,
-      size: size,
-      color: comboLevel >= 3 ? getComboColor(comboLevel) : type.gradient[Math.floor(Math.random() * type.gradient.length)],
-      gravity: 0.1,
-      fadeSpeed: 0.02
-    })
-  }
+  // Explosion particles with settings consideration
+  if (shouldCreateEffect('normal')) {
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5
+      const speed = (3 + Math.random() * 4) * intensity
+      const size = (2 + Math.random() * 3) * intensity
 
-  // Special combo particles for high combos
-  if (comboLevel >= 3) {
-    for (let i = 0; i < comboLevel; i++) {
       particles.push({
-        type: 'combo-star',
-        x: x + (Math.random() - 0.5) * type.radius * 2,
-        y: y + (Math.random() - 0.5) * type.radius * 2,
-        vx: (Math.random() - 0.5) * 3,
-        vy: (Math.random() - 0.5) * 3 - 2,
-        life: 1.5,
-        maxLife: 1.5,
-        size: 3 + comboLevel * 0.5,
-        color: getComboColor(comboLevel),
-        gravity: 0.05,
-        fadeSpeed: 0.01,
-        rotation: 0,
-        rotationSpeed: 0.2
+        type: 'explosion',
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        life: 1.0 * intensity,
+        maxLife: 1.0 * intensity,
+        size: size,
+        color: comboLevel >= 3 ? getComboColor(comboLevel) : type.gradient[Math.floor(Math.random() * type.gradient.length)],
+        gravity: 0.1,
+        fadeSpeed: 0.02 / intensity  // Slower fade for longer visibility with reduced particles
       })
     }
   }
 
-  // Enhanced score popup with combo info
-  const scoreText = comboLevel > 1 ?
-    `+${type.scoreValue} x${comboLevel}!` :
-    `+${type.scoreValue}`
+  // Combo stars - only for high combos and if effects enabled
+  if (comboLevel >= 3 && shouldCreateEffect('decorative')) {
+    const starCount = Math.floor(comboLevel * intensity)
+    for (let i = 0; i < starCount; i++) {
+      particles.push({
+        type: 'combo-star',
+        x: x + (Math.random() - 0.5) * type.radius * 2,
+        y: y + (Math.random() - 0.5) * type.radius * 2,
+        vx: (Math.random() - 0.5) * 3 * intensity,
+        vy: (Math.random() - 0.5) * 3 * intensity - 2,
+        life: 1.5 * intensity,
+        maxLife: 1.5 * intensity,
+        size: (3 + comboLevel * 0.5) * intensity,
+        color: getComboColor(comboLevel),
+        gravity: 0.05,
+        fadeSpeed: 0.01 / intensity,
+        rotation: 0,
+        rotationSpeed: 0.2 * intensity
+      })
+    }
+  }
 
+  // Essential score popup - always show but adjust style
   particles.push({
     type: 'score',
     x: x,
     y: y - type.radius - 10,
     vx: 0,
-    vy: -2,
-    life: 1.5,
-    maxLife: 1.5,
-    size: 16 + (type.id * 2) + (comboLevel * 2),
-    text: scoreText,
+    vy: -2 * intensity,
+    life: shouldUseSimpleAnimations.value ? 1.0 : 1.5,
+    maxLife: shouldUseSimpleAnimations.value ? 1.0 : 1.5,
+    size: (16 + (type.id * 2) + (comboLevel * 2)) * intensity,
+    text: comboLevel > 1 ? `+${type.scoreValue} x${comboLevel}!` : `+${type.scoreValue}`,
     color: comboLevel >= 3 ? getComboColor(comboLevel) : type.gradient[1],
     gravity: 0,
-    fadeSpeed: 0.008
+    fadeSpeed: shouldUseSimpleAnimations.value ? 0.015 : 0.008
   })
 
-  // Enhanced ring wave for combos
-  particles.push({
-    type: 'ring',
-    x: x,
-    y: y,
-    life: 1.0,
-    maxLife: 1.0,
-    size: 0,
-    maxSize: type.radius * (3 + comboLevel * 0.5),
-    color: comboLevel >= 3 ? getComboColor(comboLevel) : type.glowColor,
-    gravity: 0,
-    fadeSpeed: 0.025
-  })
+  // Ring wave - simplified for low performance
+  if (shouldCreateEffect('normal')) {
+    particles.push({
+      type: 'ring',
+      x: x,
+      y: y,
+      life: 1.0,
+      maxLife: 1.0,
+      size: 0,
+      maxSize: (type.radius * (3 + comboLevel * 0.5)) * intensity,
+      color: comboLevel >= 3 ? getComboColor(comboLevel) : type.glowColor,
+      gravity: 0,
+      fadeSpeed: shouldUseSimpleAnimations.value ? 0.04 : 0.025
+    })
+  }
 
-  // Animate all particles
+  // Animation function with performance consideration
   const animateParticles = () => {
     ctx.save()
 
@@ -1705,61 +1766,75 @@ const createEnhancedMergeEffect = (x, y, fruitType, comboLevel) => {
 
       const alpha = particle.life / particle.maxLife
 
-      switch (particle.type) {
-        case 'explosion':
-          ctx.globalAlpha = alpha
-          ctx.fillStyle = particle.color
-          ctx.beginPath()
-          ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2)
-          ctx.fill()
-          break
+      // Simplified rendering for low power mode
+      if (lowPowerMode.value && particle.type === 'combo-star') {
+        // Skip complex star rendering in low power mode
+        ctx.globalAlpha = alpha
+        ctx.fillStyle = particle.color
+        ctx.beginPath()
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+        ctx.fill()
+      } else {
+        // Full rendering logic für andere Modi
+        switch (particle.type) {
+          case 'explosion':
+            ctx.globalAlpha = alpha
+            ctx.fillStyle = particle.color
+            ctx.beginPath()
+            ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2)
+            ctx.fill()
+            break
 
-        case 'combo-star':
-          ctx.globalAlpha = alpha
-          ctx.fillStyle = particle.color
-          ctx.save()
-          ctx.translate(particle.x, particle.y)
-          ctx.rotate(particle.rotation)
+          case 'combo-star':
+            ctx.globalAlpha = alpha
+            ctx.fillStyle = particle.color
+            ctx.save()
+            ctx.translate(particle.x, particle.y)
+            ctx.rotate(particle.rotation)
 
-          // Draw star shape
-          const starSize = particle.size
-          ctx.beginPath()
-          for (let i = 0; i < 5; i++) {
-            const angle = (i * Math.PI * 2) / 5
-            const x = Math.cos(angle) * starSize
-            const y = Math.sin(angle) * starSize
-            if (i === 0) ctx.moveTo(x, y)
-            else ctx.lineTo(x, y)
-          }
-          ctx.closePath()
-          ctx.fill()
+            const starSize = particle.size
+            ctx.beginPath()
+            for (let i = 0; i < 5; i++) {
+              const angle = (i * Math.PI * 2) / 5
+              const x = Math.cos(angle) * starSize
+              const y = Math.sin(angle) * starSize
+              if (i === 0) ctx.moveTo(x, y)
+              else ctx.lineTo(x, y)
+            }
+            ctx.closePath()
+            ctx.fill()
 
-          particle.rotation += particle.rotationSpeed
-          ctx.restore()
-          break
+            particle.rotation += particle.rotationSpeed
+            ctx.restore()
+            break
 
-        case 'score':
-          ctx.globalAlpha = alpha
-          ctx.fillStyle = particle.color
-          ctx.font = `bold ${particle.size}px Arial`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
-          ctx.lineWidth = 2
-          ctx.strokeText(particle.text, particle.x, particle.y)
-          ctx.fillText(particle.text, particle.x, particle.y)
-          break
+          case 'score':
+            ctx.globalAlpha = alpha
+            ctx.fillStyle = particle.color
+            ctx.font = `bold ${particle.size}px Arial`
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
 
-        case 'ring':
-          const ringProgress = 1 - (particle.life / particle.maxLife)
-          const currentSize = particle.maxSize * ringProgress
-          ctx.globalAlpha = alpha * 0.6
-          ctx.strokeStyle = particle.color
-          ctx.lineWidth = 3
-          ctx.beginPath()
-          ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2)
-          ctx.stroke()
-          break
+            // Simplified text rendering in low power mode
+            if (!lowPowerMode.value) {
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+              ctx.lineWidth = 2
+              ctx.strokeText(particle.text, particle.x, particle.y)
+            }
+            ctx.fillText(particle.text, particle.x, particle.y)
+            break
+
+          case 'ring':
+            const ringProgress = 1 - (particle.life / particle.maxLife)
+            const currentSize = particle.maxSize * ringProgress
+            ctx.globalAlpha = alpha * 0.6
+            ctx.strokeStyle = particle.color
+            ctx.lineWidth = lowPowerMode.value ? 2 : 3
+            ctx.beginPath()
+            ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2)
+            ctx.stroke()
+            break
+        }
       }
 
       // Update particle physics
@@ -1781,8 +1856,93 @@ const createEnhancedMergeEffect = (x, y, fruitType, comboLevel) => {
   }
 
   animateParticles()
-  console.log(`✨ Enhanced merge effect created for ${fruitType} with combo x${comboLevel}`)
+  console.log(`✨ Enhanced merge effect created for ${fruitType} with combo x${comboLevel} (${particles.length} particles, settings-optimized)`)
 }
+
+// Simplified merge effect for disabled particles
+const createSimpleMergeEffect = (x, y, fruitType, comboLevel) => {
+  if (!physicsRender.value) return
+
+  const ctx = physicsRender.value.canvas.getContext('2d')
+  if (!ctx) return
+
+  const type = FRUIT_TYPES[fruitType]
+  if (!type) return
+
+  // Only essential visual feedback
+  const particles = []
+
+  // Always show score popup (essential feedback)
+  particles.push({
+    type: 'score',
+    x: x,
+    y: y - type.radius - 10,
+    vx: 0,
+    vy: -1.5,
+    life: 0.8,
+    maxLife: 0.8,
+    size: 18 + (type.id * 1.5),
+    text: comboLevel > 1 ? `+${type.scoreValue} x${comboLevel}!` : `+${type.scoreValue}`,
+    color: type.gradient[1],
+    gravity: 0,
+    fadeSpeed: 0.02
+  })
+
+  // Simple flash effect
+  let flashOpacity = 0.4
+  const flashColor = type.glowColor
+
+  const animateSimpleEffect = () => {
+    ctx.save()
+
+    // Flash effect
+    if (flashOpacity > 0) {
+      ctx.globalAlpha = flashOpacity
+      ctx.fillStyle = flashColor
+      ctx.beginPath()
+      ctx.arc(x, y, type.radius * 2, 0, Math.PI * 2)
+      ctx.fill()
+      flashOpacity -= 0.08
+    }
+
+    // Score text
+    particles.forEach(particle => {
+      if (particle.life <= 0) return
+
+      const alpha = particle.life / particle.maxLife
+      ctx.globalAlpha = alpha
+      ctx.fillStyle = particle.color
+      ctx.font = `bold ${particle.size}px Arial`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(particle.text, particle.x, particle.y)
+
+      particle.x += particle.vx
+      particle.y += particle.vy
+      particle.life -= particle.fadeSpeed
+    })
+
+    ctx.restore()
+
+    // Continue if effects are active
+    if (flashOpacity > 0 || particles.some(p => p.life > 0)) {
+      requestAnimationFrame(animateSimpleEffect)
+    }
+  }
+
+  animateSimpleEffect()
+  console.log(`📊 Simple merge effect created for ${fruitType} (particles disabled)`)
+}
+
+// Enhanced merge function dispatcher
+const createMergeEffectWithSettings = (x, y, fruitType, comboLevel) => {
+  if (particlesEnabled.value) {
+    createEnhancedMergeEffect(x, y, fruitType, comboLevel)
+  } else {
+    createSimpleMergeEffect(x, y, fruitType, comboLevel)
+  }
+}
+
 
 // Get combo-specific colors
 const getComboColor = (comboLevel) => {
@@ -2415,8 +2575,8 @@ defineExpose({
   &__drop-zone {
     position: absolute;
     top: 0;
-    left: 30px;
-    right: 30px;
+    left: 25px;   // Angepasst für kleinere Canvas
+    right: 25px;  // Angepasst für kleinere Canvas
     opacity: 0.6;
     pointer-events: none;
     z-index: 5;
@@ -2439,8 +2599,8 @@ defineExpose({
         content: '';
         position: absolute;
         top: -2px;
-        left: 10%;
-        right: 10%;
+        left: 8%;   // Angepasst für kleinere Breite
+        right: 8%;  // Angepasst für kleinere Breite
         height: 8px;
         background: rgba(0, 184, 148, 0.2);
         border-radius: 4px;
