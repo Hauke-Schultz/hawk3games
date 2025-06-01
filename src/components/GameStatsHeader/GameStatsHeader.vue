@@ -50,6 +50,13 @@ const props = defineProps({
   isGameOver: {
     type: Boolean,
     default: false
+  },
+  comboMessage: {
+    type: Object,
+    default: null,
+    validator: (message) => {
+      return !message || (message.message && message.type && typeof message.combo === 'number')
+    }
   }
 })
 
@@ -92,13 +99,26 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
 
       <!-- Message Area (Game Over, Success, etc.) -->
       <div class="game-stats-header__message">
+        <!-- Game Over Message -->
         <span
           v-if="isGameOver"
-          class="game-stats-header__message-text game-stats-header__message-text--danger"
-        >
+            class="game-stats-header__message-text game-stats-header__message-text--danger"
+          >
           GAME OVER
         </span>
-        <!-- Could add more message types here -->
+        <Transition name="combo-message">
+        <span
+          v-if="comboMessage && !isGameOver"
+          class="game-stats-header__message-text"
+          :class="{
+            'game-stats-header__message-text--combo': comboMessage.type === 'combo',
+            'game-stats-header__message-text--achievement': comboMessage.type === 'achievement',
+            'game-stats-header__message-text--legendary': comboMessage.combo >= 10
+          }"
+        >
+          {{ comboMessage.message }}
+        </span>
+        </Transition>
       </div>
     </div>
 
@@ -164,7 +184,6 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
 .game-stats-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
 
   // Top Row - Level, Message, Score, Diamonds
   &__top-row {
@@ -218,7 +237,7 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 2rem; // Reserve space even when empty
+    min-height: var(--space-10);
 
     @media (max-width: vars.$breakpoint-sm) {
       text-align: center;
@@ -249,6 +268,27 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
       color: var(--warning-color);
       background: rgba(253, 203, 110, 0.1);
       border: 1px solid var(--warning-color);
+    }
+
+    &--combo {
+      color: var(--accent-color);
+      background: rgba(0, 184, 148, 0.1);
+      border: 1px solid var(--accent-color);
+      animation: combo-pulse 0.6s ease-in-out;
+    }
+
+    &--achievement {
+      color: var(--warning-color);
+      background: rgba(253, 203, 110, 0.1);
+      border: 1px solid var(--warning-color);
+      animation: achievement-bounce 0.8s ease-in-out;
+    }
+
+    &--legendary {
+      color: #e84393;
+      background: linear-gradient(45deg, #531633, #421f2d);
+      border: 1px solid #e84393;
+      animation: legendary-glow 1s ease-in-out infinite alternate;
     }
   }
 
@@ -319,6 +359,21 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     justify-content: flex-end;
     flex-direction: column;
   }
+
+  .combo-message-enter-active,
+  .combo-message-leave-active {
+    transition: all 0.4s ease-out;
+  }
+
+  .combo-message-enter-from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.9);
+  }
+
+  .combo-message-leave-to {
+    opacity: 0;
+    transform: translateY(10px) scale(1.1);
+  }
 }
 
 // Animations
@@ -341,6 +396,45 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     opacity: 0.9;
   }
 }
+
+@keyframes combo-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes achievement-bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes legendary-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(232, 67, 147, 0.5);
+    transform: scale(1);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(232, 67, 147, 0.8);
+    transform: scale(1.02);
+  }
+}
+
 
 // Mobile specific adjustments
 @media (max-width: vars.$breakpoint-sm) {

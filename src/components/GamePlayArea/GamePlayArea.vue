@@ -103,7 +103,8 @@ const FRUIT_TYPES = {
     gradient: ['#748ffc', '#4c6ef5', '#364fc7'],
     shadow: '0 2px 8px rgba(54, 79, 199, 0.4)',
     glowColor: 'rgba(76, 110, 245, 0.6)',
-    sparkleColor: '#c5dbff'
+    sparkleColor: '#c5dbff',
+    svg: `assets/fruits/blueberry.svg`
   },
   STRAWBERRY: {
     id: 2,
@@ -115,7 +116,8 @@ const FRUIT_TYPES = {
     gradient: ['#ffab91', '#ff8787', '#f4511e'],
     shadow: '0 2px 8px rgba(244, 81, 30, 0.4)',
     glowColor: 'rgba(255, 135, 135, 0.6)',
-    sparkleColor: '#ffccbc'
+    sparkleColor: '#ffccbc',
+    svg: `assets/fruits/strawberry.svg`
   },
   GRAPE: {
     id: 3,
@@ -127,7 +129,8 @@ const FRUIT_TYPES = {
     gradient: ['#b39ddb', '#845ec2', '#5e35b1'],
     shadow: '0 2px 8px rgba(94, 53, 177, 0.4)',
     glowColor: 'rgba(132, 94, 194, 0.6)',
-    sparkleColor: '#d1c4e9'
+    sparkleColor: '#d1c4e9',
+    svg: `assets/fruits/grape.svg`
   },
   ORANGE: {
     id: 4,
@@ -139,31 +142,34 @@ const FRUIT_TYPES = {
     gradient: ['#ffcc02', '#ffa726', '#ff9800'],
     shadow: '0 2px 8px rgba(255, 152, 0, 0.4)',
     glowColor: 'rgba(255, 167, 38, 0.6)',
-    sparkleColor: '#ffe0b2'
+    sparkleColor: '#ffe0b2',
+    svg: `assets/fruits/orange.svg`
   },
   APPLE: {
     id: 5,
     emoji: '🍎',
     radius: 40,
-    nextType: 'PEAR',
+    nextType: 'PEACH',
     color: '#e53e3e',
     scoreValue: 200,
     gradient: ['#ef5350', '#e53e3e', '#c62828'],
     shadow: '0 3px 12px rgba(198, 40, 40, 0.5)',
     glowColor: 'rgba(229, 62, 62, 0.7)',
-    sparkleColor: '#ffcdd2'
+    sparkleColor: '#ffcdd2',
+    svg: `assets/fruits/apple.svg`
   },
-  PEAR: {
+  PEACH: {
     id: 6,
-    emoji: '🍐',
+    emoji: '🍑',
     radius: 52,
     nextType: 'PINEAPPLE',
-    color: '#38a169',
+    color: '#ff7043',
     scoreValue: 400,
-    gradient: ['#66bb6a', '#38a169', '#2e7d32'],
-    shadow: '0 3px 12px rgba(46, 125, 50, 0.5)',
-    glowColor: 'rgba(56, 161, 105, 0.7)',
-    sparkleColor: '#c8e6c9'
+    gradient: ['#ffab91', '#ff7043', '#d84315'],
+    shadow: '0 3px 12px rgba(216, 158, 46, 0.5)',
+    glowColor: 'rgba(255, 112, 67, 0.7)',
+    sparkleColor: '#ffccbc',
+    svg: `assets/fruits/peach.svg`
   },
   PINEAPPLE: {
     id: 7,
@@ -175,7 +181,8 @@ const FRUIT_TYPES = {
     gradient: ['#ffd54f', '#d69e2e', '#f57f17'],
     shadow: '0 4px 16px rgba(245, 127, 23, 0.6)',
     glowColor: 'rgba(214, 158, 46, 0.8)',
-    sparkleColor: '#fff9c4'
+    sparkleColor: '#fff9c4',
+    svg: `assets/fruits/pineapple.svg`
   },
   MELON: {
     id: 8,
@@ -187,7 +194,8 @@ const FRUIT_TYPES = {
     gradient: ['#4db6ac', '#38b2ac', '#00695c'],
     shadow: '0 4px 16px rgba(0, 105, 92, 0.6)',
     glowColor: 'rgba(56, 178, 172, 0.8)',
-    sparkleColor: '#b2dfdb'
+    sparkleColor: '#b2dfdb',
+    svg: `assets/fruits/melon.svg`
   },
   COCONUT: {
     id: 9,
@@ -199,7 +207,8 @@ const FRUIT_TYPES = {
     gradient: ['#a1887f', '#8b4513', '#5d4037'],
     shadow: '0 5px 20px rgba(93, 64, 55, 0.7)',
     glowColor: 'rgba(139, 69, 19, 0.9)',
-    sparkleColor: '#d7ccc8'
+    sparkleColor: '#d7ccc8',
+    svg: `assets/fruits/coconut.svg`
   }
 }
 
@@ -331,17 +340,29 @@ const handleComboMerge = (baseScore) => {
   // Update session store with combo
   sessionStore.updateCombo(comboState.value.current)
 
+  // NEU: Emit combo message für UI
+  if (comboState.value.current >= 2) {
+    emitComboMessage(comboState.value.current, 'combo')
+  }
+
+  // NEU: Achievement messages
+  if (comboState.value.current === 5 || comboState.value.current === 10) {
+    setTimeout(() => {
+      emitComboMessage(comboState.value.current, 'achievement')
+    }, 500)
+  }
+
   // Start/reset combo timer
   startComboTimer()
 
-  // Create visual effects based on combo level
+  // Create visual effects based on combo level (Canvas nur noch visuelle Effekte)
   if (comboState.value.current >= 3) {
     createComboEffect(comboState.value.current)
   }
 
   // Haptic feedback for high combos
   if (comboState.value.current >= 5 && navigator.vibrate) {
-    navigator.vibrate([50, 25, 50]) // Triple vibration pattern
+    navigator.vibrate([50, 25, 50])
   }
 
   console.log(`🎯 Combo x${comboState.value.current} achieved! Max this session: ${comboState.value.maxThisSession}`)
@@ -396,6 +417,9 @@ const resetCombo = () => {
     clearInterval(comboState.value.comboTimerInterval)
     comboState.value.comboTimerInterval = null
   }
+
+  // NEU: Combo message löschen wenn Combo zurückgesetzt wird
+  emit('combo-message', null)
 
   // Reset combo in session store
   sessionStore.resetCombo()
@@ -1074,6 +1098,32 @@ const removeTestObjects = () => {
   }
 }
 
+const emitComboMessage = (comboLevel, messageType = 'combo') => {
+  const messages = {
+    combo: {
+      2: 'Nice Combo!',
+      3: 'Great Combo!',
+      4: 'Awesome Combo!',
+      5: 'Amazing Combo!',
+      7: 'Incredible Combo!',
+      10: 'LEGENDARY COMBO!'
+    },
+    achievement: {
+      5: 'First 5x Combo!',
+      10: 'Master Combo!'
+    }
+  }
+
+  const message = messages[messageType][comboLevel] || `${comboLevel}x Combo!`
+
+  emit('combo-message', {
+    message,
+    type: messageType,
+    combo: comboLevel,
+    duration: Math.min(3000 + (comboLevel * 200), 5000) // 3-5 Sekunden
+  })
+}
+
 // Fruit Factory System (T2.1)
 const createFruit = (x, y, fruitType, options = {}) => {
   const type = FRUIT_TYPES[fruitType]
@@ -1135,36 +1185,6 @@ const getRandomFruitType = () => {
   }
 
   return 'BLUEBERRY'
-}
-
-// Remove fruit from tracking
-const removeFruit = (fruitBody) => {
-  const index = fruits.value.findIndex(f => f.body === fruitBody)
-  if (index > -1) {
-    const fruit = fruits.value[index]
-    fruits.value.splice(index, 1)
-    console.log(`🗑️ Removed ${fruit.type} fruit (index: ${index})`)
-    return fruit
-  }
-  console.warn('⚠️ Fruit not found for removal:', fruitBody.fruitType)
-  return null
-}
-
-// Clear all fruits
-const clearAllFruits = () => {
-  if (!physicsWorld.value) return
-
-  const fruitBodies = fruits.value.map(f => f.body)
-  if (fruitBodies.length > 0) {
-    Matter.World.remove(physicsWorld.value, fruitBodies)
-    fruits.value = []
-    console.log('🧹 Cleared all fruits')
-  }
-}
-
-// Get fruit by Matter.js body
-const getFruitByBody = (body) => {
-  return fruits.value.find(f => f.body === body)
 }
 
 // Get next fruit type in progression chain
@@ -1362,170 +1382,6 @@ const renderSingleFruit = (ctx, x, y, fruitType, body = null, opacity = 1.0) => 
   }
 
   ctx.restore()
-}
-
-// Visual effect for merging
-// Enhanced Merge Effects with Advanced Particle System
-const createMergeEffect = (x, y, fruitType) => {
-  if (!physicsRender.value) return
-
-  const ctx = physicsRender.value.canvas.getContext('2d')
-  if (!ctx) return
-
-  const type = FRUIT_TYPES[fruitType]
-  if (!type) return
-
-  // Create different particle types
-  const particles = []
-  const particleCount = getParticleCount(Math.min(15 + (type.id * 2), 25))
-
-  // Explosion particles
-  for (let i = 0; i < particleCount; i++) {
-    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5
-    const speed = 3 + Math.random() * 4
-    const size = 2 + Math.random() * 3
-
-    particles.push({
-      type: 'explosion',
-      x: x,
-      y: y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 1, // Slight upward bias
-      life: 1.0,
-      maxLife: 1.0,
-      size: size,
-      color: type.gradient[Math.floor(Math.random() * type.gradient.length)],
-      gravity: 0.1,
-      fadeSpeed: 0.02
-    })
-  }
-
-  // Sparkle particles for higher-level fruits
-  if (type.id >= 4) {
-    for (let i = 0; i < 8; i++) {
-      particles.push({
-        type: 'sparkle',
-        x: x + (Math.random() - 0.5) * type.radius * 2,
-        y: y + (Math.random() - 0.5) * type.radius * 2,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2,
-        life: 1.0,
-        maxLife: 1.0,
-        size: 1 + Math.random() * 2,
-        color: type.sparkleColor,
-        gravity: 0.05,
-        fadeSpeed: 0.015,
-        twinkle: Math.random() * Math.PI * 2
-      })
-    }
-  }
-
-  // Score popup particle
-  particles.push({
-    type: 'score',
-    x: x,
-    y: y - type.radius - 10,
-    vx: 0,
-    vy: -2,
-    life: 1.0,
-    maxLife: 1.0,
-    size: 16 + (type.id * 2),
-    text: `+${type.scoreValue}`,
-    color: type.gradient[1],
-    gravity: 0,
-    fadeSpeed: 0.01
-  })
-
-  // Ring wave effect
-  particles.push({
-    type: 'ring',
-    x: x,
-    y: y,
-    life: 1.0,
-    maxLife: 1.0,
-    size: 0,
-    maxSize: type.radius * 3,
-    color: type.glowColor,
-    gravity: 0,
-    fadeSpeed: 0.03
-  })
-
-  // Animate all particles
-  const animateParticles = () => {
-    ctx.save()
-
-    particles.forEach((particle, index) => {
-      if (particle.life <= 0) return
-
-      const alpha = particle.life / particle.maxLife
-
-      switch (particle.type) {
-        case 'explosion':
-          ctx.globalAlpha = alpha
-          ctx.fillStyle = particle.color
-          ctx.beginPath()
-          ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2)
-          ctx.fill()
-          break
-
-        case 'sparkle':
-          ctx.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(particle.twinkle + Date.now() * 0.01))
-          ctx.fillStyle = particle.color
-          ctx.save()
-          ctx.translate(particle.x, particle.y)
-          ctx.rotate(Date.now() * 0.005)
-          ctx.fillRect(-particle.size/2, -particle.size/2, particle.size, particle.size)
-          ctx.fillRect(-particle.size/6, -particle.size*1.5, particle.size/3, particle.size*3)
-          ctx.fillRect(-particle.size*1.5, -particle.size/6, particle.size*3, particle.size/3)
-          ctx.restore()
-          break
-
-        case 'score':
-          ctx.globalAlpha = alpha
-          ctx.fillStyle = particle.color
-          ctx.font = `bold ${particle.size}px Arial`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
-          ctx.lineWidth = 2
-          ctx.strokeText(particle.text, particle.x, particle.y)
-          ctx.fillText(particle.text, particle.x, particle.y)
-          break
-
-        case 'ring':
-          const ringProgress = 1 - (particle.life / particle.maxLife)
-          const currentSize = particle.maxSize * ringProgress
-          ctx.globalAlpha = alpha * 0.6
-          ctx.strokeStyle = particle.color
-          ctx.lineWidth = 3
-          ctx.beginPath()
-          ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2)
-          ctx.stroke()
-          break
-      }
-
-      // Update particle physics
-      particle.x += particle.vx
-      particle.y += particle.vy
-      particle.vy += particle.gravity
-      particle.life -= particle.fadeSpeed
-    })
-
-    ctx.restore()
-
-    // Remove dead particles and continue animation
-    const aliveParticles = particles.filter(p => p.life > 0)
-
-    if (aliveParticles.length > 0) {
-      // Update particles array reference
-      particles.length = 0
-      particles.push(...aliveParticles)
-      requestAnimationFrame(animateParticles)
-    }
-  }
-
-  animateParticles()
-  console.log(`✨ Enhanced merge effect created for ${fruitType} with ${particles.length} particles`)
 }
 
 // Handle fruit collision and potential merging
@@ -1942,7 +1798,7 @@ const createComboEffect = (comboLevel) => {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  // Screen-wide flash for high combos
+  // Screen-wide flash for high combos (BLEIBT)
   if (comboLevel >= 5) {
     let flashOpacity = 0.3
     const flashColor = getComboColor(comboLevel)
@@ -1964,41 +1820,7 @@ const createComboEffect = (comboLevel) => {
     animateFlash()
   }
 
-  // Combo text announcement for very high combos
-  if (comboLevel >= 7) {
-    let textLife = 1.0
-    const comboText = comboLevel >= 10 ? 'INCREDIBLE!' :
-      comboLevel >= 9 ? 'AMAZING!' :
-        comboLevel >= 8 ? 'FANTASTIC!' : 'AWESOME!'
-
-    const animateComboText = () => {
-      ctx.save()
-      ctx.globalAlpha = textLife
-      ctx.fillStyle = getComboColor(comboLevel)
-      ctx.font = `bold ${32 + comboLevel}px Arial`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
-      ctx.lineWidth = 3
-
-      const x = PHYSICS_CONFIG.canvas.width / 2
-      const y = PHYSICS_CONFIG.canvas.height / 2 - 50
-
-      ctx.strokeText(comboText, x, y)
-      ctx.fillText(comboText, x, y)
-      ctx.restore()
-
-      textLife -= 0.02
-
-      if (textLife > 0) {
-        requestAnimationFrame(animateComboText)
-      }
-    }
-
-    animateComboText()
-  }
-
-  console.log(`🎆 Special combo effect for x${comboLevel}!`)
+  console.log(`🎆 Canvas combo effect for x${comboLevel}!`)
 }
 
 // Game Logic and Fruit Type System (T2.4)
@@ -2167,7 +1989,8 @@ const emit = defineEmits([
   'back-to-level-selection',
   'move-made',
   'score-update',
-  'game-over'
+  'game-over',
+  'combo-message'
 ])
 
 const isMobile = () => {
@@ -2300,7 +2123,7 @@ defineExpose({
           ></div>
           <!-- Mobile Trajectory Guide -->
           <div
-            v-if="dropPreviewPosition && isGameActive && isMobile"
+            v-if="dropPreviewPosition && isGameActive && isMobile && canDrop"
             class="game-play-area__mobile-trajectory"
             :style="{
               left: `${dropPreviewPosition}px`,
@@ -2312,7 +2135,7 @@ defineExpose({
 
         <!-- Drop Trajectory Line -->
         <div
-          v-if="dropPreviewPosition && isGameActive"
+          v-if="dropPreviewPosition && isGameActive && canDrop"
           class="game-play-area__trajectory-line"
           :style="{
             left: `${dropPreviewPosition}px`,
@@ -2320,13 +2143,6 @@ defineExpose({
             top: `${PHYSICS_CONFIG.dropZone.dropY}px`
           }"
         ></div>
-        <!-- Drop Cooldown Indicator -->
-        <div
-          v-if="!canDrop"
-          class="game-play-area__cooldown-indicator"
-        >
-          <span>⏳ Wait {{ Math.ceil(dropCooldown / 1000) }}s...</span>
-        </div>
       </div>
 
       <!-- Fallback für nicht-initialisierte Physics -->
@@ -2455,14 +2271,6 @@ defineExpose({
       cursor: not-allowed;
     }
 
-    &--cooldown {
-      opacity: 0.7;
-      cursor: not-allowed;
-      box-shadow:
-        0 0 20px rgba(253, 203, 110, 0.4),
-        inset 0 0 0 2px rgba(253, 203, 110, 0.2);
-    }
-
     &--active {
       cursor: crosshair;
       box-shadow:
@@ -2559,28 +2367,6 @@ defineExpose({
     position: absolute;
     pointer-events: none;
     z-index: 5;
-  }
-
-  // Drop cooldown indicator
-  &__cooldown-indicator {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(253, 203, 110, 0.9);
-    color: var(--text-color);
-    padding: var(--space-1) var(--space-3);
-    border-radius: var(--border-radius-md);
-    font-size: var(--font-size-xs);
-    font-weight: bold;
-    z-index: 15;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-    span {
-      display: flex;
-      align-items: center;
-      gap: var(--space-1);
-    }
   }
 
   &__game-over-line {
@@ -2736,10 +2522,6 @@ defineExpose({
     &__drop-zone {
       height: 3px;
       opacity: 1;
-    }
-
-    &__cooldown-indicator {
-      border: 2px solid var(--text-color);
     }
   }
 }

@@ -23,6 +23,7 @@ const emit = defineEmits([
 // Component refs
 const gameStateManager = ref(null)
 const gamePlayArea = ref(null)
+const currentComboMessage = ref(null)
 
 // Simplified event handlers
 const handleLevelSelected = (level) => {
@@ -75,6 +76,24 @@ const handleScoreUpdate = (points) => {
     console.log(`📊 Score updated: +${points} points`)
   }
 }
+
+const handleComboMessage = (comboData) => {
+  if (comboData === null) {
+    currentComboMessage.value = null
+    console.log('🔥 Combo message cleared (combo reset)')
+    return
+  }
+
+  currentComboMessage.value = comboData
+  console.log('🔥 Combo message received:', comboData.message)
+
+  // Auto-clear message nach duration (bleibt als Fallback)
+  setTimeout(() => {
+    if (currentComboMessage.value === comboData) {
+      currentComboMessage.value = null
+    }
+  }, comboData.duration)
+}
 </script>
 
 <template>
@@ -116,6 +135,7 @@ const handleScoreUpdate = (points) => {
           :format-number="formatNumber"
           :combo-time-left="gamePlayArea?.comboState?.comboTimeLeft || 0"
           :combo-reset-delay="gamePlayArea?.comboState?.resetDelay || 6000"
+          :combo-message="currentComboMessage"
         />
 
         <!-- Main Game Content -->
@@ -142,6 +162,7 @@ const handleScoreUpdate = (points) => {
             @back-to-level-selection="handleBackToLevelSelection"
             @move-made="handleMoveaMade"
             @score-update="handleScoreUpdate"
+            @combo-message="handleComboMessage"
           />
         </div>
       </template>
