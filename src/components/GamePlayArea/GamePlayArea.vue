@@ -58,12 +58,12 @@ const settingsStore = useSettingsStore()
 // Physics configuration
 const PHYSICS_CONFIG = {
   canvas: {
-    width: 350,
+    width: 300,
     height: 400
   },
   dropZone: {
-    minX: 30,
-    maxX: 320,
+    minX: 25,
+    maxX: 275,
     dropY: 50
   },
   engine: {
@@ -103,111 +103,102 @@ const FRUIT_TYPES = {
     gradient: ['#748ffc', '#4c6ef5', '#364fc7'],
     shadow: '0 2px 8px rgba(54, 79, 199, 0.4)',
     glowColor: 'rgba(76, 110, 245, 0.6)',
-    bounceScale: 1.1,
     sparkleColor: '#c5dbff'
   },
   STRAWBERRY: {
     id: 2,
     emoji: '🍓',
-    radius: 18,
+    radius: 20,
     nextType: 'GRAPE',
     color: '#ff8787',
     scoreValue: 25,
     gradient: ['#ffab91', '#ff8787', '#f4511e'],
     shadow: '0 2px 8px rgba(244, 81, 30, 0.4)',
     glowColor: 'rgba(255, 135, 135, 0.6)',
-    bounceScale: 1.1,
     sparkleColor: '#ffccbc'
   },
   GRAPE: {
     id: 3,
     emoji: '🍇',
-    radius: 22,
+    radius: 24,
     nextType: 'ORANGE',
     color: '#845ec2',
     scoreValue: 50,
     gradient: ['#b39ddb', '#845ec2', '#5e35b1'],
     shadow: '0 2px 8px rgba(94, 53, 177, 0.4)',
     glowColor: 'rgba(132, 94, 194, 0.6)',
-    bounceScale: 1.1,
     sparkleColor: '#d1c4e9'
   },
   ORANGE: {
     id: 4,
     emoji: '🍊',
-    radius: 26,
+    radius: 30,
     nextType: 'APPLE',
     color: '#ffa726',
     scoreValue: 100,
     gradient: ['#ffcc02', '#ffa726', '#ff9800'],
     shadow: '0 2px 8px rgba(255, 152, 0, 0.4)',
     glowColor: 'rgba(255, 167, 38, 0.6)',
-    bounceScale: 1.1,
     sparkleColor: '#ffe0b2'
   },
   APPLE: {
     id: 5,
     emoji: '🍎',
-    radius: 36,
+    radius: 40,
     nextType: 'PEAR',
     color: '#e53e3e',
     scoreValue: 200,
     gradient: ['#ef5350', '#e53e3e', '#c62828'],
     shadow: '0 3px 12px rgba(198, 40, 40, 0.5)',
     glowColor: 'rgba(229, 62, 62, 0.7)',
-    bounceScale: 1.1,
     sparkleColor: '#ffcdd2'
   },
   PEAR: {
     id: 6,
     emoji: '🍐',
-    radius: 46,
+    radius: 52,
     nextType: 'PINEAPPLE',
     color: '#38a169',
     scoreValue: 400,
     gradient: ['#66bb6a', '#38a169', '#2e7d32'],
     shadow: '0 3px 12px rgba(46, 125, 50, 0.5)',
     glowColor: 'rgba(56, 161, 105, 0.7)',
-    bounceScale: 1.1,
     sparkleColor: '#c8e6c9'
   },
   PINEAPPLE: {
     id: 7,
     emoji: '🍍',
-    radius: 64,
+    radius: 68,
     nextType: 'MELON',
     color: '#d69e2e',
     scoreValue: 800,
     gradient: ['#ffd54f', '#d69e2e', '#f57f17'],
     shadow: '0 4px 16px rgba(245, 127, 23, 0.6)',
     glowColor: 'rgba(214, 158, 46, 0.8)',
-    bounceScale: 1.1,
     sparkleColor: '#fff9c4'
   },
   MELON: {
     id: 8,
     emoji: '🍉',
-    radius: 76,
+    radius: 82,
     nextType: 'COCONUT',
     color: '#38b2ac',
     scoreValue: 1600,
     gradient: ['#4db6ac', '#38b2ac', '#00695c'],
     shadow: '0 4px 16px rgba(0, 105, 92, 0.6)',
     glowColor: 'rgba(56, 178, 172, 0.8)',
-    bounceScale: 1.1,
     sparkleColor: '#b2dfdb'
   },
   COCONUT: {
     id: 9,
     emoji: '🥥',
-    radius: 88,
+    radius: 98,
     nextType: null,
     color: '#8b4513',
     scoreValue: 3200,
     gradient: ['#a1887f', '#8b4513', '#5d4037'],
     shadow: '0 5px 20px rgba(93, 64, 55, 0.7)',
     glowColor: 'rgba(139, 69, 19, 0.9)',
-    bounceScale: 1.1,
     sparkleColor: '#d7ccc8'
   }
 }
@@ -260,10 +251,9 @@ const getCanvasPosition = (event) => {
   const x = clientX - rect.left
   const y = clientY - rect.top
 
-  // AKTUALISIERT: Neue Drop-Zone Grenzen
   const clampedX = Math.max(
-    PHYSICS_CONFIG.dropZone.minX,   // 30px
-    Math.min(PHYSICS_CONFIG.dropZone.maxX, x)  // 320px
+    PHYSICS_CONFIG.dropZone.minX,   // 25px
+    Math.min(PHYSICS_CONFIG.dropZone.maxX, x)  // 275px
   )
 
   return { x: clampedX, y }
@@ -1270,7 +1260,6 @@ const renderFruitEmojis = (ctx) => {
 
       if (!fruitType) return
 
-      const isMoving = Math.abs(body.velocity.x) > 0.1 || Math.abs(body.velocity.y) > 0.1
       const isVisible = y < PHYSICS_CONFIG.canvas.height + 50 && y > -50
 
       if (!isVisible) return
@@ -1304,9 +1293,7 @@ const renderSingleFruit = (ctx, x, y, fruitType, body = null, opacity = 1.0) => 
   // Animation properties (only for real physics bodies)
   const animationScale = body?.animationScale || 1
   const animationOpacity = body?.animationOpacity !== undefined ? body.animationOpacity : 1
-  const isMoving = body ? (Math.abs(body.velocity.x) > 0.1 || Math.abs(body.velocity.y) > 0.1) : false
-  const bounceScale = isMoving ? fruitType.bounceScale : 1
-  const finalScale = animationScale * bounceScale
+  const finalScale = animationScale
   const finalOpacity = opacity * animationOpacity
 
   ctx.save()
@@ -1314,14 +1301,6 @@ const renderSingleFruit = (ctx, x, y, fruitType, body = null, opacity = 1.0) => 
   if (body) ctx.rotate(body.angle) // Only rotate real physics bodies
   ctx.scale(finalScale, finalScale)
   ctx.globalAlpha = finalOpacity
-
-  // 1. Glow effect for moving fruits
-  if (isMoving) {
-    ctx.shadowColor = fruitType.glowColor
-    ctx.shadowBlur = 12
-    ctx.shadowOffsetX = 0
-    ctx.shadowOffsetY = 0
-  }
 
   // 2. Gradient background circle
   const gradient = ctx.createRadialGradient(
@@ -2473,8 +2452,8 @@ defineExpose({
   &__drop-zone {
     position: absolute;
     top: 0;
-    left: 25px;   // Angepasst für kleinere Canvas
-    right: 25px;  // Angepasst für kleinere Canvas
+    left: 20px;   // Angepasst für 300px Canvas
+    right: 20px;  // Angepasst für 300px Canvas
     opacity: 0.6;
     pointer-events: none;
     z-index: 5;
@@ -2497,8 +2476,8 @@ defineExpose({
         content: '';
         position: absolute;
         top: -2px;
-        left: 8%;   // Angepasst für kleinere Breite
-        right: 8%;  // Angepasst für kleinere Breite
+        left: 7%;   // Angepasst für 300px Breite
+        right: 7%;  // Angepasst für 300px Breite
         height: 8px;
         background: rgba(0, 184, 148, 0.2);
         border-radius: 4px;
