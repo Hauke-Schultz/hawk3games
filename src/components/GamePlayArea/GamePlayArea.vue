@@ -129,7 +129,7 @@ const FRUIT_TYPES = {
     gradient: ['#b39ddb', '#845ec2', '#5e35b1'],
     shadow: '0 2px 8px rgba(94, 53, 177, 0.4)',
     glowColor: 'rgba(132, 94, 194, 0.6)',
-    bounceScale: 1.15,
+    bounceScale: 1.1,
     sparkleColor: '#d1c4e9'
   },
   ORANGE: {
@@ -142,72 +142,72 @@ const FRUIT_TYPES = {
     gradient: ['#ffcc02', '#ffa726', '#ff9800'],
     shadow: '0 2px 8px rgba(255, 152, 0, 0.4)',
     glowColor: 'rgba(255, 167, 38, 0.6)',
-    bounceScale: 1.15,
+    bounceScale: 1.1,
     sparkleColor: '#ffe0b2'
   },
   APPLE: {
     id: 5,
     emoji: '🍎',
-    radius: 30,
+    radius: 36,
     nextType: 'PEAR',
     color: '#e53e3e',
     scoreValue: 200,
     gradient: ['#ef5350', '#e53e3e', '#c62828'],
     shadow: '0 3px 12px rgba(198, 40, 40, 0.5)',
     glowColor: 'rgba(229, 62, 62, 0.7)',
-    bounceScale: 1.2,
+    bounceScale: 1.1,
     sparkleColor: '#ffcdd2'
   },
   PEAR: {
     id: 6,
     emoji: '🍐',
-    radius: 34,
+    radius: 46,
     nextType: 'PINEAPPLE',
     color: '#38a169',
     scoreValue: 400,
     gradient: ['#66bb6a', '#38a169', '#2e7d32'],
     shadow: '0 3px 12px rgba(46, 125, 50, 0.5)',
     glowColor: 'rgba(56, 161, 105, 0.7)',
-    bounceScale: 1.2,
+    bounceScale: 1.1,
     sparkleColor: '#c8e6c9'
   },
   PINEAPPLE: {
     id: 7,
     emoji: '🍍',
-    radius: 38,
+    radius: 64,
     nextType: 'MELON',
     color: '#d69e2e',
     scoreValue: 800,
     gradient: ['#ffd54f', '#d69e2e', '#f57f17'],
     shadow: '0 4px 16px rgba(245, 127, 23, 0.6)',
     glowColor: 'rgba(214, 158, 46, 0.8)',
-    bounceScale: 1.25,
+    bounceScale: 1.1,
     sparkleColor: '#fff9c4'
   },
   MELON: {
     id: 8,
     emoji: '🍉',
-    radius: 42,
+    radius: 76,
     nextType: 'COCONUT',
     color: '#38b2ac',
     scoreValue: 1600,
     gradient: ['#4db6ac', '#38b2ac', '#00695c'],
     shadow: '0 4px 16px rgba(0, 105, 92, 0.6)',
     glowColor: 'rgba(56, 178, 172, 0.8)',
-    bounceScale: 1.25,
+    bounceScale: 1.1,
     sparkleColor: '#b2dfdb'
   },
   COCONUT: {
     id: 9,
     emoji: '🥥',
-    radius: 46,
+    radius: 88,
     nextType: null,
     color: '#8b4513',
     scoreValue: 3200,
     gradient: ['#a1887f', '#8b4513', '#5d4037'],
     shadow: '0 5px 20px rgba(93, 64, 55, 0.7)',
     glowColor: 'rgba(139, 69, 19, 0.9)',
-    bounceScale: 1.3,
+    bounceScale: 1.1,
     sparkleColor: '#d7ccc8'
   }
 }
@@ -492,20 +492,6 @@ const createPreviewUpdateEffect = (x) => {
   }
 
   animatePreview()
-}
-
-const getPhysicsState = () => {
-  const baseState = gamePlayArea.value?.getPhysicsState() || {}
-  return {
-    ...baseState,
-    // Enhanced combo properties
-    combo: baseState.combo || 0,
-    maxCombo: baseState.maxCombo || 0,
-    comboTimeLeft: baseState.comboTimeLeft || 0,
-    comboLevel: baseState.comboLevel || 'normal',
-    // Add combo multiplier info
-    comboMultiplier: gamePlayArea.value?.getComboMultiplier?.(baseState.combo || 0) || 1.0
-  }
 }
 
 // Enhanced Touch/Click Event Handlers - Immediate fruit creation on pointer down
@@ -2077,60 +2063,6 @@ const preventMultiTouch = (event) => {
   return false
 }
 
-// Visual Game Over Warning System
-const createGameOverWarning = () => {
-  const canvas = gameCanvas.value?.querySelector('canvas')
-  if (!canvas) return
-
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-
-  let flashCount = 0
-  const maxFlashes = 6
-  let flashOpacity = 0
-
-  const animateWarning = () => {
-    ctx.save()
-
-    // Red warning overlay
-    ctx.globalAlpha = flashOpacity
-    ctx.fillStyle = 'rgba(231, 76, 60, 0.3)'
-    ctx.fillRect(0, 0, PHYSICS_CONFIG.canvas.width, gameOverHeight + 20)
-
-    // Warning line
-    ctx.globalAlpha = 1
-    ctx.strokeStyle = flashOpacity > 0.5 ? '#e74c3c' : '#c0392b'
-    ctx.lineWidth = 3
-    ctx.setLineDash([10, 5])
-    ctx.beginPath()
-    ctx.moveTo(0, gameOverHeight)
-    ctx.lineTo(PHYSICS_CONFIG.canvas.width, gameOverHeight)
-    ctx.stroke()
-    ctx.setLineDash([])
-
-    // Warning text
-    if (flashOpacity > 0.3) {
-      ctx.globalAlpha = flashOpacity
-      ctx.fillStyle = '#e74c3c'
-      ctx.font = 'bold 16px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText('⚠️ DANGER ZONE ⚠️', PHYSICS_CONFIG.canvas.width / 2, gameOverHeight - 10)
-    }
-
-    ctx.restore()
-
-    // Flash animation
-    flashOpacity = 0.5 + 0.5 * Math.sin(Date.now() * 0.01)
-    flashCount++
-
-    if (flashCount < maxFlashes * 10) {
-      requestAnimationFrame(animateWarning)
-    }
-  }
-
-  animateWarning()
-}
-
 // Check for game over condition
 const checkGameOver = () => {
   if (!physicsWorld.value) return false
@@ -2172,40 +2104,6 @@ const handleGameOver = () => {
     totalMoves: props.currentSession?.moves || 0,
     fruits: fruits.value.length
   })
-}
-
-// Get fruit statistics
-const getFruitStatistics = () => {
-  const stats = {}
-
-  Object.keys(FRUIT_TYPES).forEach(type => {
-    stats[type] = fruits.value.filter(f => f.type === type).length
-  })
-
-  return {
-    totalFruits: fruits.value.length,
-    byType: stats,
-    highestType: getHighestFruitType(),
-    nextDrop: nextFruitType.value
-  }
-}
-
-// Get highest fruit type currently in game
-const getHighestFruitType = () => {
-  if (fruits.value.length === 0) return null
-
-  let highest = null
-  let highestId = 0
-
-  fruits.value.forEach(fruit => {
-    const typeId = FRUIT_TYPES[fruit.type]?.id || 0
-    if (typeId > highestId) {
-      highestId = typeId
-      highest = fruit.type
-    }
-  })
-
-  return highest
 }
 
 // Stop physics simulation
@@ -2682,11 +2580,11 @@ defineExpose({
 
 @keyframes ripple-expand {
   0% {
-    transform: scale(0.8);
+    transform: scale(0.9);
     opacity: 1;
   }
   100% {
-    transform: scale(1.3);
+    transform: scale(1.1);
     opacity: 0;
   }
 }
@@ -2710,15 +2608,15 @@ defineExpose({
 // Enhanced animations
 @keyframes touch-pulse-enhanced {
   0% {
-    transform: translate(-50%, -50%) scale(1.1);
+    transform: translate(-50%, -50%) scale(1);
     box-shadow: 0 0 20px rgba(0, 184, 148, 0.6);
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.2);
+    transform: translate(-50%, -50%) scale(1.1);
     box-shadow: 0 0 30px rgba(0, 184, 148, 0.8);
   }
   100% {
-    transform: translate(-50%, -50%) scale(1.1);
+    transform: translate(-50%, -50%) scale(1);
     box-shadow: 0 0 20px rgba(0, 184, 148, 0.6);
   }
 }

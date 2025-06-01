@@ -28,9 +28,6 @@ const sessionStore = useSessionStore()
 const {
   currentLevel,
   levelConfigurations,
-  unlockedLevels,
-  completedLevels,
-  levelStars
 } = storeToRefs(levelStore)
 
 const { coins, diamonds } = storeToRefs(currencyStore)
@@ -43,7 +40,6 @@ const {
 } = storeToRefs(sessionStore)
 
 // Local state for game management
-const gameContainer = ref(null)
 const showLevelSelection = ref(true)
 
 // Auto-simulation control
