@@ -56,19 +56,6 @@ const labelSize = computed(() => {
   return Math.max(8, props.size * 0.1)
 })
 
-// Debug logging
-if (import.meta.env.DEV) {
-  watch([() => props.combo, () => props.comboTimeLeft], ([combo, timeLeft]) => {
-    if (combo > 0) {
-      console.log('🔥 ComboCircle:', {
-        combo,
-        timeLeft,
-        percentage: comboTimePercentage.value,
-        showCombo: showCombo.value
-      })
-    }
-  })
-}
 </script>
 
 <template>

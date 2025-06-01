@@ -112,6 +112,7 @@ const handleScoreUpdate = (points) => {
             combo: gamePlayArea?.comboState?.current || currentSession?.combo || 0
           }"
           :is-game-active="isGameActive"
+          :is-game-over="currentSession?.status === 'game_over'"
           :format-number="formatNumber"
           :combo-time-left="gamePlayArea?.comboState?.comboTimeLeft || 0"
           :combo-reset-delay="gamePlayArea?.comboState?.resetDelay || 6000"

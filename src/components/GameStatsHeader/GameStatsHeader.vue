@@ -46,6 +46,10 @@ const props = defineProps({
   comboResetDelay: {
     type: Number,
     default: 6000
+  },
+  isGameOver: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -104,6 +108,12 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     <!-- Currency Section (Right) -->
     <div class="game-stats-header__currency-section">
       <div class="game-stats-header__level-text">LEVEL {{ currentLevelPadded }}</div>
+      <div
+        v-if="isGameOver"
+        class="game-stats-header__level-text"
+      >
+        GAME OVER
+      </div>
       <div class="game-stats-header__currency-container">
         <div class="game-stats-header__currency game-stats-header__currency--coins">
           <span class="game-stats-header__currency-value">{{ coins }}</span>

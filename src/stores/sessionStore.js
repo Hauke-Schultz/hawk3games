@@ -39,6 +39,10 @@ export const useSessionStore = defineStore('session', () => {
 		return currentSession.value.status === GAME_STATUS.COMPLETED
 	})
 
+	const isGameOver = computed(() => {
+		return currentSession.value.status === GAME_STATUS.GAME_OVER
+	})
+
 	const gameElapsedTime = computed(() => {
 		if (!startTime.value) return 0
 
@@ -403,6 +407,7 @@ export const useSessionStore = defineStore('session', () => {
 		isGameActive,
 		isGamePaused,
 		isGameCompleted,
+		isGameOver,
 		gameElapsedTime,
 		gameElapsedSeconds,
 		gameElapsedMinutes,

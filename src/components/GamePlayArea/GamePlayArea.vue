@@ -214,7 +214,9 @@ const FRUIT_SPAWN_WEIGHTS = {
 
 const fruits = ref([])
 const nextFruitType = ref('CHERRY')
-const gameOverHeight = 100 // Game over if fruit reaches this height
+const gameOverHeight = 300 // Game over if fruit reaches this height
+const isNearGameOver = ref(false)
+const warningZone = 30 // 30px über der Game Over Linie
 const {
   particlesEnabled,
   effectiveParticleCount,
@@ -486,7 +488,7 @@ const createPreviewUpdateEffect = (x) => {
 
 // Enhanced Touch/Click Event Handlers - Immediate fruit creation on pointer down
 const handlePointerDown = (event) => {
-  if (!props.isGameActive || !canDrop.value) return
+  if (!props.isGameActive || !canDrop.value || sessionStore.isGameOver) return
 
   event.preventDefault()
   isPointerDown.value = true
@@ -510,7 +512,7 @@ const handlePointerDown = (event) => {
 }
 
 const handlePointerMove = (event) => {
-  if (!props.isGameActive) return
+  if (!props.isGameActive || sessionStore.isGameOver) return
 
   const position = getCanvasPosition(event)
   if (!position) return
@@ -532,7 +534,7 @@ const handlePointerMove = (event) => {
 }
 
 const handlePointerUp = (event) => {
-  if (!props.isGameActive || !canDrop.value || !isPointerDown.value) return
+  if (!props.isGameActive || !canDrop.value || !isPointerDown.value || sessionStore.isGameOver) return
 
   event.preventDefault()
   isPointerDown.value = false
@@ -581,7 +583,7 @@ const handlePointerLeave = () => {
 
 // Enhanced touch start with haptic feedback
 const handleTouchStart = (event) => {
-  if (preventMultiTouch(event) || !props.isGameActive || !canDrop.value) return
+  if (preventMultiTouch(event) || !props.isGameActive || !canDrop.value || sessionStore.isGameOver) return
 
   event.preventDefault()
 
@@ -636,7 +638,7 @@ const handleTouchMove = (event) => {
 
 // Enhanced touch end with gesture completion
 const handleTouchEnd = (event) => {
-  if (!touchState.value.isActive) return
+  if (!touchState.value.isActive || sessionStore.isGameOver) return
 
   event.preventDefault()
 
@@ -2046,9 +2048,18 @@ const preventMultiTouch = (event) => {
 const checkGameOver = () => {
   if (!physicsWorld.value) return false
 
-  // Check if any fruits are above the game over line
+  // Check for fruits near game over line (warning)
+  const nearGameOverFruits = fruits.value.filter(fruit => {
+    return fruit.body.position.y <= (gameOverHeight + warningZone) &&
+      fruit.body.position.y > gameOverHeight
+  })
+
+  isNearGameOver.value = nearGameOverFruits.length > 0
+
+  // Check for actual game over
   const gameOverFruits = fruits.value.filter(fruit => {
-    return fruit.body.position.y <= gameOverHeight
+    return fruit.body.position.y <= gameOverHeight &&
+      Math.abs(fruit.body.velocity.y) < 0.1 // Not moving much
   })
 
   if (gameOverFruits.length > 0) {
@@ -2056,7 +2067,7 @@ const checkGameOver = () => {
     setTimeout(() => {
       const stillAbove = fruits.value.filter(fruit => {
         return fruit.body.position.y <= gameOverHeight &&
-          Math.abs(fruit.body.velocity.y) < 0.1 // Not moving much
+          Math.abs(fruit.body.velocity.y) < 0.1
       })
 
       if (stillAbove.length > 0) {
@@ -2074,15 +2085,38 @@ const checkGameOver = () => {
 const handleGameOver = () => {
   console.log('💀 GAME OVER!')
 
-  // Stop physics
+  // Stop physics immediately
   stopPhysics()
+
+  // Stop all interactions
+  canDrop.value = false
+  dropPreviewPosition.value = null
+  isPointerDown.value = false
+
+  // Update session store with game over status
+  sessionStore.completeSession(
+    sessionStore.currentSession.score,
+    false // success = false for game over
+  )
+
+  // Reset combo
+  resetCombo()
+
+  // Clear any drop cooldown timers
+  if (dropCooldownTimer) {
+    clearTimeout(dropCooldownTimer)
+    dropCooldownTimer = null
+  }
 
   // Emit game over event
   emit('game-over', {
     finalScore: props.currentSession?.score || 0,
     totalMoves: props.currentSession?.moves || 0,
-    fruits: fruits.value.length
+    fruits: fruits.value.length,
+    reason: 'overflow'
   })
+
+  console.log('🎮 Game Over - all interactions disabled')
 }
 
 // Stop physics simulation
@@ -2133,6 +2167,7 @@ const emit = defineEmits([
   'back-to-level-selection',
   'move-made',
   'score-update',
+  'game-over'
 ])
 
 const isMobile = () => {
@@ -2255,6 +2290,13 @@ defineExpose({
             v-if="isGameActive"
             class="game-play-area__drop-zone"
             :class="{ 'game-play-area__drop-zone--mobile': isMobile }"
+          ></div>
+          <!-- Game Over Line -->
+          <div
+            v-if="isGameActive"
+            class="game-play-area__game-over-line"
+            :class="{ 'game-play-area__game-over-line--warning': isNearGameOver }"
+            :style="{ top: `${gameOverHeight}px` }"
           ></div>
           <!-- Mobile Trajectory Guide -->
           <div
@@ -2540,6 +2582,27 @@ defineExpose({
       gap: var(--space-1);
     }
   }
+
+  &__game-over-line {
+    position: absolute;
+    left: 20px;   // Matching canvas boundaries
+    right: 20px;  // Matching canvas boundaries
+    height: 3px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      #e74c3c 20%,
+      #e74c3c 80%,
+      transparent 100%
+    );
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.6);
+    pointer-events: none;
+
+    &--warning {
+      animation: game-over-warning 0.5s ease-in-out infinite alternate;
+      box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    }
+  }
 }
 
 @keyframes touch-pulse-mobile {
@@ -2678,6 +2741,17 @@ defineExpose({
     &__cooldown-indicator {
       border: 2px solid var(--text-color);
     }
+  }
+}
+
+@keyframes game-over-warning {
+  0% {
+    opacity: 0.7;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1.5);
   }
 }
 
