@@ -20,9 +20,6 @@ const props = defineProps({
   }
 })
 
-// Show combo only when > 0
-const showCombo = computed(() => props.combo > 0)
-
 // Time calculations
 const comboTimePercentage = computed(() => {
   if (props.comboResetDelay === 0) return 0

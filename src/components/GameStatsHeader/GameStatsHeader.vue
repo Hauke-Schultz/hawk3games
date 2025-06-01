@@ -83,18 +83,16 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
 
 <template>
   <div class="game-stats-header">
-    <!-- Combo Section (Left) -->
-    <div class="game-stats-header__combo-section">
-      <ComboCircle
-        :combo="currentCombo"
-        :combo-time-left="comboTimeLeft"
-        :combo-reset-delay="comboResetDelay"
-        :size="80"
-      />
-    </div>
-
     <!-- Game Stats Section (Center) -->
     <div class="game-stats-header__game-section">
+      <div class="game-stats-header__stat game-stats-header__stat--combo">
+        <ComboCircle
+          :combo="currentCombo"
+          :combo-time-left="comboTimeLeft"
+          :combo-reset-delay="comboResetDelay"
+          :size="80"
+        />
+      </div>
       <div class="game-stats-header__stat game-stats-header__stat--score">
         <span class="game-stats-header__stat-value">{{ formattedScore }}</span>
         <span class="game-stats-header__stat-label">SCORE</span>
@@ -152,30 +150,12 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     gap: var(--space-2);
     text-align: center;
 
-    // Stack vertically on mobile
-    .game-stats-header__combo-section {
+    .game-stats-header__game-section {
       order: 1;
     }
 
-    .game-stats-header__game-section {
-      order: 2;
-    }
-
     .game-stats-header__currency-section {
-      order: 3;
-    }
-  }
-
-  // Combo Section Element (Left)
-  &__combo-section {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    min-height: 80px; // Reserve space even when combo not shown
-
-    @media (max-width: vars.$breakpoint-sm) {
-      justify-content: center;
-      min-height: 60px;
+      order: 2;
     }
   }
 
