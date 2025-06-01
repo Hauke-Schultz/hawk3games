@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import GameIcon from '../GameIcon/GameIcon.vue'
-import ComboCircle from '../ComboCircle/ComboCircle.vue'
+import StatCircle from '../StatCircle/StatCircle.vue'
 
 const props = defineProps({
   currentLevel: {
@@ -83,43 +83,74 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
 
 <template>
   <div class="game-stats-header">
-    <!-- Game Stats Section (Center) -->
-    <div class="game-stats-header__game-section">
-      <div class="game-stats-header__stat game-stats-header__stat--combo">
-        <ComboCircle
-          :combo="currentCombo"
-          :combo-time-left="comboTimeLeft"
-          :combo-reset-delay="comboResetDelay"
-          :size="80"
-        />
+    <!-- First Row: Level, Message, Score, Diamonds -->
+    <div class="game-stats-header__top-row">
+      <!-- Level Display -->
+      <div class="game-stats-header__level">
+        <span class="game-stats-header__level-text">LEVEL {{ currentLevelPadded }}</span>
       </div>
-      <div class="game-stats-header__stat game-stats-header__stat--score">
-        <span class="game-stats-header__stat-value">{{ formattedScore }}</span>
-        <span class="game-stats-header__stat-label">SCORE</span>
-      </div>
-      <div class="game-stats-header__stat game-stats-header__stat--moves">
-        <span class="game-stats-header__stat-value">{{ currentMoves }}</span>
-        <span class="game-stats-header__stat-label">MOVES</span>
+
+      <!-- Message Area (Game Over, Success, etc.) -->
+      <div class="game-stats-header__message">
+        <span
+          v-if="isGameOver"
+          class="game-stats-header__message-text game-stats-header__message-text--danger"
+        >
+          GAME OVER
+        </span>
+        <!-- Could add more message types here -->
       </div>
     </div>
 
-    <!-- Currency Section (Right) -->
-    <div class="game-stats-header__currency-section">
-      <div class="game-stats-header__level-text">LEVEL {{ currentLevelPadded }}</div>
-      <div
-        v-if="isGameOver"
-        class="game-stats-header__level-text"
-      >
-        GAME OVER
+    <!-- Second Row: Combo, Score Circle, Moves Circle -->
+    <div class="game-stats-header__bottom-row">
+      <!-- Combo Circle -->
+      <div class="game-stats-header__stat">
+        <StatCircle
+          :value="currentCombo"
+          label="COMBO"
+          type="combo"
+          :time-left="comboTimeLeft"
+          :max-time="comboResetDelay"
+          :size="70"
+          color="var(--accent-color)"
+        />
       </div>
-      <div class="game-stats-header__currency-container">
-        <div class="game-stats-header__currency game-stats-header__currency--coins">
-          <span class="game-stats-header__currency-value">{{ coins }}</span>
-          <GameIcon name="coin" :size="16" class="game-stats-header__currency-icon" />
+
+      <!-- Score Circle -->
+      <div class="game-stats-header__stat">
+        <StatCircle
+          :value="currentSession.score"
+          label="SCORE"
+          type="basic"
+          :size="80"
+          color="var(--accent-color)"
+        />
+      </div>
+
+      <!-- Moves Circle -->
+      <div class="game-stats-header__stat">
+        <StatCircle
+          :value="currentSession.moves"
+          label="MOVES"
+          type="basic"
+          :size="80"
+          color="var(--info-color)"
+        />
+      </div>
+
+      <!-- Coins and Diamonds -->
+      <div class="game-stats-header__stat game-stats-header__profile">
+        <!-- Coins Display -->
+        <div class="game-stats-header__coins">
+          <span class="game-stats-header__coins-value">{{ coins }}</span>
+          <GameIcon name="coin" :size="14" class="game-stats-header__coins-icon" />
         </div>
-        <div class="game-stats-header__currency game-stats-header__currency--diamonds">
-          <span class="game-stats-header__currency-value">{{ diamonds }}</span>
-          <GameIcon name="diamond" :size="19" class="game-stats-header__currency-icon" />
+
+        <!-- Diamonds -->
+        <div class="game-stats-header__diamonds">
+          <span class="game-stats-header__diamonds-value">{{ diamonds }}</span>
+          <GameIcon name="diamond" :size="16" class="game-stats-header__diamonds-icon" />
         </div>
       </div>
     </div>
@@ -131,144 +162,162 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
 
 // Game Stats Header Block
 .game-stats-header {
-  background-color: var(--card-bg);
-  padding: var(--space-3) var(--space-4);
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: var(--space-4);
-  align-items: center;
-  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 
-  @media (min-width: vars.$breakpoint-md) {
-    padding: var(--space-4) var(--space-8);
+  // Top Row - Level, Message, Score, Diamonds
+  &__top-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: var(--space-4);
+    align-items: center;
+
+    @media (max-width: vars.$breakpoint-sm) {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2);
+
+      .game-stats-header__message {
+        grid-column: 1 / -1; // Full width for message on mobile
+        order: -1; // Message on top on mobile
+      }
+    }
+  }
+
+  // Bottom Row - Circles
+  &__bottom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: var(--space-6);
-  }
 
-  // Mobile Stack Layout
-  @media (max-width: vars.$breakpoint-sm) {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
-    text-align: center;
-
-    .game-stats-header__game-section {
-      order: 1;
-    }
-
-    .game-stats-header__currency-section {
-      order: 2;
+    @media (max-width: vars.$breakpoint-sm) {
+      gap: var(--space-4);
     }
   }
 
-  // Level Text (moved to currency section)
+  // Level Element
+  &__level {
+    display: flex;
+    align-items: center;
+  }
+
   &__level-text {
     font-size: var(--font-size-sm);
     font-weight: bold;
     color: var(--accent-color);
-    padding: var(--space-1) var(--space-2);
+    padding: var(--space-1) var(--space-3);
     background: rgba(0, 184, 148, 0.1);
     border-radius: var(--border-radius-md);
     animation: subtle-pulse 3s ease-in-out infinite;
-    text-align: center;
-    margin-bottom: var(--space-1);
+    white-space: nowrap;
   }
 
-  // Game Section Element (Center)
-  &__game-section {
+  // Message Element
+  &__message {
     display: flex;
-    gap: var(--space-4);
     justify-content: center;
+    align-items: center;
+    min-height: 2rem; // Reserve space even when empty
 
     @media (max-width: vars.$breakpoint-sm) {
-      gap: var(--space-6);
+      text-align: center;
     }
   }
 
-  &__stat {
+  &__message-text {
+    font-size: var(--font-size-base);
+    font-weight: bold;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--border-radius-md);
+    white-space: nowrap;
+
+    &--danger {
+      color: var(--error-color);
+      background: rgba(225, 112, 85, 0.1);
+      border: 1px solid var(--error-color);
+      animation: danger-pulse 1s ease-in-out infinite;
+    }
+
+    &--success {
+      color: var(--success-color);
+      background: rgba(0, 184, 148, 0.1);
+      border: 1px solid var(--success-color);
+    }
+
+    &--warning {
+      color: var(--warning-color);
+      background: rgba(253, 203, 110, 0.1);
+      border: 1px solid var(--warning-color);
+    }
+  }
+
+  // Score Element (top row)
+  &__score {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-1);
-    min-width: 60px;
   }
 
-  &__stat-value {
+  &__score-value {
     font-size: var(--font-size-lg);
     font-weight: bold;
-    color: var(--text-color);
-    transition: all 0.3s ease;
+    color: var(--accent-color);
+    line-height: 1;
 
     @media (min-width: vars.$breakpoint-md) {
       font-size: var(--font-size-xl);
     }
   }
 
-  &__stat-label {
+  &__score-label {
     font-size: var(--font-size-xs);
     font-weight: 600;
     color: var(--text-secondary);
     letter-spacing: 0.5px;
     text-transform: uppercase;
+    line-height: 1;
   }
 
-  // Currency Section Element (Right)
-  &__currency-section {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-
-    @media (max-width: vars.$breakpoint-sm) {
-      align-items: center;
-    }
-  }
-
-  &__currency-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-
-    @media (min-width: vars.$breakpoint-md) {
-      gap: var(--space-2);
-    }
-  }
-
-  &__currency {
+  // Diamonds Element
+  &__coins,
+  &__diamonds {
     display: flex;
     align-items: center;
     gap: var(--space-1);
-    padding: var(--space-1) var(--space-2);
-    background: var(--card-bg-hover);
-    border-radius: var(--border-radius-md);
-    border: 1px solid var(--card-border);
   }
 
-  &__currency-value {
+  &__coins-value,
+  &__diamonds-value {
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--text-color);
-    min-width: 40px;
+    min-width: 30px;
     text-align: right;
 
     @media (min-width: vars.$breakpoint-md) {
       font-size: var(--font-size-base);
-      min-width: 50px;
+      min-width: 40px;
     }
   }
 
-  &__currency-icon {
+  &__diamonds-icon {
     flex-shrink: 0;
   }
 
-  // Stat Color Modifiers
-  &__stat--score {
-    .game-stats-header__stat-value {
-      color: var(--accent-color);
-    }
+  // Stat Element (for circles)
+  &__stat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  &__stat--moves {
-    .game-stats-header__stat-value {
-      color: var(--info-color);
-    }
+  &__profile {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    flex-direction: column;
   }
 }
 
@@ -282,26 +331,42 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
   }
 }
 
-// Responsive adjustments for smaller screens
+@keyframes danger-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+// Mobile specific adjustments
 @media (max-width: vars.$breakpoint-sm) {
   .game-stats-header {
     padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
 
     &__level-text {
       font-size: var(--font-size-xs);
-      padding: var(--space-1) var(--space-3);
+      padding: var(--space-1) var(--space-2);
     }
 
-    &__currency {
-      font-size: var(--font-size-xs);
-    }
-
-    &__currency-value {
+    &__message-text {
       font-size: var(--font-size-sm);
-      min-width: 35px;
     }
 
-    &__currency-icon {
+    &__score-value {
+      font-size: var(--font-size-base);
+    }
+
+    &__diamonds-value {
+      font-size: var(--font-size-xs);
+      min-width: 25px;
+    }
+
+    &__diamonds-icon {
       width: 14px;
       height: 14px;
     }
