@@ -74,7 +74,7 @@ const handleKeydown = (event) => {
 .burger-menu__line {
   width: 18px;
   height: 2px;
-  background-color: currentColor;
+  background-color: var(--white);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 1px;
   transform-origin: center;

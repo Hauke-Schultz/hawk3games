@@ -82,6 +82,11 @@
   --level-featured: linear-gradient(45deg, #e84393, #fd79a8);
   --level-featured-hover: 0 6px 20px rgba(232, 67, 147, 0.5);
 
+  /* Game Configs */
+  --game-board-bg: #ffffff;
+  --game-board-width: 300px;
+  --game-board-height: 400px;
+
   /* Focus States */
   --focus-outline: 0.125rem solid #00cec9;
   --focus-shadow: 0 0 0 0.25rem rgba(0, 184, 148, 0.25);
@@ -142,6 +147,9 @@
   --level-completed-hover: 0 6px 20px rgba(253, 203, 110, 0.4);
   --level-featured: linear-gradient(45deg, #e84393, #fd79a8);
   --level-featured-hover: 0 6px 20px rgba(232, 67, 147, 0.4);
+
+  /* Game Configs */
+  --game-board-bg: #2d3436;
 
   /* Focus States */
   --focus-outline: 0.125rem solid #00cec9;

@@ -159,6 +159,22 @@ const logSettings = () => {
       </h4>
 
       <div class="settings-panel__setting-group">
+
+        <!-- Performance Presets -->
+        <div class="settings-panel__presets">
+          <span class="settings-panel__presets-label">Quick Presets:</span>
+          <div class="settings-panel__preset-buttons">
+            <button
+              v-for="preset in ['high', 'medium', 'low']"
+              :key="preset"
+              class="settings-panel__preset-btn"
+              @click="handlePresetSelect(preset)"
+            >
+              {{ preset.toUpperCase() }}
+            </button>
+          </div>
+        </div>
+
         <!-- Particle Effects Toggle -->
         <div class="settings-panel__setting">
           <div class="settings-panel__setting-info">
@@ -216,21 +232,6 @@ const logSettings = () => {
             :aria-label="`${lowPowerMode ? 'Disable' : 'Enable'} low power mode`"
           >
             <span class="settings-panel__toggle-slider"></span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Performance Presets -->
-      <div class="settings-panel__presets">
-        <span class="settings-panel__presets-label">Quick Presets:</span>
-        <div class="settings-panel__preset-buttons">
-          <button
-            v-for="preset in ['ultra', 'high', 'medium', 'low']"
-            :key="preset"
-            class="settings-panel__preset-btn"
-            @click="handlePresetSelect(preset)"
-          >
-            {{ preset.toUpperCase() }}
           </button>
         </div>
       </div>
@@ -589,13 +590,6 @@ const logSettings = () => {
       opacity: 0.5;
       cursor: not-allowed;
     }
-  }
-
-  // Presets Element
-  &__presets {
-    margin-top: var(--space-4);
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--card-border);
   }
 
   &__presets-label {
