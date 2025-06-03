@@ -94,6 +94,16 @@ const handleComboMessage = (comboData) => {
     }
   }, comboData.duration)
 }
+
+const handleGameOver = (gameOverData) => {
+  console.log('💀 Game Over received:', gameOverData)
+
+  // Update session store
+  const stateManager = gameStateManager.value
+  if (stateManager && stateManager.sessionStore) {
+    stateManager.sessionStore.completeSession(gameOverData.finalScore, false)
+  }
+}
 </script>
 
 <template>
@@ -136,6 +146,7 @@ const handleComboMessage = (comboData) => {
           :combo-time-left="gamePlayArea?.comboState?.comboTimeLeft || 0"
           :combo-reset-delay="gamePlayArea?.comboState?.resetDelay || 6000"
           :combo-message="currentComboMessage"
+          :on-back-to-levels="handleBackToLevelSelection"
         />
 
         <!-- Main Game Content -->
@@ -163,6 +174,7 @@ const handleComboMessage = (comboData) => {
             @move-made="handleMoveaMade"
             @score-update="handleScoreUpdate"
             @combo-message="handleComboMessage"
+            @game-over="handleGameOver"
           />
         </div>
       </template>

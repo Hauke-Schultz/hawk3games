@@ -9,6 +9,7 @@ export function useFruitManager(emit, physicsEngine) {
 	const currentDropFruitType = ref('BLUEBERRY')
 	const nextFruitId = ref(1)
 	const canDrop = ref(true)
+	const gameOverState = ref(false)
 
 	// Fruit generation
 	const getRandomSpawnFruit = () => {
@@ -32,7 +33,10 @@ export function useFruitManager(emit, physicsEngine) {
 
 	// Fruit dropping
 	const dropFruit = (x) => {
-		if (!canDrop.value || !physicsEngine.world.value) return
+		if (!canDrop.value || !physicsEngine.world.value || gameOverState.value) {
+			console.log('🚫 Drop blocked - game inactive or game over')
+			return
+		}
 
 		console.log(`🎯 Dropping ${currentDropFruitType.value} at x: ${x}`)
 
@@ -223,11 +227,20 @@ export function useFruitManager(emit, physicsEngine) {
 		console.log('🧹 All fruits cleared')
 	}
 
+	const setGameOverState = (isGameOver) => {
+		gameOverState.value = isGameOver
+		if (isGameOver) {
+			canDrop.value = false
+			console.log('💀 Fruit manager: Game Over - dropping disabled')
+		}
+	}
+
 	// Reset for new game
 	const resetFruitManager = () => {
 		clearAllFruits()
 		currentDropFruitType.value = getRandomSpawnFruit()
 		canDrop.value = true
+		gameOverState.value = false  // NEU - Game Over State zurücksetzen
 		console.log('🔄 Fruit manager reset')
 	}
 
@@ -247,6 +260,9 @@ export function useFruitManager(emit, physicsEngine) {
 		checkForMerges,
 		clearAllFruits,
 		resetFruitManager,
+
+		setGameOverState,
+		gameOverState,
 
 		// Utilities
 		getRandomSpawnFruit

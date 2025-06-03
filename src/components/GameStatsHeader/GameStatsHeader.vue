@@ -51,6 +51,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  onBackToLevels: {
+    type: Function,
+    default: null
+  },
   comboMessage: {
     type: Object,
     default: null,
@@ -77,6 +81,17 @@ const currentCombo = computed(() => {
   return props.currentSession?.combo || 0
 })
 
+const showGameOverMessage = computed(() => {
+  return props.isGameOver && props.currentSession?.status === 'game_over'
+})
+
+const gameOverReason = computed(() => {
+  if (!showGameOverMessage.value) return ''
+
+  // Could be extended for different game over reasons
+  return 'Fruits reached the danger zone!'
+})
+
 // Debug logging for combo
 if (import.meta.env.DEV && props.currentSession?.combo > 0) {
   console.log('🔥 GameStatsHeader Combo Data:', {
@@ -100,12 +115,26 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
       <!-- Message Area (Game Over, Success, etc.) -->
       <div class="game-stats-header__message">
         <!-- Game Over Message -->
-        <span
-          v-if="isGameOver"
-            class="game-stats-header__message-text game-stats-header__message-text--danger"
+        <div
+          v-if="showGameOverMessage"
+          class="game-stats-header__game-over-container"
+        >
+          <div class="game-stats-header__game-over">
+            <span class="game-stats-header__message-text game-stats-header__message-text--danger">
+              GAME OVER
+            </span>
+            <span class="game-stats-header__message-reason">
+              {{ gameOverReason }}
+            </span>
+          </div>
+          <button
+            v-if="onBackToLevels"
+            class="game-stats-header__back-button"
+            @click="onBackToLevels"
           >
-          GAME OVER
-        </span>
+            Back to Levels
+          </button>
+        </div>
         <Transition name="combo-message">
         <span
           v-if="comboMessage && !isGameOver"
@@ -373,6 +402,48 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
   .combo-message-leave-to {
     opacity: 0;
     transform: translateY(10px) scale(1.1);
+  }
+  &__game-over-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  &__game-over {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  &__message-reason {
+    font-size: var(--font-size-xs);
+    color: var(--error-color);
+    opacity: 0.8;
+    text-align: center;
+  }
+
+  &__back-button {
+    padding: var(--space-1) var(--space-3);
+    background-color: var(--error-color);
+    color: var(--white);
+    border: none;
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: var(--error-light);
+      transform: translateY(-1px);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-outline);
+      outline-offset: 2px;
+    }
   }
 }
 

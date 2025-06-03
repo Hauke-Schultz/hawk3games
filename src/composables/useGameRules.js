@@ -29,12 +29,14 @@ export function useGameRules(droppedFruits, emit) {
 
 				// Check if violation has lasted too long
 				else if (currentTime - topViolations.value[fruit.id] >= gameOverDelay) {
-					// Game Over
+					// Game Over - SOFORT stoppen
 					console.log('💀 Game Over - fruit reached danger zone')
 
 					emit('game-over', {
 						reason: 'height_limit',
-						finalScore: 0 // Will be updated by parent
+						finalScore: 0, // Will be updated by parent
+						triggerFruit: fruit,  // NEU - welche Frucht hat Game Over ausgelöst
+						violationTime: currentTime - topViolations.value[fruit.id] // NEU
 					})
 
 					isNearGameOver.value = true

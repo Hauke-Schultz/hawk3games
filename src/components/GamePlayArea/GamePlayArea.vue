@@ -54,6 +54,7 @@ const settingsStore = useSettingsStore()
 
 // Game canvas reference
 const gameCanvas = ref(null)
+let dropCooldownTimer = null
 
 // Physics engine integration
 const {
@@ -78,7 +79,9 @@ const {
   generateNextDropFruit,
   updateFruitPositions,
   checkForMerges,
-  resetFruitManager
+  resetFruitManager,
+  setGameOverState,
+  gameOverState
 } = useFruitManager(emit, {
   world,
   createFruitBody,
@@ -156,7 +159,17 @@ const handleCollisionEvent = (event) => {
 watch(droppedFruits, () => {
   if (props.isGameActive && !props.isGamePaused) {
     // Check for game over condition
-    checkGameOver()
+    const gameOverResult = checkGameOver()
+
+    if (gameOverResult) {
+      // Emit game over event with session data
+      emit('game-over', {
+        reason: 'height_limit',
+        finalScore: props.currentSession?.score || 0,
+        moves: props.currentSession?.moves || 0,
+        level: props.currentLevel
+      })
+    }
 
     // Clean up violations for removed fruits
     cleanupViolations()
@@ -175,10 +188,35 @@ const startUpdateLoop = () => {
   update()
 }
 
+const handleGameOver = (gameOverData) => {
+  console.log('💀 Game Over received:', gameOverData)
+
+  // 1. Stop physics loop immediately
+  stopUpdateLoop()
+
+  // 2. Set game over state to disable all interactions
+  setGameOverState(true)
+
+  // 3. Reset input state
+  resetInputState()
+
+  // 4. Clear game mechanics
+  resetCombo()
+
+  // 5. Update session store
+  const stateManager = gameStateManager.value
+  if (stateManager && stateManager.sessionStore) {
+    stateManager.sessionStore.completeSession(gameOverData.finalScore, false)
+  }
+
+  console.log('🛑 Game completely stopped')
+}
+
 const stopUpdateLoop = () => {
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId)
     animationFrameId = null
+    console.log('🛑 Physics update loop stopped')
   }
 }
 
@@ -233,9 +271,10 @@ defineExpose({
           class="game-play-area__physics-container"
           :class="{
             'game-play-area__physics-container--paused': isGamePaused,
-            'game-play-area__physics-container--active': isGameActive && canDrop,
-            'game-play-area__physics-container--cooldown': !canDrop,
-            'game-play-area__physics-container--danger': violationWarningLevel === 'critical'
+            'game-play-area__physics-container--active': isGameActive && canDrop && !gameOverState,
+            'game-play-area__physics-container--cooldown': !canDrop && !gameOverState,
+            'game-play-area__physics-container--danger': violationWarningLevel === 'critical',
+            'game-play-area__physics-container--game-over': gameOverState
           }"
           v-bind="getContainerEventHandlers()"
           :aria-label="getDropZoneAriaLabel()"
@@ -366,6 +405,27 @@ defineExpose({
       border-color: var(--error-color);
       box-shadow: 0 0 20px rgba(225, 112, 85, 0.5);
       animation: danger-pulse 1s ease-in-out infinite;
+    }
+
+    &--game-over {
+      cursor: not-allowed;
+      opacity: 0.5;
+      background-color: rgba(225, 112, 85, 0.1);
+      border-color: var(--error-color);
+
+      &::after {
+        content: 'GAME OVER';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: var(--font-size-2xl);
+        font-weight: bold;
+        color: var(--error-color);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+        z-index: 100;
+      }
     }
   }
 
