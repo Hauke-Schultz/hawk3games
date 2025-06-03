@@ -46,7 +46,8 @@ const fruitStyle = computed(() => ({
     class="dropped-fruit"
     :class="{
       'dropped-fruit--dropping': fruit.isDropping,
-      'dropped-fruit--settled': !fruit.isDropping
+      'dropped-fruit--settled': !fruit.isDropping,
+      'dropped-fruit--frozen': fruit.isFrozen
     }"
     :style="fruitStyle"
   >
@@ -76,6 +77,11 @@ const fruitStyle = computed(() => ({
   &--merged {
     animation: fruit-merge-in 0.5s ease-out;
     z-index: 10;
+  }
+
+  &--frozen {
+    filter: brightness(0.7) saturate(0.5);
+    opacity: 0.8;
   }
 }
 

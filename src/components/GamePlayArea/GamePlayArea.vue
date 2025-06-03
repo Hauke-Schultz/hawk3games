@@ -56,6 +56,7 @@ const settingsStore = useSettingsStore()
 const gameCanvas = ref(null)
 let dropCooldownTimer = null
 
+
 // Physics engine integration
 const {
   engine,
@@ -162,8 +163,8 @@ watch(droppedFruits, () => {
     const gameOverResult = checkGameOver()
 
     if (gameOverResult) {
-      // Emit game over event with session data
-      emit('game-over', {
+      // Rufe interne handleGameOver Funktion auf
+      handleGameOver({
         reason: 'height_limit',
         finalScore: props.currentSession?.score || 0,
         moves: props.currentSession?.moves || 0,
@@ -190,26 +191,10 @@ const startUpdateLoop = () => {
 
 const handleGameOver = (gameOverData) => {
   console.log('💀 Game Over received:', gameOverData)
-
-  // 1. Stop physics loop immediately
   stopUpdateLoop()
-
-  // 2. Set game over state to disable all interactions
   setGameOverState(true)
-
-  // 3. Reset input state
   resetInputState()
-
-  // 4. Clear game mechanics
   resetCombo()
-
-  // 5. Update session store
-  const stateManager = gameStateManager.value
-  if (stateManager && stateManager.sessionStore) {
-    stateManager.sessionStore.completeSession(gameOverData.finalScore, false)
-  }
-
-  console.log('🛑 Game completely stopped')
 }
 
 const stopUpdateLoop = () => {
@@ -289,7 +274,6 @@ defineExpose({
 
           <!-- Game Over Line -->
           <div
-            v-if="isGameActive"
             class="game-play-area__game-over-line"
             :class="{
               'game-play-area__game-over-line--warning': isNearGameOver,
@@ -301,14 +285,14 @@ defineExpose({
 
         <!-- Drop Trajectory Line -->
         <div
-          v-if="dropPreviewPosition && isGameActive && canDrop"
+          v-if="dropPreviewPosition && isGameActive && canDrop && !gameOverState"
           class="game-play-area__trajectory-line"
           :style="dropLineStyle"
         ></div>
 
         <!-- Drop Fruit Preview -->
         <DropFruit
-          v-if="isGameActive && canDrop"
+          v-if="isGameActive && canDrop && !gameOverState"
           :fruit-type="currentDropFruitType"
           :position="dropFruitPosition"
           :is-preview="true"

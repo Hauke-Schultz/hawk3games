@@ -231,7 +231,20 @@ export function useFruitManager(emit, physicsEngine) {
 		gameOverState.value = isGameOver
 		if (isGameOver) {
 			canDrop.value = false
-			console.log('💀 Fruit manager: Game Over - dropping disabled')
+
+			// Stoppe alle Früchte sofort
+			droppedFruits.value.forEach(fruit => {
+				if (fruit.body) {
+					// Setze Geschwindigkeit auf 0
+					Matter.Body.setVelocity(fruit.body, { x: 0, y: 0 })
+					Matter.Body.setAngularVelocity(fruit.body, 0)
+
+					// Mache Früchte statisch (keine Physik mehr)
+					Matter.Body.setStatic(fruit.body, true)
+				}
+			})
+
+			console.log('💀 Fruit manager: Game Over - dropping disabled, all fruits stopped')
 		}
 	}
 
@@ -240,8 +253,37 @@ export function useFruitManager(emit, physicsEngine) {
 		clearAllFruits()
 		currentDropFruitType.value = getRandomSpawnFruit()
 		canDrop.value = true
-		gameOverState.value = false  // NEU - Game Over State zurücksetzen
+		gameOverState.value = false
 		console.log('🔄 Fruit manager reset')
+	}
+	const freezeAllFruits = () => {
+		droppedFruits.value.forEach(fruit => {
+			if (fruit.body && !fruit.body.isStatic) {
+				// Geschwindigkeit stoppen
+				Matter.Body.setVelocity(fruit.body, { x: 0, y: 0 })
+				Matter.Body.setAngularVelocity(fruit.body, 0)
+
+				// Frucht statisch machen (friert ein)
+				Matter.Body.setStatic(fruit.body, true)
+
+				// Visueller Marker für eingefrorene Früchte
+				fruit.isFrozen = true
+			}
+		})
+
+		console.log(`🧊 Froze ${droppedFruits.value.length} fruits`)
+	}
+
+	const unfreezeAllFruits = () => {
+		droppedFruits.value.forEach(fruit => {
+			if (fruit.body && fruit.body.isStatic && fruit.isFrozen) {
+				// Früchte wieder dynamisch machen
+				Matter.Body.setStatic(fruit.body, false)
+				fruit.isFrozen = false
+			}
+		})
+
+		console.log(`🔥 Unfroze fruits`)
 	}
 
 	return {
@@ -263,6 +305,8 @@ export function useFruitManager(emit, physicsEngine) {
 
 		setGameOverState,
 		gameOverState,
+		freezeAllFruits,
+		unfreezeAllFruits,
 
 		// Utilities
 		getRandomSpawnFruit

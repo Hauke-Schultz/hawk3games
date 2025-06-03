@@ -51,9 +51,7 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 
 	// Mouse/Touch event handlers
 	const handlePointerDown = (event) => {
-		if (!gameState.isGameActive ||
-			!fruitManager.canDrop.value ||
-			fruitManager.gameOverState?.value) return
+		if (isInputBlocked()) return
 
 		event.preventDefault()
 		isDragging.value = true
@@ -66,9 +64,7 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 	}
 
 	const handlePointerMove = (event) => {
-		if (!isDragging.value ||
-			!gameState.isGameActive ||
-			fruitManager.gameOverState?.value) return
+		if (!isDragging.value || isInputBlocked()) return
 
 		event.preventDefault()
 		const currentX = getPointerPosition(event)
@@ -76,10 +72,7 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 	}
 
 	const handlePointerUp = (event) => {
-		if (!isDragging.value ||
-			!gameState.isGameActive ||
-			!fruitManager.canDrop.value ||
-			fruitManager.gameOverState?.value) return
+		if (!isDragging.value || isInputBlocked()) return
 
 		event.preventDefault()
 		const dropX = getPointerPosition(event)
@@ -108,10 +101,7 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 
 	// Click-to-drop handler
 	const handleClickToDrop = (event) => {
-		if (isDragging.value ||
-			!fruitManager.canDrop.value ||
-			!gameState.isGameActive ||
-			fruitManager.gameOverState?.value) return
+		if (isDragging.value || isInputBlocked()) return
 
 		event.preventDefault()
 		const dropX = getPointerPosition(event)
@@ -133,7 +123,7 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 	})
 
 	const dropLineStyle = computed(() => {
-		if (!dropPreviewPosition.value || !gameState.isGameActive || !fruitManager.canDrop.value) {
+		if (!dropPreviewPosition.value || isInputBlocked()) {
 			return { display: 'none' }
 		}
 
@@ -167,16 +157,21 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 
 	// Input validation helpers
 	const canAcceptInput = () => {
-		return gameState.isGameActive &&
-			fruitManager.canDrop.value &&
-			!fruitManager.gameOverState?.value // NEU
+		const isActive = gameState.isGameActive.value || false
+		const isPaused = gameState.isGamePaused.value || false
+		const canDropFruit = fruitManager.canDrop?.value || false
+		const isGameOver = fruitManager.gameOverState?.value || false
+
+		return isActive && !isPaused && canDropFruit && !isGameOver
 	}
 
 	const isInputBlocked = () => {
-		return !gameState.isGameActive ||
-			!fruitManager.canDrop.value ||
-			gameState.isGamePaused ||
-			fruitManager.gameOverState?.value // NEU
+		const isActive = gameState.isGameActive.value || false
+		const isPaused = gameState.isGamePaused.value || false
+		const canDropFruit = fruitManager.canDrop?.value || false
+		const isGameOver = fruitManager.gameOverState?.value || false
+
+		return !isActive || isPaused || !canDropFruit || isGameOver
 	}
 
 	// Reset function for game state changes
