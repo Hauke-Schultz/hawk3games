@@ -5,6 +5,7 @@ import NavigationOverlay from './components/NavigationOverlay/NavigationOverlay.
 import GameCard from './components/GameCard/GameCard.vue'
 import FruitMergeGame from './components/FruitMergeGame/FruitMergeGame.vue'
 import SettingsPanel from './components/SettingsPanel/SettingsPanel.vue'
+import OldFruitMergeGame from "./components/OldFruitMergeGame/OldFruitMergeGame.vue";
 
 // Global application state
 const activeTab = ref('home')
@@ -24,6 +25,13 @@ const games = ref([
     icon: '🍎',
     iconType: 'emoji',
     iconBg: '#ff6b6b'
+  }, {
+    id: 2,
+    name: 'OldFruitMerge',
+    text: 'Classic fruit merging game with a retro twist!',
+    icon: '🍊',
+    iconType: 'emoji',
+    iconBg: '#ff9f43'
   }
 ])
 
@@ -58,8 +66,15 @@ const handleGameSelected = (game) => {
   if (game.name === 'FruitMerge') {
     currentView.value = 'fruitmerge'
     currentGame.value = game
-    showLevelSelection.value = true // Start with level selection
-    activeTab.value = 'game' // NEW: Set active context
+    showLevelSelection.value = true
+    activeTab.value = 'game'
+  } else if (game.name === 'OldFruitMerge') {
+    currentView.value = 'oldFruitmerge'
+    currentGame.value = game
+    showLevelSelection.value = false
+    activeTab.value = 'game'
+  } else {
+    console.warn('Unknown game selected:', game.name)
   }
 }
 
@@ -115,6 +130,8 @@ const getPageTitle = computed(() => {
   switch (currentView.value) {
     case 'fruitmerge':
       return showLevelSelection.value ? 'FruitMerge - Levels' : 'FruitMerge - Game'
+    case 'oldFruitmerge':
+      return 'OldFruitMerge - Game'
     case 'settings':
       return 'Settings'
     case 'profile':
@@ -181,6 +198,15 @@ onUnmounted(() => {
           v-if="currentView === 'fruitmerge'"
           :show-level-selection="showLevelSelection"
           @level-selected="handleLevelSelected"
+          @back-to-menu="handleBackToMenu"
+          @back-to-levels="handleBackToLevelSelection"
+        />
+
+        <!-- OldFruitMerge Game -->
+        <OldFruitMergeGame
+          v-if="currentView === 'oldFruitmerge'"
+          :game="games.find(g => g.name === 'OldFruitMerge')"
+          @game-selected="handleGameSelected"
           @back-to-menu="handleBackToMenu"
           @back-to-levels="handleBackToLevelSelection"
         />
