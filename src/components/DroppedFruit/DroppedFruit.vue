@@ -67,6 +67,45 @@ const fruitStyle = computed(() => ({
     // Slight wobble when settled
     animation: fruit-settle 0.5s ease-out;
   }
+
+  &--merging {
+    animation: fruit-merge-out 0.3s ease-out forwards;
+    z-index: 15;
+  }
+
+  &--merged {
+    animation: fruit-merge-in 0.5s ease-out;
+    z-index: 10;
+  }
+}
+
+@keyframes fruit-merge-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+@keyframes fruit-merge-in {
+  0% {
+    transform: scale(1.5);
+    opacity: 0.7;
+    filter: brightness(1.5) drop-shadow(0 0 20px currentColor);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+    filter: brightness(1.2) drop-shadow(0 0 10px currentColor);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    filter: brightness(1) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  }
 }
 
 @keyframes fruit-drop {

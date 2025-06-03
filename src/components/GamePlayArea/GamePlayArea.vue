@@ -141,7 +141,7 @@ const setupCollisionEvents = () => {
       const fruitB = droppedFruits.value.find(f => f.body === bodyB)
 
       if (fruitA || fruitB) {
-        // Calculate collision force for rotation
+        // Enhanced collision effects
         const collision = pair.collision
         const force = Matter.Vector.magnitude(collision.normal)
 
@@ -155,16 +155,99 @@ const setupCollisionEvents = () => {
           Matter.Body.setAngularVelocity(bodyB, bodyB.angularVelocity + impulse)
         }
 
-        // Check for merge potential (same fruit types)
-        if (fruitA && fruitB && fruitA.type === fruitB.type) {
-          console.log(`🔄 Potential merge: ${fruitA.type} + ${fruitB.type}`)
-          // Merge logic will be implemented next
+        // NEW: Check for merge potential (same fruit types)
+        if (fruitA && fruitB && fruitA.type === fruitB.type && !fruitA.merging && !fruitB.merging) {
+          console.log(`🔄 Merging: ${fruitA.type} + ${fruitB.type}`)
+          handleFruitMerge(fruitA, fruitB)
         }
       }
     })
   })
 
-  console.log('👂 Enhanced collision events with rotation setup')
+  console.log('👂 Enhanced collision events with merge detection setup')
+}
+
+const handleFruitMerge = (fruitA, fruitB) => {
+  // Mark fruits as merging to prevent multiple merges
+  fruitA.merging = true
+  fruitB.merging = true
+
+  // Calculate center position for the new fruit
+  const centerX = (fruitA.body.position.x + fruitB.body.position.x) / 2
+  const centerY = (fruitA.body.position.y + fruitB.body.position.y) / 2
+
+  // Get fruit configuration
+  const currentConfig = FRUIT_TYPES[fruitA.type]
+  const nextType = currentConfig.nextType
+
+  // Calculate score for this merge
+  const baseScore = currentConfig.scoreValue
+
+  // Schedule merge after visual delay
+  setTimeout(() => {
+    // Remove old fruits from physics world
+    if (fruitA.body) {
+      Matter.Composite.remove(world.value, fruitA.body)
+    }
+    if (fruitB.body) {
+      Matter.Composite.remove(world.value, fruitB.body)
+    }
+
+    // Remove fruits from visual array
+    droppedFruits.value = droppedFruits.value.filter(
+      f => f.id !== fruitA.id && f.id !== fruitB.id
+    )
+
+    // Award score with combo system
+    const finalScore = handleComboMerge(baseScore)
+    emit('score-update', finalScore)
+
+    // Create new fruit if not at max level
+    if (nextType) {
+      createMergedFruit(nextType, centerX, centerY)
+    }
+
+    console.log(`✨ Merge complete: ${currentConfig.scoreValue} → ${finalScore} points`)
+  }, 100) // Small delay for visual feedback
+}
+
+const createMergedFruit = (fruitType, x, y) => {
+  const fruitConfig = FRUIT_TYPES[fruitType]
+
+  // Create Matter.js body
+  const fruitBody = Matter.Bodies.circle(x, y, fruitConfig.radius, {
+    restitution: 0.3,
+    friction: 0.4,
+    density: 0.001,
+    frictionAir: 0.01,
+    label: `fruit_${nextFruitId.value}`,
+    fruitType: fruitType
+  })
+
+  // Add slight upward impulse for visual effect
+  Matter.Body.setVelocity(fruitBody, { x: 0, y: -2 })
+
+  // Add to world
+  Matter.World.add(world.value, fruitBody)
+
+  // Create visual fruit data
+  const visualFruit = {
+    id: nextFruitId.value,
+    type: fruitType,
+    body: fruitBody,
+    position: { x: x, y: y },
+    rotation: 0,
+    isDropping: true,
+    isMerged: true // NEW: Mark as merged for special effects
+  }
+
+  // Add to visual fruits array
+  droppedFruits.value.push(visualFruit)
+
+  // Increment ID for next fruit
+  nextFruitId.value++
+
+  console.log(`🍎 Merged fruit created: ${fruitType}`)
 }
 
 const dropFruit = (x) => {
@@ -355,6 +438,50 @@ const getRandomSpawnFruit = () => {
   return 'BLUEBERRY' // Fallback
 }
 
+const checkGameOver = () => {
+  const currentTime = Date.now()
+  const currentTopBoundary = PHYSICS_CONFIG.gameOverHeight
+
+  // Check for fruits that are above the game over line
+  let hasViolation = false
+
+  for (const fruit of droppedFruits.value) {
+    if (fruit.body && fruit.body.position.y < currentTopBoundary && !fruit.merging) {
+      hasViolation = true
+
+      // Track violation start time
+      if (!topViolations.value[fruit.id]) {
+        topViolations.value[fruit.id] = currentTime
+      }
+
+      // Check if violation has lasted too long
+      else if (currentTime - topViolations.value[fruit.id] >= gameOverDelay) {
+        // Game Over
+        console.log('💀 Game Over - fruit reached danger zone')
+
+        // TODO: Emit game over event
+        emit('game-over', {
+          reason: 'height_limit',
+          finalScore: sessionStore?.currentSession?.score || 0
+        })
+
+        isNearGameOver.value = true
+        return true
+      }
+    } else {
+      // Remove violation if fruit moved away
+      if (topViolations.value[fruit.id]) {
+        delete topViolations.value[fruit.id]
+      }
+    }
+  }
+
+  // Update warning state
+  isNearGameOver.value = hasViolation
+
+  return false
+}
+
 // Lifecycle hooks
 onMounted(() => {
   console.log('🎮 GamePlayArea mounted - ready for physics')
@@ -451,6 +578,10 @@ defineExpose({
           v-for="fruit in droppedFruits"
           :key="fruit.id"
           :fruit="fruit"
+          :class="{
+            'dropped-fruit--merged': fruit.isMerged,
+            'dropped-fruit--merging': fruit.merging
+          }"
         />
       </div>
     </div>
