@@ -159,11 +159,13 @@ const handleCollisionEvent = (event) => {
 // Game over monitoring with cleanup
 watch(droppedFruits, () => {
   if (props.isGameActive && !props.isGamePaused) {
-    // Check for game over condition
-    const gameOverResult = checkGameOver()
+    // Nur noch Cleanup, Game Over Prüfung ist in useGameRules
+    cleanupViolations()
 
+    // Game Over wird von useGameRules selbst getriggert
+    const gameOverResult = checkGameOver()
     if (gameOverResult) {
-      // Rufe interne handleGameOver Funktion auf
+      // useGameRules hat bereits das game-over Event emitted
       handleGameOver({
         reason: 'height_limit',
         finalScore: props.currentSession?.score || 0,
@@ -171,9 +173,6 @@ watch(droppedFruits, () => {
         level: props.currentLevel
       })
     }
-
-    // Clean up violations for removed fruits
-    cleanupViolations()
   }
 }, { deep: true })
 
@@ -190,11 +189,15 @@ const startUpdateLoop = () => {
 }
 
 const handleGameOver = (gameOverData) => {
-  console.log('💀 Game Over received:', gameOverData)
+  console.log('💀 Game Over received in GamePlayArea:', gameOverData)
+
+  // Stop physics and UI
   stopUpdateLoop()
-  setGameOverState(true)
   resetInputState()
   resetCombo()
+
+  // Delegate to parent
+  emit('game-over', gameOverData)
 }
 
 const stopUpdateLoop = () => {
@@ -259,7 +262,7 @@ defineExpose({
             'game-play-area__physics-container--active': isGameActive && canDrop && !gameOverState,
             'game-play-area__physics-container--cooldown': !canDrop && !gameOverState,
             'game-play-area__physics-container--danger': violationWarningLevel === 'critical',
-            'game-play-area__physics-container--game-over': gameOverState
+            'game-play-area__physics-container--game-over': gameOverState || props.currentSession?.status === 'game_over'
           }"
           v-bind="getContainerEventHandlers()"
           :aria-label="getDropZoneAriaLabel()"

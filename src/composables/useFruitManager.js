@@ -10,6 +10,7 @@ export function useFruitManager(emit, physicsEngine) {
 	const nextFruitId = ref(1)
 	const canDrop = ref(true)
 	const gameOverState = ref(false)
+	const gameOverTriggered = ref(false)
 
 	// Fruit generation
 	const getRandomSpawnFruit = () => {
@@ -248,6 +249,22 @@ export function useFruitManager(emit, physicsEngine) {
 		}
 	}
 
+	const handleGameOverState = (finalScore, moves, level) => {
+		setGameOverState(true)
+		gameOverTriggered.value = true
+
+		// Emit comprehensive game over data
+		emit('game-over', {
+			reason: 'height_limit',
+			finalScore,
+			moves,
+			level,
+			timestamp: Date.now()
+		})
+
+		console.log('💀 Fruit manager triggered game over')
+	}
+
 	// Reset for new game
 	const resetFruitManager = () => {
 		clearAllFruits()
@@ -256,6 +273,7 @@ export function useFruitManager(emit, physicsEngine) {
 		gameOverState.value = false
 		console.log('🔄 Fruit manager reset')
 	}
+
 	const freezeAllFruits = () => {
 		droppedFruits.value.forEach(fruit => {
 			if (fruit.body && !fruit.body.isStatic) {
@@ -305,6 +323,8 @@ export function useFruitManager(emit, physicsEngine) {
 
 		setGameOverState,
 		gameOverState,
+		gameOverTriggered,
+		handleGameOverState,
 		freezeAllFruits,
 		unfreezeAllFruits,
 

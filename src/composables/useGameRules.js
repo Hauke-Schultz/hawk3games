@@ -56,6 +56,32 @@ export function useGameRules(droppedFruits, emit) {
 		return false
 	}
 
+	const handleGameOver = (gameOverData) => {
+		console.log('💀 Game Over received:', gameOverData)
+
+		// Emit game over event with complete data
+		emit('game-over', {
+			reason: 'height_limit',
+			finalScore: gameOverData.finalScore || 0,
+			moves: gameOverData.moves || 0,
+			level: gameOverData.level || 1,
+			triggerFruit: gameOverData.triggerFruit,
+			violationTime: gameOverData.violationTime
+		})
+
+		return true
+	}
+
+	// Neue Funktion hinzufügen:
+	const triggerGameOver = (finalScore = 0, moves = 0, level = 1) => {
+		return handleGameOver({
+			finalScore,
+			moves,
+			level,
+			reason: 'height_limit'
+		})
+	}
+
 	// Level completion detection
 	const checkLevelCompletion = (currentLevel, sessionScore) => {
 		// Simple completion logic - could be expanded
@@ -197,6 +223,8 @@ export function useGameRules(droppedFruits, emit) {
 		// Game Over Logic
 		checkGameOver,
 		cleanupViolations,
+		handleGameOver,
+		triggerGameOver,
 
 		// Level Logic
 		checkLevelCompletion,
