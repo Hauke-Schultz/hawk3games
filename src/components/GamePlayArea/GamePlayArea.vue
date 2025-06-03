@@ -195,6 +195,7 @@ const handleGameOver = (gameOverData) => {
   stopUpdateLoop()
   resetInputState()
   resetCombo()
+  setGameOverState(true)
 
   // Delegate to parent
   emit('game-over', gameOverData)
@@ -380,7 +381,6 @@ defineExpose({
 
     &--cooldown {
       cursor: wait;
-      opacity: 0.7;
     }
 
     &--paused {
@@ -396,9 +396,10 @@ defineExpose({
 
     &--game-over {
       cursor: not-allowed;
-      opacity: 0.5;
+      opacity: 1;
       background-color: rgba(225, 112, 85, 0.1);
       border-color: var(--error-color);
+      z-index: 20;
 
       &::after {
         content: 'GAME OVER';
@@ -453,7 +454,7 @@ defineExpose({
       #e74c3c 80%,
       transparent 100%
     );
-    z-index: 10;
+    z-index: 30;
     box-shadow: 0 0 10px rgba(231, 76, 60, 0.6);
     pointer-events: none;
     transition: all 0.3s ease;

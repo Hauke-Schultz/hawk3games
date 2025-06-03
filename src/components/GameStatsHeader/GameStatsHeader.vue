@@ -97,7 +97,13 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
 </script>
 
 <template>
-  <div class="game-stats-header">
+  <div
+    class="game-stats-header"
+    :class="{
+      'game-stats-header--active': isGameActive,
+      'game-stats-header--game-over': isGameOver
+    }"
+  >
     <!-- First Row: Level, Message, Score, Diamonds -->
     <div class="game-stats-header__top-row">
       <!-- Level Display -->
@@ -110,13 +116,8 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
         <!-- Game Over Message -->
         <div
           v-if="showGameOverMessage"
-          class="game-stats-header__game-over-container"
+          class="game-stats-header__game-over"
         >
-          <div class="game-stats-header__game-over">
-            <span class="game-stats-header__message-text game-stats-header__message-text--danger">
-              GAME OVER
-            </span>
-          </div>
           <button
             v-if="onBackToLevels"
             class="btn"
@@ -274,7 +275,6 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
       color: var(--error-color);
       background: rgba(225, 112, 85, 0.1);
       border: 1px solid var(--error-color);
-      animation: danger-pulse 1s ease-in-out infinite;
     }
 
     &--success {
@@ -394,18 +394,18 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     transform: translateY(10px) scale(1.1);
   }
 
-  &__game-over-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-2);
+  &--game-over {
+    .game-stats-header__message-text {
+      display: none;
+      transition: none;
+    }
   }
 
   &__game-over {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-1);
+    gap: var(--space-2);
   }
 }
 
@@ -416,17 +416,6 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
   }
   50% {
     box-shadow: 0 0 20px rgba(0, 184, 148, 0.2);
-  }
-}
-
-@keyframes danger-pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.9;
   }
 }
 
