@@ -1,10 +1,13 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import Matter from 'matter-js'
 import { useSessionStore } from '../../stores/index.js'
 import { useSettingsStore } from '../../stores/settingsStore.js'
 import { storeToRefs } from "pinia"
 import { PHYSICS_CONFIG, FRUIT_TYPES, FRUIT_SPAWN_WEIGHTS } from '../../config/fruitMergeGameConfig.js'
 import { useComboSystem } from '../../composables/useComboSystem.js'
+import DropFruit from '../DropFruit/DropFruit.vue'
+import DroppedFruit from '../DroppedFruit/DroppedFruit.vue'
 
 // Props for game state and session data
 const props = defineProps({
@@ -62,49 +65,193 @@ const isDragging = ref(false)
 const dragStartX = ref(null)
 
 // Game mechanics
-const currentDropFruit = ref(null)
-const nextDropFruit = ref(null)
+const engine = ref(null)
+const world = ref(null)
+const walls = ref([])
+const currentDropFruitType = ref('BLUEBERRY')
+const dropFruitPosition = ref({ x: 150, y: 30 })
+const isHoveringDropZone = ref(false)
+const droppedFruits = ref([])
+const nextFruitId = ref(1)
 
 // Physics-related methods (to be implemented with Matter.js)
 const initializePhysics = () => {
-  console.log('🎯 Physics engine initialization placeholder')
-  // TODO: Matter.js engine setup will go here
+  console.log('🎯 Initializing Matter.js physics engine (headless)')
+
+  // Create engine without render
+  engine.value = Matter.Engine.create()
+  world.value = engine.value.world
+
+  // Disable gravity for controlled dropping
+  engine.value.world.gravity.y = 0.8
+  engine.value.world.gravity.x = 0
+
+  // Create boundaries (walls and floor)
+  createWorldBoundaries()
+
+  // Start physics loop
+  startPhysicsLoop()
+
+  console.log('✅ Physics engine initialized successfully')
 }
 
-const createFruitBody = (fruitType, x, y) => {
-  console.log(`🍎 Creating ${fruitType} fruit at (${x}, ${y})`)
-  // TODO: Matter.js body creation will go here
-  return null
+const createWorldBoundaries = () => {
+  const { width, height } = PHYSICS_CONFIG.canvas
+
+  // Create static walls
+  const leftWall = Matter.Bodies.rectangle(-5, height/2, 10, height, { isStatic: true })
+  const rightWall = Matter.Bodies.rectangle(width + 5, height/2, 10, height, { isStatic: true })
+  const floor = Matter.Bodies.rectangle(width/2, height + 5, width, 10, { isStatic: true })
+
+  walls.value = [leftWall, rightWall, floor]
+
+  // Add walls to world
+  Matter.World.add(world.value, walls.value)
+
+  console.log('🏗️ World boundaries created')
 }
 
-const handleFruitMerge = (fruit1, fruit2) => {
-  console.log('🔄 Fruit merge detected')
+const startPhysicsLoop = () => {
+  const runner = Matter.Runner.create()
 
-  // Get fruit type and calculate score
-  const fruitType = FRUIT_TYPES[fruit1.type]
-  const baseScore = fruitType.scoreValue
+  // Custom update loop for position sync
+  Matter.Events.on(runner, 'tick', () => {
+    updateFruitPositions()
+  })
 
-  // Handle combo scoring
-  const finalScore = handleComboMerge(baseScore)
+  Matter.Runner.run(runner, engine.value)
+
+  // Setup collision detection
+  setupCollisionEvents()
+
+  console.log('🔄 Physics loop with rotation and collision detection started')
+}
+
+const setupCollisionEvents = () => {
+  if (!engine.value) return
+
+  Matter.Events.on(engine.value, 'collisionStart', (event) => {
+    const pairs = event.pairs
+
+    pairs.forEach(pair => {
+      const { bodyA, bodyB } = pair
+
+      // Check if both bodies are fruits
+      const fruitA = droppedFruits.value.find(f => f.body === bodyA)
+      const fruitB = droppedFruits.value.find(f => f.body === bodyB)
+
+      if (fruitA || fruitB) {
+        // Calculate collision force for rotation
+        const collision = pair.collision
+        const force = Matter.Vector.magnitude(collision.normal)
+
+        if (fruitA) {
+          const impulse = (Math.random() - 0.5) * force * 0.01
+          Matter.Body.setAngularVelocity(bodyA, bodyA.angularVelocity + impulse)
+        }
+
+        if (fruitB) {
+          const impulse = (Math.random() - 0.5) * force * 0.01
+          Matter.Body.setAngularVelocity(bodyB, bodyB.angularVelocity + impulse)
+        }
+
+        // Check for merge potential (same fruit types)
+        if (fruitA && fruitB && fruitA.type === fruitB.type) {
+          console.log(`🔄 Potential merge: ${fruitA.type} + ${fruitB.type}`)
+          // Merge logic will be implemented next
+        }
+      }
+    })
+  })
+
+  console.log('👂 Enhanced collision events with rotation setup')
+}
+
+const dropFruit = (x) => {
+  if (!canDrop.value || !world.value) return
+
+  console.log(`🎯 Dropping ${currentDropFruitType.value} at x: ${x}`)
+
+  // Create Matter.js body with rotation properties
+  const fruitConfig = FRUIT_TYPES[currentDropFruitType.value]
+  const fruitBody = Matter.Bodies.circle(x, PHYSICS_CONFIG.dropZone.dropY, fruitConfig.radius, {
+    restitution: 0.3,
+    friction: 0.4,
+    density: 0.001,
+    frictionAir: 0.01, // Air resistance for rotation
+    label: `fruit_${nextFruitId.value}`,
+    fruitType: currentDropFruitType.value
+  })
+
+  // Add slight random initial rotation
+  const initialSpin = (Math.random() - 0.5) * 0.1
+  Matter.Body.setAngularVelocity(fruitBody, initialSpin)
+
+  // Add to world
+  Matter.World.add(world.value, fruitBody)
+
+  // Create visual fruit data
+  const visualFruit = {
+    id: nextFruitId.value,
+    type: currentDropFruitType.value,
+    body: fruitBody,
+    position: { x: x, y: PHYSICS_CONFIG.dropZone.dropY },
+    rotation: 0, // Initial rotation
+    isDropping: true
+  }
+
+  // Add to visual fruits array
+  droppedFruits.value.push(visualFruit)
+
+  // Generate next fruit
+  generateNextDropFruit()
 
   // Update game state
-  emit('score-update', finalScore)
   emit('move-made')
 
-  // TODO: Actual physics merge implementation
+  // Apply drop cooldown
+  canDrop.value = false
+  setTimeout(() => {
+    canDrop.value = true
+  }, PHYSICS_CONFIG.dropCooldown)
+
+  // Increment ID for next fruit
+  nextFruitId.value++
+
+  // Reset drop state
+  resetDropState()
+
+  console.log(`🍎 Fruit dropped! Total fruits: ${droppedFruits.value.length}`)
 }
 
-const checkGameOverCondition = () => {
-  console.log('🔍 Checking game over condition')
-  // TODO: Physics-based height checking
-  const fruitsNearTop = false // Placeholder
+const generateNextDropFruit = () => {
+  currentDropFruitType.value = getRandomSpawnFruit()
+  console.log(`🎲 Next drop fruit: ${currentDropFruitType.value}`)
+}
 
-  isNearGameOver.value = fruitsNearTop
+// Physics update loop
+const updateFruitPositions = () => {
+  if (!droppedFruits.value.length) return
 
-  if (fruitsNearTop) {
-    console.log('⚠️ Game over condition detected!')
-    // Handle game over
-  }
+  droppedFruits.value.forEach(fruit => {
+    if (fruit.body) {
+      // Sync visual position with physics body
+      fruit.position.x = fruit.body.position.x
+      fruit.position.y = fruit.body.position.y
+
+      // Sync rotation (stored for reactivity)
+      fruit.rotation = fruit.body.angle
+
+      // Check velocity for dropping state
+      const velocity = Matter.Vector.magnitude(fruit.body.velocity)
+      const angularVelocity = Math.abs(fruit.body.angularVelocity)
+
+      if (velocity < 0.1 && angularVelocity < 0.05 && fruit.isDropping) {
+        fruit.isDropping = false
+        console.log(`🍎 Fruit ${fruit.id} settled`)
+      }
+    }
+  })
 }
 
 // Input handling methods
@@ -121,8 +268,10 @@ const handlePointerDown = (event) => {
   isDragging.value = true
   dragStartX.value = getPointerPosition(event)
 
-  // Show drop preview
+  // Start showing drop preview
   updateDropPreview(dragStartX.value)
+
+  console.log('🎯 Started dragging drop fruit')
 }
 
 const handlePointerMove = (event) => {
@@ -139,15 +288,25 @@ const handlePointerUp = (event) => {
   event.preventDefault()
   const dropX = getPointerPosition(event)
 
-  // Validate drop position
-  if (dropX >= PHYSICS_CONFIG.dropZone.minX && dropX <= PHYSICS_CONFIG.dropZone.maxX) {
+  // Only drop if in valid zone
+  if (isHoveringDropZone.value) {
     dropFruit(dropX)
+  } else {
+    console.log('❌ Drop outside valid zone')
   }
 
   // Reset interaction state
+  resetDropState()
+}
+
+const resetDropState = () => {
   isDragging.value = false
   dragStartX.value = null
   dropPreviewPosition.value = null
+  isHoveringDropZone.value = false
+
+  // Reset drop fruit to center
+  dropFruitPosition.value = { x: 150, y: 30 }
 }
 
 const handlePointerLeave = () => {
@@ -168,31 +327,18 @@ const updateDropPreview = (x) => {
     PHYSICS_CONFIG.dropZone.minX,
     Math.min(PHYSICS_CONFIG.dropZone.maxX, x)
   )
+
+  // Update drop preview line
   dropPreviewPosition.value = clampedX
-}
 
-const dropFruit = (x) => {
-  if (!canDrop.value) return
+  // Update drop fruit position
+  dropFruitPosition.value = {
+    x: clampedX,
+    y: 30
+  }
 
-  console.log(`🎯 Dropping fruit at x: ${x}`)
-
-  // Create physics fruit body
-  const fruitType = getRandomSpawnFruit()
-  const fruit = createFruitBody(fruitType, x, PHYSICS_CONFIG.dropZone.dropY)
-
-  // Update game state
-  emit('move-made')
-
-  // Apply drop cooldown
-  canDrop.value = false
-  setTimeout(() => {
-    canDrop.value = true
-  }, PHYSICS_CONFIG.dropCooldown)
-
-  // Check game state
-  setTimeout(() => {
-    checkGameOverCondition()
-  }, 100)
+  // Check if in valid drop zone
+  isHoveringDropZone.value = x >= PHYSICS_CONFIG.dropZone.minX && x <= PHYSICS_CONFIG.dropZone.maxX
 }
 
 const getRandomSpawnFruit = () => {
@@ -215,13 +361,27 @@ onMounted(() => {
   initializePhysics()
 
   // Generate first drop fruit
-  currentDropFruit.value = getRandomSpawnFruit()
-  nextDropFruit.value = getRandomSpawnFruit()
+  currentDropFruitType.value = getRandomSpawnFruit()
+
+  console.log(`🍎 Initial drop fruit: ${currentDropFruitType.value}`)
 })
 
 onUnmounted(() => {
   console.log('🎮 GamePlayArea unmounted - cleanup physics')
-  // TODO: Matter.js cleanup will go here
+
+  // Clear dropped fruits
+  droppedFruits.value = []
+
+  // Clear Matter.js world
+  if (world.value) {
+    Matter.World.clear(world.value)
+  }
+
+  // Stop engine
+  if (engine.value) {
+    Matter.Engine.clear(engine.value)
+  }
+
   resetCombo()
 })
 
@@ -279,6 +439,19 @@ defineExpose({
             top: `${PHYSICS_CONFIG.dropZone.dropY}px`
           }"
         ></div>
+        <DropFruit
+          v-if="isGameActive && canDrop"
+          :fruit-type="currentDropFruitType"
+          :position="dropFruitPosition"
+          :is-preview="true"
+          :is-dragging="isDragging"
+          :is-valid-drop="isHoveringDropZone"
+        />
+        <DroppedFruit
+          v-for="fruit in droppedFruits"
+          :key="fruit.id"
+          :fruit="fruit"
+        />
       </div>
     </div>
   </div>
