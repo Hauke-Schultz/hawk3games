@@ -187,6 +187,7 @@ export const LEVEL_GOALS = {
 	1: {
 		targetScore: 200,
 		maxMoves: 25,
+		gameOverHeight: 320,
 		timeLimit: null, // null = unbegrenzt
 		description: "Erreiche 200 Punkte",
 		starThresholds: {
@@ -198,6 +199,7 @@ export const LEVEL_GOALS = {
 	2: {
 		targetScore: 800,
 		maxMoves: 30,
+		gameOverHeight: 100,
 		timeLimit: null,
 		description: "Erreiche 800 Punkte",
 		starThresholds: {
@@ -209,6 +211,7 @@ export const LEVEL_GOALS = {
 	3: {
 		targetScore: 1200,
 		maxMoves: 35,
+		gameOverHeight: 100,
 		timeLimit: null,
 		description: "Erreiche 1200 Punkte",
 		starThresholds: {
@@ -220,6 +223,7 @@ export const LEVEL_GOALS = {
 	4: {
 		targetScore: 1800,
 		maxMoves: 40,
+		gameOverHeight: 100,
 		timeLimit: null,
 		description: "Erreiche 1800 Punkte",
 		starThresholds: {
@@ -231,6 +235,7 @@ export const LEVEL_GOALS = {
 	5: {
 		targetScore: 2500,
 		maxMoves: 45,
+		gameOverHeight: 100,
 		timeLimit: null,
 		description: "Erreiche 2500 Punkte",
 		starThresholds: {
@@ -242,6 +247,7 @@ export const LEVEL_GOALS = {
 	6: {
 		targetScore: 3500,
 		maxMoves: 50,
+		gameOverHeight: 100,
 		timeLimit: null,
 		description: "Erreiche 3500 Punkte",
 		starThresholds: {
@@ -253,6 +259,7 @@ export const LEVEL_GOALS = {
 	7: {
 		targetScore: 5000,
 		maxMoves: 55,
+		gameOverHeight: 100,
 		timeLimit: null,
 		description: "Erreiche 5000 Punkte",
 		starThresholds: {
@@ -264,6 +271,7 @@ export const LEVEL_GOALS = {
 	8: {
 		targetScore: 7500,
 		maxMoves: 60,
+		gameOverHeight: 100,
 		timeLimit: null,
 		description: "Erreiche 7500 Punkte",
 		starThresholds: {
@@ -275,6 +283,7 @@ export const LEVEL_GOALS = {
 	9: {
 		targetScore: 12000,
 		maxMoves: 70,
+		gameOverHeight: 100,
 		timeLimit: null,
 		description: "Erreiche 12000 Punkte - Master Level!",
 		starThresholds: {
