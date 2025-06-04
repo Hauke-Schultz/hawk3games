@@ -73,6 +73,13 @@
   --info-color: #0984e3;
   --info-light: #dbeafe;
 
+  /* Font Settings */
+  --font-family-base: 'Arial', sans-serif;
+  --font-line-height-base: 1.5;
+  --font-line-height-small: 1;
+  --font-weight-base: 400;
+  --font-weight-bold: 700;
+
   /* Level/Game Colors */
   --level-unlocked: linear-gradient(45deg, #00b894, #00cec9);
   --level-unlocked-hover: 0 6px 20px rgba(0, 184, 148, 0.5);

@@ -181,3 +181,106 @@ export const COMBO_CONFIG = {
 		10: '#8e44ad' // Deep purple
 	}
 }
+
+// Level Goal Configuration
+export const LEVEL_GOALS = {
+	1: {
+		targetScore: 500,
+		maxMoves: 25,
+		timeLimit: null, // null = unbegrenzt
+		description: "Erreiche 500 Punkte",
+		starThresholds: {
+			1: { score: 500, moves: 25, time: null },
+			2: { score: 700, moves: 20, time: null },
+			3: { score: 1000, moves: 15, time: null }
+		}
+	},
+	2: {
+		targetScore: 800,
+		maxMoves: 30,
+		timeLimit: null,
+		description: "Erreiche 800 Punkte",
+		starThresholds: {
+			1: { score: 800, moves: 30, time: null },
+			2: { score: 1100, moves: 25, time: null },
+			3: { score: 1500, moves: 20, time: null }
+		}
+	},
+	3: {
+		targetScore: 1200,
+		maxMoves: 35,
+		timeLimit: null,
+		description: "Erreiche 1200 Punkte",
+		starThresholds: {
+			1: { score: 1200, moves: 35, time: null },
+			2: { score: 1600, moves: 30, time: null },
+			3: { score: 2100, moves: 25, time: null }
+		}
+	},
+	4: {
+		targetScore: 1800,
+		maxMoves: 40,
+		timeLimit: null,
+		description: "Erreiche 1800 Punkte",
+		starThresholds: {
+			1: { score: 1800, moves: 40, time: null },
+			2: { score: 2400, moves: 35, time: null },
+			3: { score: 3200, moves: 30, time: null }
+		}
+	},
+	5: {
+		targetScore: 2500,
+		maxMoves: 45,
+		timeLimit: null,
+		description: "Erreiche 2500 Punkte",
+		starThresholds: {
+			1: { score: 2500, moves: 45, time: null },
+			2: { score: 3300, moves: 40, time: null },
+			3: { score: 4500, moves: 35, time: null }
+		}
+	},
+	6: {
+		targetScore: 3500,
+		maxMoves: 50,
+		timeLimit: null,
+		description: "Erreiche 3500 Punkte",
+		starThresholds: {
+			1: { score: 3500, moves: 50, time: null },
+			2: { score: 4700, moves: 45, time: null },
+			3: { score: 6500, moves: 40, time: null }
+		}
+	},
+	7: {
+		targetScore: 5000,
+		maxMoves: 55,
+		timeLimit: null,
+		description: "Erreiche 5000 Punkte",
+		starThresholds: {
+			1: { score: 5000, moves: 55, time: null },
+			2: { score: 6800, moves: 50, time: null },
+			3: { score: 9500, moves: 45, time: null }
+		}
+	},
+	8: {
+		targetScore: 7500,
+		maxMoves: 60,
+		timeLimit: null,
+		description: "Erreiche 7500 Punkte",
+		starThresholds: {
+			1: { score: 7500, moves: 60, time: null },
+			2: { score: 10500, moves: 55, time: null },
+			3: { score: 15000, moves: 50, time: null }
+		}
+	},
+	9: {
+		targetScore: 12000,
+		maxMoves: 70,
+		timeLimit: null,
+		description: "Erreiche 12000 Punkte - Master Level!",
+		starThresholds: {
+			1: { score: 12000, moves: 70, time: null },
+			2: { score: 18000, moves: 65, time: null },
+			3: { score: 25000, moves: 60, time: null }
+		}
+	}
+}

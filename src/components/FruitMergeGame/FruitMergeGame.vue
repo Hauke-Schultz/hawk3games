@@ -17,7 +17,8 @@ const props = defineProps({
 const emit = defineEmits([
   'level-selected',
   'back-to-menu',
-  'back-to-levels'
+  'back-to-levels',
+  'start-next-level'
 ])
 
 // Component refs
@@ -104,6 +105,24 @@ const handleGameOver = (gameOverData) => {
     stateManager.sessionStore.completeSession(gameOverData.finalScore, false)
   }
 }
+const handleStartNextLevel = (levelId) => {
+  console.log(`🚀 Starting next level: ${levelId}`)
+
+  // Reset current game state
+  gameStateManager.value?.finishCurrentLevel()
+
+  // Start new level
+  setTimeout(() => {
+    const nextLevel = levels.value.find(l => l.id === levelId)
+    if (nextLevel && nextLevel.unlocked) {
+      handleLevelSelected(nextLevel)
+    } else {
+      console.warn(`Next level ${levelId} is not available or unlocked`)
+      // Fallback to level selection
+      emit('back-to-levels')
+    }
+  }, 300) // Kurze Verzögerung für sauberen Übergang
+}
 </script>
 
 <template>
@@ -175,6 +194,7 @@ const handleGameOver = (gameOverData) => {
             @score-update="handleScoreUpdate"
             @combo-message="handleComboMessage"
             @game-over="handleGameOver"
+            @start-next-level="handleStartNextLevel"
           />
         </div>
       </template>

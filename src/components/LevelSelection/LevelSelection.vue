@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useLevelGoals } from '../../composables/useLevelGoals.js'
 
 // Props for level data and configuration
 const props = defineProps({
@@ -18,22 +19,65 @@ const props = defineProps({
   },
 })
 
-// Events emitted to parent component
-const emit = defineEmits([
-  'level-selected',
-])
+const emit = defineEmits(['level-selected'])
+
+// Level Goals Integration
+const { getLevelGoal, getLevelProgress } = useLevelGoals()
 
 // Fruit emojis for level icons
 const fruitEmojis = ['🍎', '🍊', '🍇', '🍓', '🥝', '🍉', '🥭', '🍌', '🏆']
 
+const enhancedLevels = computed(() => {
+  return props.levels.map(level => {
+    const goal = getLevelGoal(level.id)
+    const bestScore = level.bestScore || 0
+    const progress = goal ? getLevelProgress(level.id, bestScore) : 0
+
+    return {
+      ...level,
+      goal,
+      progress,
+      bestScore,
+      targetScore: goal?.targetScore || 0,
+      isInProgress: level.unlocked && !level.completed && bestScore > 0,
+      isPerfect: level.stars === 3
+    }
+  })
+})
+
 // Level selection handler
 const selectLevel = (level) => {
   if (level.unlocked) {
-    console.log(`🎮 Level ${level.id} selected from LevelSelection component`)
+    console.log(`🎮 Level ${level.id} selected - Target: ${level.targetScore} points`)
     emit('level-selected', level)
   } else {
     console.warn(`Level ${level.id} is locked`)
   }
+}
+// Helper für Level-Status-Anzeige
+const getLevelStatusClass = (level) => {
+  if (!level.unlocked) return 'locked'
+  if (level.isPerfect) return 'perfect'
+  if (level.completed) return 'completed'
+  if (level.isInProgress) return 'in-progress'
+  return 'available'
+}
+
+const getLevelStatusText = (level) => {
+  if (!level.unlocked) return 'Locked'
+  if (level.isPerfect) return 'Perfect!'
+  if (level.completed) return `${level.stars} Star${level.stars > 1 ? 's' : ''}`
+  if (level.isInProgress) return `${level.progress}% Complete`
+  return 'Not Started'
+}
+
+// Get card background color
+const getLevelCardBg = (level) => {
+  if (!level.unlocked) return 'var(--level-locked)'
+  if (level.isPerfect) return 'linear-gradient(45deg, #ffd700, #ffed4e)'
+  if (level.completed) return 'var(--level-completed)'
+  if (level.id === 1) return 'var(--level-featured)'
+  return 'var(--level-unlocked)'
 }
 
 // Convert level data to game card format for consistent display
@@ -64,17 +108,20 @@ const getLevelAsGameCard = (level) => {
     <!-- Levels Container -->
     <div class="level-selection__levels-container">
       <div class="level-selection__levels-grid">
-        <!-- Level Cards using real store data -->
+        <!-- Enhanced Level Cards -->
         <div
-          v-for="level in levels"
+          v-for="level in enhancedLevels"
           :key="level.id"
           class="level-selection__level-card"
           :class="{
             'level-selection__level-card--unlocked': level.unlocked,
             'level-selection__level-card--locked': !level.unlocked,
             'level-selection__level-card--completed': level.completed,
+            'level-selection__level-card--perfect': level.isPerfect,
+            'level-selection__level-card--in-progress': level.isInProgress,
             'level-selection__level-card--featured': level.id === 1
           }"
+          :style="{ background: getLevelCardBg(level) }"
           role="button"
           tabindex="0"
           @click="selectLevel(level)"
@@ -84,10 +131,7 @@ const getLevelAsGameCard = (level) => {
         >
           <!-- Level Icon -->
           <div class="level-selection__level-icon">
-            <div
-              class="level-selection__level-icon-container"
-              :style="{ backgroundColor: getLevelAsGameCard(level).iconBg }"
-            >
+            <div class="level-selection__level-icon-container">
               <!-- Lock icon for locked levels -->
               <svg
                 v-if="!level.unlocked"
@@ -119,15 +163,36 @@ const getLevelAsGameCard = (level) => {
           <!-- Level Content -->
           <div class="level-selection__level-content">
             <h3 class="level-selection__level-name">{{ level.name }}</h3>
-            <p
-              v-if="level.unlocked"
-              class="level-selection__level-description"
+
+            <!-- Level Goal Display -->
+            <p v-if="level.unlocked && level.goal" class="level-selection__level-goal">
+              Target: {{ level.goal.targetScore }} points
+            </p>
+
+            <!-- Progress Bar for in-progress levels -->
+            <div
+              v-if="level.isInProgress"
+              class="level-selection__progress"
             >
-              {{ level.description }}
+              <div class="level-selection__progress-bar">
+                <div
+                  class="level-selection__progress-fill"
+                  :style="{ width: `${level.progress}%` }"
+                ></div>
+              </div>
+              <span class="level-selection__progress-text">{{ level.progress }}%</span>
+            </div>
+
+            <!-- Best Score Display -->
+            <p
+              v-if="level.unlocked && level.bestScore > 0"
+              class="level-selection__best-score"
+            >
+              Best: {{ level.bestScore }} pts
             </p>
           </div>
 
-          <!-- Level Action -->
+          <!-- Level Action/Status -->
           <div class="level-selection__level-action">
             <!-- Stars for completed levels -->
             <div
@@ -138,7 +203,10 @@ const getLevelAsGameCard = (level) => {
                 v-for="star in 3"
                 :key="star"
                 class="level-selection__level-star"
-                :class="{ 'level-selection__level-star--filled': star <= level.stars }"
+                :class="{
+                  'level-selection__level-star--filled': star <= level.stars,
+                  'level-selection__level-star--perfect': level.isPerfect && star <= level.stars
+                }"
               >
                 ⭐
               </span>
@@ -152,9 +220,18 @@ const getLevelAsGameCard = (level) => {
               PLAY
             </div>
 
-            <!-- Arrow for other unlocked levels -->
-            <svg
+            <!-- Status badge for other levels -->
+            <div
               v-else-if="level.unlocked"
+              class="level-selection__status-badge"
+              :class="`level-selection__status-badge--${getLevelStatusClass(level)}`"
+            >
+              {{ getLevelStatusText(level) }}
+            </div>
+
+            <!-- Arrow for unlocked levels -->
+            <svg
+              v-if="level.unlocked"
               class="level-selection__level-arrow"
               width="20"
               height="20"
@@ -396,6 +473,167 @@ const getLevelAsGameCard = (level) => {
     .level-selection__level-card:hover & {
       transform: translateX(2px);
     }
+  }
+
+  // Enhanced Level Card Styles
+  &__level-card {
+    // Bestehende Styles...
+
+    &--perfect {
+      animation: perfect-glow 2s ease-in-out infinite;
+
+      .level-selection__level-name {
+        color: #1a1a1a;
+        font-weight: bold;
+      }
+    }
+
+    &--in-progress {
+      border: 2px solid var(--info-color);
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(9, 132, 227, 0.4);
+      }
+    }
+  }
+
+  // Level Goal Display
+  &__level-goal {
+    margin: var(--space-1) 0;
+    font-size: var(--font-size-xs);
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+  }
+
+  // Progress Bar Styles
+  &__progress {
+    margin: var(--space-1) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  &__progress-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background: var(--info-color);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  &__progress-text {
+    font-size: var(--font-size-xs);
+    color: var(--white);
+    font-weight: 600;
+    min-width: 30px;
+  }
+
+  // Best Score Display
+  &__best-score {
+    margin: var(--space-1) 0 0 0;
+    font-size: var(--font-size-xs);
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+  }
+
+  // Enhanced Stars
+  &__level-star {
+    font-size: 12px;
+    opacity: 0.3;
+
+    &--filled {
+      opacity: 1;
+    }
+
+    &--perfect {
+      animation: star-twinkle 1.5s ease-in-out infinite;
+    }
+  }
+
+  // Status Badge
+  &__status-badge {
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--white);
+    background: var(--info-color);
+
+    &--available {
+      background: var(--success-color);
+    }
+
+    &--in-progress {
+      background: var(--info-color);
+    }
+
+    &--completed {
+      background: var(--warning-color);
+      color: var(--text-color);
+    }
+
+    &--perfect {
+      background: linear-gradient(45deg, #ffd700, #ffed4e);
+      color: var(--text-color);
+    }
+  }
+
+  // Play Badge Enhancement
+  &__play-badge {
+    background: var(--accent-color);
+    color: var(--white);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
+    animation: pulse-play 2s ease-in-out infinite;
+  }
+}
+
+// Animations
+@keyframes perfect-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+}
+
+@keyframes star-twinkle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+@keyframes pulse-play {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+// Dark theme adjustments
+[data-theme="dark"] {
+  .level-selection__level-goal,
+  .level-selection__best-score {
+    color: rgba(255, 255, 255, 0.8);
   }
 }
 </style>

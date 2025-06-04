@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import GameIcon from '../GameIcon/GameIcon.vue'
 import StatCircle from '../StatCircle/StatCircle.vue'
+import { useLevelGoals } from '../../composables/useLevelGoals.js'
 
 const props = defineProps({
   currentLevel: {
@@ -64,6 +65,8 @@ const props = defineProps({
   }
 })
 
+const { getLevelGoal, getLevelProgress } = useLevelGoals()
+
 // Computed properties for live updates
 const currentLevelPadded = computed(() => {
   return props.currentLevel.toString().padStart(2, '0')
@@ -83,6 +86,18 @@ const currentCombo = computed(() => {
 
 const showGameOverMessage = computed(() => {
   return props.isGameOver && props.currentSession?.status === 'game_over'
+})
+
+const currentLevelGoal = computed(() => getLevelGoal(props.currentLevel))
+
+const goalProgress = computed(() => {
+  if (!currentLevelGoal.value || !props.currentSession) return 0
+  return getLevelProgress(props.currentLevel, props.currentSession.score || 0)
+})
+
+const isGoalReached = computed(() => {
+  if (!currentLevelGoal.value || !props.currentSession) return false
+  return (props.currentSession.score || 0) >= currentLevelGoal.value.targetScore
 })
 
 // Debug logging for combo
@@ -106,9 +121,24 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
   >
     <!-- First Row: Level, Message, Score, Diamonds -->
     <div class="game-stats-header__top-row">
-      <!-- Level Display -->
+      <!-- Level Display with Goal -->
       <div class="game-stats-header__level">
-        <span class="game-stats-header__level-text">LEVEL {{ currentLevelPadded }}</span>
+        <div class="level-info">
+          <span class="level-info__number">LEVEL {{ currentLevelPadded }}</span>
+          <div
+            v-if="currentLevelGoal && !isGameOver"
+            class="level-info__goal"
+            :class="{ 'level-info__goal--reached': isGoalReached }"
+          >
+            <span class="level-info__goal-text">{{ currentLevelGoal.targetScore }}</span>
+            <div class="level-info__goal-progress">
+              <div
+                class="level-info__goal-fill"
+                :style="{ width: `${goalProgress}%` }"
+              ></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Message Area (Game Over, Success, etc.) -->
@@ -406,6 +436,82 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     flex-direction: column;
     align-items: center;
     gap: var(--space-2);
+  }
+}
+
+
+.level-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+
+  &__number {
+    font-size: var(--font-size-sm);
+    font-weight: bold;
+    color: var(--accent-color);
+    padding: var(--space-1) var(--space-3);
+    background: rgba(0, 184, 148, 0.1);
+    border-radius: var(--border-radius-md);
+    white-space: nowrap;
+  }
+
+  &__goal {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    transition: all 0.3s ease;
+
+    &--reached {
+      .level-info__goal-text {
+        color: var(--success-color);
+        font-weight: bold;
+      }
+
+      .level-info__goal-fill {
+        background: var(--success-color);
+      }
+    }
+  }
+
+  &__goal-text {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-weight: 600;
+    min-width: 30px;
+  }
+
+  &__goal-progress {
+    width: 40px;
+    height: 3px;
+    background: var(--grey-light);
+    border-radius: 1.5px;
+    overflow: hidden;
+  }
+
+  &__goal-fill {
+    height: 100%;
+    background: var(--accent-color);
+    border-radius: 1.5px;
+    transition: width 0.3s ease;
+  }
+}
+
+@media (max-width: vars.$breakpoint-sm) {
+  .level-info {
+    &__goal {
+      gap: var(--space-05);
+    }
+
+    &__goal-text {
+      font-size: var(--font-size-xs);
+      min-width: 25px;
+    }
+
+    &__goal-progress {
+      width: 30px;
+      height: 2px;
+    }
   }
 }
 

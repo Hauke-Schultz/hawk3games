@@ -10,6 +10,9 @@ import { usePhysicsEngine } from '../../composables/usePhysicsEngine.js'
 import { useFruitManager } from '../../composables/useFruitManager.js'
 import { useInputHandler } from '../../composables/useInputHandler.js'
 import { useGameRules } from '../../composables/useGameRules.js'
+import { useLevelCompletion } from '../../composables/useLevelCompletion.js'
+import LevelProgressDisplay from '../LevelProgressDisplay/LevelProgressDisplay.vue'
+import LevelCompletionOverlay from '../LevelCompletionOverlay/LevelCompletionOverlay.vue'
 import DropFruit from '../DropFruit/DropFruit.vue'
 import DroppedFruit from '../DroppedFruit/DroppedFruit.vue'
 
@@ -45,7 +48,8 @@ const emit = defineEmits([
   'score-update',
   'combo-message',
   'game-over',
-  'level-completed'
+  'level-completed',
+  'start-next-level'
 ])
 
 // Store integration
@@ -125,6 +129,8 @@ const {
   handleComboMerge,
   resetCombo
 } = useComboSystem(emit)
+
+const levelCompletionState = useLevelCompletion(emit)
 
 // Enhanced collision event handler
 const handleCollisionEvent = (event) => {
@@ -209,6 +215,17 @@ const stopUpdateLoop = () => {
   }
 }
 
+// handleScoreUpdate vereinfachen:
+const handleScoreUpdate = (points) => {
+  const stateManager = gameStateManager.value
+  if (stateManager && stateManager.sessionStore) {
+    stateManager.sessionStore.addToScore(points)
+    console.log(`📊 Score updated: +${points} points`)
+
+    // Level completion wird automatisch durch watch getriggert
+  }
+}
+
 // Lifecycle hooks
 onMounted(() => {
   console.log('🎮 GamePlayArea mounted - ready for physics')
@@ -224,6 +241,9 @@ onMounted(() => {
 
   // Start update loop
   startUpdateLoop()
+
+  // Initialize level completion
+  levelCompletionState.initializeLevel(props.currentLevel, props.currentSession)
 
   console.log(`🍎 Initial drop fruit: ${currentDropFruitType.value}`)
 })
@@ -252,7 +272,22 @@ defineExpose({
 <template>
   <div class="game-play-area">
     <div class="game-play-area__game-container">
+      <!-- Level Progress Display -->
+      <LevelProgressDisplay
+        v-if="isGameActive"
+        :level-completion-state="levelCompletionState"
+        :current-session="currentSession"
+      />
 
+      <!-- Level Completion Overlay -->
+      <LevelCompletionOverlay
+        :level-completion-state="levelCompletionState"
+        :current-session="currentSession"
+        :current-level="currentLevel"
+        :max-level="9"
+        @start-next-level="(levelId) => emit('start-next-level', levelId)"
+        @back-to-levels="() => emit('back-to-level-selection')"
+      />
       <!-- Physics Game Area -->
       <div class="game-play-area__physics">
         <div
