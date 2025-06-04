@@ -1,6 +1,6 @@
 // src/composables/useGameRules.js - Game Rules and Logic Composable
 import { ref, computed } from 'vue'
-import { PHYSICS_CONFIG } from '../config/fruitMergeGameConfig.js'
+import { PHYSICS_CONFIG, LEVEL_GOALS } from '../config/fruitMergeGameConfig.js'
 
 export function useGameRules(droppedFruits, emit) {
 	// Game state
@@ -9,11 +9,22 @@ export function useGameRules(droppedFruits, emit) {
 	const gameOverDelay = 4000 // 4 seconds
 
 	// Game over detection
-	const gameOverHeight = PHYSICS_CONFIG.gameOverHeight
+	const gameOverHeight = ref(PHYSICS_CONFIG.gameOverHeight)
+
+	const setLevelGameOverHeight = (levelId) => {
+		const levelGoal = LEVEL_GOALS[levelId]
+		if (levelGoal && levelGoal.gameOverHeight) {
+			gameOverHeight.value = levelGoal.gameOverHeight
+			console.log(`🎯 Game over height set to ${levelGoal.gameOverHeight} for level ${levelId}`)
+		} else {
+			gameOverHeight.value = PHYSICS_CONFIG.gameOverHeight
+			console.log(`🎯 Using default game over height ${PHYSICS_CONFIG.gameOverHeight} for level ${levelId}`)
+		}
+	}
 
 	const checkGameOver = () => {
 		const currentTime = Date.now()
-		const currentTopBoundary = gameOverHeight
+		const currentTopBoundary = gameOverHeight.value
 
 		// Check for fruits that are above the game over line
 		let hasViolation = false
@@ -192,7 +203,7 @@ export function useGameRules(droppedFruits, emit) {
 	}
 
 	// Computed properties
-	const dangerZoneHeight = computed(() => gameOverHeight)
+	const dangerZoneHeight = computed(() => gameOverHeight.value)
 
 	const hasActiveViolations = computed(() => {
 		return Object.keys(topViolations.value).length > 0
@@ -225,6 +236,7 @@ export function useGameRules(droppedFruits, emit) {
 		cleanupViolations,
 		handleGameOver,
 		triggerGameOver,
+		setLevelGameOverHeight,
 
 		// Level Logic
 		checkLevelCompletion,

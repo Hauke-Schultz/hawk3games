@@ -119,7 +119,8 @@ const {
   violationWarningLevel,
   checkGameOver,
   cleanupViolations,
-  resetGameRules
+  resetGameRules,
+  setLevelGameOverHeight
 } = useGameRules(droppedFruits, emit)
 
 // Combo system integration
@@ -240,6 +241,9 @@ onMounted(() => {
 
   // Start update loop
   startUpdateLoop()
+
+  // Setze level-spezifische game over height
+  setLevelGameOverHeight(props.currentLevel)
 
   // Initialize level completion
   levelCompletionState.initializeLevel(props.currentLevel, props.currentSession)
