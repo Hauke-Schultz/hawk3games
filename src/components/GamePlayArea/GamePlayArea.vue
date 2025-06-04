@@ -11,7 +11,6 @@ import { useFruitManager } from '../../composables/useFruitManager.js'
 import { useInputHandler } from '../../composables/useInputHandler.js'
 import { useGameRules } from '../../composables/useGameRules.js'
 import { useLevelCompletion } from '../../composables/useLevelCompletion.js'
-import LevelProgressDisplay from '../LevelProgressDisplay/LevelProgressDisplay.vue'
 import LevelCompletionOverlay from '../LevelCompletionOverlay/LevelCompletionOverlay.vue'
 import DropFruit from '../DropFruit/DropFruit.vue'
 import DroppedFruit from '../DroppedFruit/DroppedFruit.vue'
@@ -272,13 +271,6 @@ defineExpose({
 <template>
   <div class="game-play-area">
     <div class="game-play-area__game-container">
-      <!-- Level Progress Display -->
-      <LevelProgressDisplay
-        v-if="isGameActive"
-        :level-completion-state="levelCompletionState"
-        :current-session="currentSession"
-      />
-
       <!-- Level Completion Overlay -->
       <LevelCompletionOverlay
         :level-completion-state="levelCompletionState"

@@ -95,10 +95,10 @@ export const createDefaultGameSession = (levelId = 1) => ({
  * @returns {object} Default currency state
  */
 export const createDefaultCurrency = () => ({
-	coins: 1251,
-	diamonds: 251,
-	totalCoinsEarned: 1251,
-	totalDiamondsEarned: 251,
+	coins: 0,
+	diamonds: 0,
+	totalCoinsEarned: 0,
+	totalDiamondsEarned: 0,
 	totalCoinsSpent: 0,
 	totalDiamondsSpent: 0
 })

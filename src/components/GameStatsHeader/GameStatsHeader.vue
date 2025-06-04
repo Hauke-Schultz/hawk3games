@@ -100,6 +100,29 @@ const isGoalReached = computed(() => {
   return (props.currentSession.score || 0) >= currentLevelGoal.value.targetScore
 })
 
+// Goal-related computed properties
+const currentMoveGoal = computed(() => {
+  if (!currentLevelGoal.value) return null
+  // Nimm das beste Move-Ziel für 3 Sterne als Standard
+  return currentLevelGoal.value.starThresholds[3]?.moves || null
+})
+
+const scoreGoalProgress = computed(() => {
+  if (!currentLevelGoal.value || !props.currentSession) return 0
+  const target = currentLevelGoal.value.targetScore
+  const current = props.currentSession.score || 0
+  return Math.min(100, (current / target) * 100)
+})
+
+const moveGoalProgress = computed(() => {
+  if (!currentMoveGoal.value || !props.currentSession) return 0
+  const target = currentMoveGoal.value
+  const current = props.currentSession.moves || 0
+  // Invertiert: weniger Moves = besserer Progress
+  const efficiency = Math.max(0, target - current)
+  return Math.min(100, (efficiency / target) * 100)
+})
+
 // Debug logging for combo
 if (import.meta.env.DEV && props.currentSession?.combo > 0) {
   console.log('🔥 GameStatsHeader Combo Data:', {
@@ -123,22 +146,7 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     <div class="game-stats-header__top-row">
       <!-- Level Display with Goal -->
       <div class="game-stats-header__level">
-        <div class="level-info">
-          <span class="level-info__number">LEVEL {{ currentLevelPadded }}</span>
-          <div
-            v-if="currentLevelGoal && !isGameOver"
-            class="level-info__goal"
-            :class="{ 'level-info__goal--reached': isGoalReached }"
-          >
-            <span class="level-info__goal-text">{{ currentLevelGoal.targetScore }}</span>
-            <div class="level-info__goal-progress">
-              <div
-                class="level-info__goal-fill"
-                :style="{ width: `${goalProgress}%` }"
-              ></div>
-            </div>
-          </div>
-        </div>
+        <div class="game-stats-header__message-text game-stats-header__message-text--success">LEVEL {{ currentLevelPadded }}</div>
       </div>
 
       <!-- Message Area (Game Over, Success, etc.) -->
@@ -192,9 +200,11 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
         <StatCircle
           :value="currentSession.score"
           label="SCORE"
-          type="basic"
-          :size="80"
+          type="progress"
+          :size="70"
           color="var(--accent-color)"
+          :progress="scoreGoalProgress"
+          :max-progress="100"
         />
       </div>
 
@@ -203,9 +213,11 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
         <StatCircle
           :value="currentSession.moves"
           label="MOVES"
-          type="basic"
-          :size="80"
-          color="var(--info-color)"
+          type="progress"
+          :size="70"
+          :color="moveGoalProgress > 50 ? 'var(--success-color)' : moveGoalProgress > 25 ? 'var(--warning-color)' : 'var(--error-color)'"
+          :progress="moveGoalProgress"
+          :max-progress="100"
         />
       </div>
 
@@ -241,6 +253,7 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     grid-template-columns: auto 1fr auto auto;
     gap: var(--space-4);
     align-items: center;
+    margin-bottom: var(--space-2);
 
     @media (max-width: vars.$breakpoint-sm) {
       grid-template-columns: 1fr 1fr;
@@ -259,6 +272,7 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     justify-content: space-between;
     align-items: center;
     gap: var(--space-6);
+    margin-bottom: var(--space-3);
 
     @media (max-width: vars.$breakpoint-sm) {
       gap: var(--space-4);
@@ -407,6 +421,7 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     align-items: flex-end;
     justify-content: flex-end;
     flex-direction: column;
+    flex-grow: 2;
   }
 
   .combo-message-enter-active,
@@ -436,82 +451,6 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
     flex-direction: column;
     align-items: center;
     gap: var(--space-2);
-  }
-}
-
-
-.level-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-1);
-
-  &__number {
-    font-size: var(--font-size-sm);
-    font-weight: bold;
-    color: var(--accent-color);
-    padding: var(--space-1) var(--space-3);
-    background: rgba(0, 184, 148, 0.1);
-    border-radius: var(--border-radius-md);
-    white-space: nowrap;
-  }
-
-  &__goal {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
-    transition: all 0.3s ease;
-
-    &--reached {
-      .level-info__goal-text {
-        color: var(--success-color);
-        font-weight: bold;
-      }
-
-      .level-info__goal-fill {
-        background: var(--success-color);
-      }
-    }
-  }
-
-  &__goal-text {
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-    font-weight: 600;
-    min-width: 30px;
-  }
-
-  &__goal-progress {
-    width: 40px;
-    height: 3px;
-    background: var(--grey-light);
-    border-radius: 1.5px;
-    overflow: hidden;
-  }
-
-  &__goal-fill {
-    height: 100%;
-    background: var(--accent-color);
-    border-radius: 1.5px;
-    transition: width 0.3s ease;
-  }
-}
-
-@media (max-width: vars.$breakpoint-sm) {
-  .level-info {
-    &__goal {
-      gap: var(--space-05);
-    }
-
-    &__goal-text {
-      font-size: var(--font-size-xs);
-      min-width: 25px;
-    }
-
-    &__goal-progress {
-      width: 30px;
-      height: 2px;
-    }
   }
 }
 

@@ -190,9 +190,9 @@ export const LEVEL_GOALS = {
 		timeLimit: null, // null = unbegrenzt
 		description: "Erreiche 200 Punkte",
 		starThresholds: {
-			1: { score: 200, moves: 12, time: null },
-			2: { score: 200, moves: 10, time: null },
-			3: { score: 200, moves: 8, time: null }
+			1: { score: 200, moves: 14, time: null },
+			2: { score: 200, moves: 12, time: null },
+			3: { score: 200, moves: 10, time: null }
 		}
 	},
 	2: {

@@ -5,12 +5,12 @@ import { saveToStorage, loadFromStorage } from '../utils/storage.js'
 // Currency Management Store - Handles coins, diamonds and transactions
 export const useCurrencyStore = defineStore('currency', () => {
 	// Currency state
-	const coins = ref(1251)
-	const diamonds = ref(251)
+	const coins = ref(0)
+	const diamonds = ref(0)
 
 	// Currency tracking
-	const totalCoinsEarned = ref(1251)
-	const totalDiamondsEarned = ref(251)
+	const totalCoinsEarned = ref(0)
+	const totalDiamondsEarned = ref(0)
 	const totalCoinsSpent = ref(0)
 	const totalDiamondsSpent = ref(0)
 
@@ -285,10 +285,10 @@ export const useCurrencyStore = defineStore('currency', () => {
 
 	// Admin/debug functions
 	const resetCurrency = () => {
-		coins.value = 1251
-		diamonds.value = 251
-		totalCoinsEarned.value = 1251
-		totalDiamondsEarned.value = 251
+		coins.value = 0
+		diamonds.value = 0
+		totalCoinsEarned.value = 0
+		totalDiamondsEarned.value = 0
 		totalCoinsSpent.value = 0
 		totalDiamondsSpent.value = 0
 		transactionHistory.value = []
@@ -320,10 +320,10 @@ export const useCurrencyStore = defineStore('currency', () => {
 		const savedData = loadFromStorage('currencyData')
 
 		if (savedData) {
-			coins.value = savedData.coins || 1251
-			diamonds.value = savedData.diamonds || 251
-			totalCoinsEarned.value = savedData.totalCoinsEarned || 1251
-			totalDiamondsEarned.value = savedData.totalDiamondsEarned || 251
+			coins.value = savedData.coins || 0
+			diamonds.value = savedData.diamonds || 0
+			totalCoinsEarned.value = savedData.totalCoinsEarned || 0
+			totalDiamondsEarned.value = savedData.totalDiamondsEarned || 0
 			totalCoinsSpent.value = savedData.totalCoinsSpent || 0
 			totalDiamondsSpent.value = savedData.totalDiamondsSpent || 0
 			transactionHistory.value = savedData.transactionHistory || []

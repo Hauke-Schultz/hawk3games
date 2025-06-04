@@ -86,7 +86,7 @@ const hasAchievements = computed(() => props.achievements.length > 0)
           :key="achievement.type"
           class="rewards__achievement"
         >
-          <GameIcon name="trophy" :size="16" class="rewards__achievement-icon" />
+          <GameIcon name="trophy" :size="32" class="rewards__achievement-icon" />
           <div class="rewards__achievement-info">
             <span class="rewards__achievement-title">{{ achievement.title }}</span>
             <span class="rewards__achievement-description">{{ achievement.description }}</span>
@@ -186,17 +186,14 @@ const hasAchievements = computed(() => props.achievements.length > 0)
 
   &__achievement {
     display: flex;
-    align-items: flex-start;
-    gap: var(--space-2);
-    margin-bottom: var(--space-2);
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
     padding: var(--space-2);
     background: rgba(253, 203, 110, 0.1);
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--warning-color);
-
-    &:last-child {
-      margin-bottom: 0;
-    }
   }
 
   &__achievement-icon {
@@ -207,6 +204,7 @@ const hasAchievements = computed(() => props.achievements.length > 0)
   &__achievement-info {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: var(--space-1);
   }
 
