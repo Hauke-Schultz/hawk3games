@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useLevelRewards } from '../../composables/useLevelRewards.js'
+import GameIcon from "../GameIcon/GameIcon.vue";
 
 const props = defineProps({
   rewardData: {
@@ -40,7 +41,7 @@ const hasAchievements = computed(() => props.achievements.length > 0)
       <!-- Coin Rewards -->
       <div v-if="hasCoins" class="rewards__section">
         <div class="rewards__currency">
-          <span class="rewards__currency-icon">💰</span>
+          <GameIcon name="coin" :size="16" class="rewards__currency-icon" />
           <span class="rewards__currency-amount">{{ rewardData.totalCoins }}</span>
           <span class="rewards__currency-label">Coins</span>
         </div>
@@ -60,7 +61,7 @@ const hasAchievements = computed(() => props.achievements.length > 0)
       <!-- Diamond Rewards -->
       <div v-if="hasDiamonds" class="rewards__section">
         <div class="rewards__currency">
-          <span class="rewards__currency-icon">💎</span>
+          <GameIcon name="diamond" :size="16" class="rewards__currency-icon" />
           <span class="rewards__currency-amount">{{ rewardData.totalDiamonds }}</span>
           <span class="rewards__currency-label">Diamonds</span>
         </div>
@@ -85,7 +86,7 @@ const hasAchievements = computed(() => props.achievements.length > 0)
           :key="achievement.type"
           class="rewards__achievement"
         >
-          <span class="rewards__achievement-icon">🏆</span>
+          <GameIcon name="trophy" :size="16" class="rewards__achievement-icon" />
           <div class="rewards__achievement-info">
             <span class="rewards__achievement-title">{{ achievement.title }}</span>
             <span class="rewards__achievement-description">{{ achievement.description }}</span>
@@ -115,12 +116,8 @@ const hasAchievements = computed(() => props.achievements.length > 0)
   &__section {
     display: flex;
     gap: var(--space-2);
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-4);
     justify-content: space-between;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
   }
 
   &__currency {
@@ -128,8 +125,6 @@ const hasAchievements = computed(() => props.achievements.length > 0)
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    margin-bottom: var(--space-2);
-    padding: var(--space-2);
     background: var(--bg-secondary);
     border-radius: var(--border-radius-md);
   }
@@ -152,6 +147,7 @@ const hasAchievements = computed(() => props.achievements.length > 0)
   &__breakdown {
     display: flex;
     flex-direction: column;
+    justify-content: center;
   }
 
   &__breakdown-item {

@@ -185,14 +185,14 @@ export const COMBO_CONFIG = {
 // Level Goal Configuration
 export const LEVEL_GOALS = {
 	1: {
-		targetScore: 500,
+		targetScore: 200,
 		maxMoves: 25,
 		timeLimit: null, // null = unbegrenzt
-		description: "Erreiche 500 Punkte",
+		description: "Erreiche 200 Punkte",
 		starThresholds: {
-			1: { score: 500, moves: 25, time: null },
-			2: { score: 700, moves: 20, time: null },
-			3: { score: 1000, moves: 15, time: null }
+			1: { score: 200, moves: 12, time: null },
+			2: { score: 200, moves: 10, time: null },
+			3: { score: 200, moves: 8, time: null }
 		}
 	},
 	2: {

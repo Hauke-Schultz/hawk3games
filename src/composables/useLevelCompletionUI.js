@@ -31,7 +31,7 @@ export function useLevelCompletionUI(levelCompletionState) {
 	})
 
 	const completionTitle = computed(() => {
-		return 'Level Complete!'
+		return `Level completed!`
 	})
 
 	// Animation timing helpers

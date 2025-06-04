@@ -99,15 +99,7 @@ const handleBackToLevels = () => {
           <!-- Action Buttons -->
           <div class="completion__actions">
             <button
-              v-if="hasNextLevel"
               class="btn"
-              @click="handleNextLevel"
-            >
-              Start Level {{ nextLevelNumber }}
-            </button>
-
-            <button
-              class="btn btn--small btn--ghost"
               @click="handleBackToLevels"
             >
               {{ hasNextLevel ? 'Level Selection' : 'Back to Levels' }}
