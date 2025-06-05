@@ -183,6 +183,22 @@ watch(droppedFruits, () => {
   }
 }, { deep: true })
 
+watch(() => props.currentSession?.score, (newScore) => {
+  if (newScore && props.isGameActive && !gameOverState.value) {
+    // Check if level goal is reached
+    const isCompleted = levelCompletionState.checkLevelCompletion(newScore)
+    if (isCompleted) {
+      // Trigger immediate physics stop
+      handleLevelCompleted({
+        reason: 'target_reached',
+        finalScore: newScore,
+        moves: props.currentSession?.moves || 0,
+        level: props.currentLevel
+      })
+    }
+  }
+}, { immediate: false })
+
 // Physics update loop
 let animationFrameId = null
 const startUpdateLoop = () => {
@@ -258,6 +274,8 @@ onMounted(() => {
 
   // Setze level-spezifische game over height
   setLevelGameOverHeight(props.currentLevel)
+
+  levelCompletionState.initializeLevel(props.currentLevel, props.currentSession);
 
   // Initialize level completion
   levelCompletionState.$on?.('level-physics-stop', () => {
