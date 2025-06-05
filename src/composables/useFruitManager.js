@@ -11,6 +11,8 @@ export function useFruitManager(emit, physicsEngine) {
 	const canDrop = ref(true)
 	const gameOverState = ref(false)
 	const gameOverTriggered = ref(false)
+	const levelCompletedState = ref(false)
+	const levelCompletedTriggered = ref(false)
 
 	// Fruit generation
 	const getRandomSpawnFruit = () => {
@@ -34,7 +36,7 @@ export function useFruitManager(emit, physicsEngine) {
 
 	// Fruit dropping
 	const dropFruit = (x) => {
-		if (!canDrop.value || !physicsEngine.world.value || gameOverState.value) {
+		if (!canDrop.value || !physicsEngine.world.value || gameOverState.value || levelCompletedState.value) {
 			console.log('🚫 Drop blocked - game inactive or game over')
 			return
 		}
@@ -174,7 +176,7 @@ export function useFruitManager(emit, physicsEngine) {
 
 	// Physics update loop
 	const updateFruitPositions = () => {
-		if (!droppedFruits.value.length) return
+		if (!droppedFruits.value.length || gameOverState.value || levelCompletedState.value) return
 
 		droppedFruits.value.forEach(fruit => {
 			if (fruit.body) {
@@ -236,16 +238,31 @@ export function useFruitManager(emit, physicsEngine) {
 			// Stoppe alle Früchte sofort
 			droppedFruits.value.forEach(fruit => {
 				if (fruit.body) {
-					// Setze Geschwindigkeit auf 0
 					Matter.Body.setVelocity(fruit.body, { x: 0, y: 0 })
 					Matter.Body.setAngularVelocity(fruit.body, 0)
-
-					// Mache Früchte statisch (keine Physik mehr)
 					Matter.Body.setStatic(fruit.body, true)
 				}
 			})
 
 			console.log('💀 Fruit manager: Game Over - dropping disabled, all fruits stopped')
+		}
+	}
+
+	const setLevelCompletedState = (isCompleted) => {
+		levelCompletedState.value = isCompleted
+		if (isCompleted) {
+			canDrop.value = false
+
+			// Stoppe alle Früchte sofort (gleiche Logik wie Game Over)
+			droppedFruits.value.forEach(fruit => {
+				if (fruit.body) {
+					Matter.Body.setVelocity(fruit.body, { x: 0, y: 0 })
+					Matter.Body.setAngularVelocity(fruit.body, 0)
+					Matter.Body.setStatic(fruit.body, true)
+				}
+			})
+
+			console.log('🎉 Fruit manager: Level Completed - dropping disabled, all fruits stopped')
 		}
 	}
 
@@ -271,6 +288,8 @@ export function useFruitManager(emit, physicsEngine) {
 		currentDropFruitType.value = getRandomSpawnFruit()
 		canDrop.value = true
 		gameOverState.value = false
+		levelCompletedState.value = false  // NEU
+		levelCompletedTriggered.value = false  // NEU
 		console.log('🔄 Fruit manager reset')
 	}
 
@@ -329,6 +348,10 @@ export function useFruitManager(emit, physicsEngine) {
 		unfreezeAllFruits,
 
 		// Utilities
-		getRandomSpawnFruit
+		getRandomSpawnFruit,
+
+		setLevelCompletedState,
+		levelCompletedState,
+		levelCompletedTriggered,
 	}
 }

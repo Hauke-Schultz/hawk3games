@@ -48,7 +48,8 @@ const emit = defineEmits([
   'combo-message',
   'game-over',
   'level-completed',
-  'start-next-level'
+  'start-next-level',
+  'level-physics-stop'
 ])
 
 // Store integration
@@ -85,7 +86,8 @@ const {
   checkForMerges,
   resetFruitManager,
   setGameOverState,
-  gameOverState
+  gameOverState,
+  setLevelCompletedState,
 } = useFruitManager(emit, {
   world,
   createFruitBody,
@@ -165,7 +167,6 @@ const handleCollisionEvent = (event) => {
 // Game over monitoring with cleanup
 watch(droppedFruits, () => {
   if (props.isGameActive && !props.isGamePaused) {
-    // Nur noch Cleanup, Game Over Prüfung ist in useGameRules
     cleanupViolations()
 
     // Game Over wird von useGameRules selbst getriggert
@@ -207,6 +208,19 @@ const handleGameOver = (gameOverData) => {
   emit('game-over', gameOverData)
 }
 
+const handleLevelCompleted = (completionData) => {
+  console.log('🎉 Level Completed received in GamePlayArea:', completionData)
+
+  // Stop physics and UI (same as game over)
+  stopUpdateLoop()
+  resetInputState()
+  resetCombo()
+  setLevelCompletedState(true)  // Verwende die neue Funktion
+
+  // Delegate to parent
+  emit('level-completed', completionData)
+}
+
 const stopUpdateLoop = () => {
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId)
@@ -246,7 +260,14 @@ onMounted(() => {
   setLevelGameOverHeight(props.currentLevel)
 
   // Initialize level completion
-  levelCompletionState.initializeLevel(props.currentLevel, props.currentSession)
+  levelCompletionState.$on?.('level-physics-stop', () => {
+    handleLevelCompleted({
+      reason: 'target_reached',
+      finalScore: props.currentSession?.score || 0,
+      moves: props.currentSession?.moves || 0,
+      level: props.currentLevel
+    })
+  })
 
   console.log(`🍎 Initial drop fruit: ${currentDropFruitType.value}`)
 })

@@ -112,6 +112,10 @@ export function useLevelCompletion(emit) {
 			achievements: earnedAchievements
 		})
 
+		if (emit) {
+			emit('level-physics-stop')
+		}
+
 		// Emit completion event with all data
 		setTimeout(() => {
 			emit('level-completed', {

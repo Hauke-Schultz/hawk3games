@@ -161,8 +161,9 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 		const isPaused = gameState.isGamePaused.value || false
 		const canDropFruit = fruitManager.canDrop?.value || false
 		const isGameOver = fruitManager.gameOverState?.value || false
+		const isLevelCompleted = fruitManager.levelCompletedState?.value || false
 
-		return isActive && !isPaused && canDropFruit && !isGameOver
+		return isActive && !isPaused && canDropFruit && !isGameOver && !isLevelCompleted
 	}
 
 	const isInputBlocked = () => {
@@ -170,8 +171,9 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 		const isPaused = gameState.isGamePaused.value || false
 		const canDropFruit = fruitManager.canDrop?.value || false
 		const isGameOver = fruitManager.gameOverState?.value || false
+		const isLevelCompleted = fruitManager.levelCompletedState?.value || false
 
-		return !isActive || isPaused || !canDropFruit || isGameOver
+		return !isActive || isPaused || !canDropFruit || isGameOver || isLevelCompleted
 	}
 
 	// Reset function for game state changes
@@ -184,6 +186,9 @@ export function useInputHandler(gameCanvas, fruitManager, gameState) {
 	const getDropZoneAriaLabel = () => {
 		if (fruitManager.gameOverState?.value) {
 			return 'Game Over - interactions disabled'
+		}
+		if (fruitManager.levelCompletedState?.value) {
+			return 'Level Completed - interactions disabled'
 		}
 		if (!canAcceptInput()) {
 			return 'Drop zone unavailable'

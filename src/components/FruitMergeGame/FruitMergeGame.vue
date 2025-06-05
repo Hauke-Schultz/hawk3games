@@ -105,6 +105,7 @@ const handleGameOver = (gameOverData) => {
     stateManager.sessionStore.completeSession(gameOverData.finalScore, false)
   }
 }
+
 const handleStartNextLevel = (levelId) => {
   console.log(`🚀 Starting next level: ${levelId}`)
 
