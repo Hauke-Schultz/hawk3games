@@ -1,0 +1,31 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background circle -->
+    <circle cx="12" cy="12" r="10"
+            fill="#00B894"
+            stroke="#00A085"
+            stroke-width="2"/>
+
+    <!-- Inner circle -->
+    <circle cx="12" cy="12" r="8"
+            fill="#00CEC9"
+            opacity="0.6"/>
+
+    <!-- Play triangle -->
+    <path d="M10 8l6 4-6 4V8z"
+          fill="#FFFFFF"
+          stroke="#FFFFFF"
+          stroke-width="1"
+          stroke-linejoin="round"/>
+
+    <!-- Play triangle shadow -->
+    <path d="M10 8l6 4-6 4V8z"
+          fill="#E8F8F5"
+          opacity="0.4"
+          transform="translate(0.5, 0.5)"/>
+
+    <!-- Highlight -->
+    <ellipse cx="10" cy="9" rx="1.5" ry="2"
+             fill="#FFFFFF"
+             opacity="0.5"
+             transform="rotate(-20 10 9)"/>
+</svg>

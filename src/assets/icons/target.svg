@@ -1,0 +1,45 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Outer ring -->
+    <circle cx="12" cy="12" r="10"
+            fill="none"
+            stroke="#E74C3C"
+            stroke-width="2"/>
+
+    <!-- Middle ring -->
+    <circle cx="12" cy="12" r="7"
+            fill="none"
+            stroke="#F39C12"
+            stroke-width="2"/>
+
+    <!-- Inner ring -->
+    <circle cx="12" cy="12" r="4"
+            fill="none"
+            stroke="#E67E22"
+            stroke-width="2"/>
+
+    <!-- Center bullseye -->
+    <circle cx="12" cy="12" r="2"
+            fill="#C0392B"/>
+
+    <!-- Center highlight -->
+    <circle cx="12" cy="12" r="1"
+            fill="#E74C3C"/>
+
+    <!-- Crosshairs -->
+    <line x1="12" y1="2" x2="12" y2="6"
+          stroke="#E74C3C"
+          stroke-width="2"
+          stroke-linecap="round"/>
+    <line x1="12" y1="18" x2="12" y2="22"
+          stroke="#E74C3C"
+          stroke-width="2"
+          stroke-linecap="round"/>
+    <line x1="2" y1="12" x2="6" y2="12"
+          stroke="#E74C3C"
+          stroke-width="2"
+          stroke-linecap="round"/>
+    <line x1="18" y1="12" x2="22" y2="12"
+          stroke="#E74C3C"
+          stroke-width="2"
+          stroke-linecap="round"/>
+</svg>

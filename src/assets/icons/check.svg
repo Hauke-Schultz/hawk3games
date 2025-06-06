@@ -1,0 +1,25 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background circle -->
+    <circle cx="12" cy="12" r="10"
+            fill="#27AE60"
+            stroke="#229954"
+            stroke-width="2"/>
+
+    <!-- Inner circle -->
+    <circle cx="12" cy="12" r="8"
+            fill="#2ECC71"
+            opacity="0.8"/>
+
+    <!-- Checkmark -->
+    <path d="M8 12l3 3 5-6"
+          stroke="#FFFFFF"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+    <!-- Highlight -->
+    <ellipse cx="10" cy="9" rx="2" ry="3"
+             fill="#FFFFFF"
+             opacity="0.3"
+             transform="rotate(-20 10 9)"/>
+</svg>

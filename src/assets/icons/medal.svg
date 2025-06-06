@@ -1,0 +1,45 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Medal ribbon left -->
+    <path d="M7 2l2 7-2 2-3-4L7 2z"
+          fill="#E74C3C"
+          stroke="#C0392B"
+          stroke-width="1"/>
+
+    <!-- Medal ribbon right -->
+    <path d="M17 2l-2 7 2 2 3-4L17 2z"
+          fill="#E74C3C"
+          stroke="#C0392B"
+          stroke-width="1"/>
+
+    <!-- Medal circle background -->
+    <circle cx="12" cy="15" r="6"
+            fill="#F39C12"
+            stroke="#E67E22"
+            stroke-width="2"/>
+
+    <!-- Medal inner circle -->
+    <circle cx="12" cy="15" r="4.5"
+            fill="#FFD700"
+            stroke="#F39C12"
+            stroke-width="1"/>
+
+    <!-- Medal center -->
+    <circle cx="12" cy="15" r="3"
+            fill="#FFF8DC"
+            stroke="#FFD700"
+            stroke-width="1"/>
+
+    <!-- Medal number "1" -->
+    <text x="12" y="18"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="8"
+          font-weight="bold"
+          fill="#E67E22">1</text>
+
+    <!-- Shine effect -->
+    <ellipse cx="10" cy="13" rx="1.5" ry="2"
+             fill="#FFFFFF"
+             opacity="0.4"
+             transform="rotate(-20 10 13)"/>
+</svg>
