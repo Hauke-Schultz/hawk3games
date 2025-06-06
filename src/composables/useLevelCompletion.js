@@ -117,6 +117,7 @@ export function useLevelCompletion(emit) {
 		}
 
 		// Emit completion event with all data
+		/*
 		setTimeout(() => {
 			emit('level-completed', {
 				levelId: currentLevel.value,
@@ -129,6 +130,7 @@ export function useLevelCompletion(emit) {
 				achievements: earnedAchievements
 			})
 		}, 1500)
+		 */
 	}
 
 	// resetCompletion erweitern:

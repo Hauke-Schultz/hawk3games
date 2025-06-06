@@ -281,7 +281,7 @@ export const useLevelStore = defineStore('levels', () => {
 	}
 
 	// Watch für Auto-Save
-	watch([unlockedLevels, completedLevels, levelStars, levelScores], debouncedLevelSave, { deep: true })
+	watch([unlockedLevels, completedLevels, levelStars, levelScores], debouncedLevelSave)
 
 	return {
 		// State

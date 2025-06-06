@@ -343,7 +343,7 @@ export const useSettingsStore = defineStore('settings', () => {
 		particlesEnabled, reducedAnimations, lowPowerMode,
 		soundEnabled, musicEnabled, masterVolume,
 		showFPS, highContrast, currentTheme // NEW
-	], debouncedSave, { deep: true })
+	], debouncedSave)
 
 	// Watch effective theme changes and apply them
 	watch(effectiveTheme, (newTheme) => {

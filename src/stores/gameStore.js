@@ -212,7 +212,7 @@ export const useGameStore = defineStore('game', () => {
 	}
 
 	// Watch important state changes for auto-save
-	watch([unlockedLevels, completedLevels, levelStars, coins, diamonds, settings], debouncedSave, { deep: true })
+	watch([unlockedLevels, completedLevels, levelStars, coins, diamonds, settings], debouncedSave)
 
 	return {
 		// State

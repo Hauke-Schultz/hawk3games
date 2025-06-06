@@ -16,10 +16,13 @@ export function usePhysicsEngine() {
 		// Create engine without render
 		engine.value = Matter.Engine.create()
 		world.value = engine.value.world
-
-		// Configure gravity
 		engine.value.world.gravity.y = 0.8
 		engine.value.world.gravity.x = 0
+		engine.value.velocityIterations = 4
+		engine.value.positionIterations = 6
+		engine.value.constraintIterations = 2
+		engine.value.enableSleeping = true
+
 
 		// Create boundaries (walls and floor)
 		createWorldBoundaries()

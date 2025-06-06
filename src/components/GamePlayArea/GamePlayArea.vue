@@ -245,17 +245,6 @@ const stopUpdateLoop = () => {
   }
 }
 
-// handleScoreUpdate vereinfachen:
-const handleScoreUpdate = (points) => {
-  const stateManager = gameStateManager.value
-  if (stateManager && stateManager.sessionStore) {
-    stateManager.sessionStore.addToScore(points)
-    console.log(`📊 Score updated: +${points} points`)
-
-    // Level completion wird automatisch durch watch getriggert
-  }
-}
-
 // Lifecycle hooks
 onMounted(() => {
   console.log('🎮 GamePlayArea mounted - ready for physics')

@@ -336,11 +336,6 @@ export const useCurrencyStore = defineStore('currency', () => {
 		return false
 	}
 
-	// Auto-save on changes
-	watch([coins, diamonds], () => {
-		// Debounced save will be handled by parent store
-	}, { deep: true })
-
 	// Auto-save on changes with debouncing
 	let saveTimeout = null
 	const debouncedSave = () => {
@@ -351,7 +346,7 @@ export const useCurrencyStore = defineStore('currency', () => {
 	}
 
 	// Watch für Auto-Save
-	watch([coins, diamonds, totalCoinsEarned, totalDiamondsEarned], debouncedSave, { deep: true })
+	watch([coins, diamonds, totalCoinsEarned, totalDiamondsEarned], debouncedSave)
 
 	return {
 		// State
