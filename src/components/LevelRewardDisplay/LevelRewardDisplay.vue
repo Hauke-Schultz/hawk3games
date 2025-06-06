@@ -125,8 +125,6 @@ const hasAchievements = computed(() => props.achievements.length > 0)
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius-md);
   }
 
   &__currency-icon {

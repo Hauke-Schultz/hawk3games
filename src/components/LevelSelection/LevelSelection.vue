@@ -24,9 +24,6 @@ const emit = defineEmits(['level-selected'])
 // Level Goals Integration
 const { getLevelGoal, getLevelProgress } = useLevelGoals()
 
-// Fruit emojis for level icons
-const fruitEmojis = ['🍎', '🍊', '🍇', '🍓', '🥝', '🍉', '🥭', '🍌', '🏆']
-
 const enhancedLevels = computed(() => {
   return props.levels.map(level => {
     const goal = getLevelGoal(level.id)
@@ -54,48 +51,6 @@ const selectLevel = (level) => {
     console.warn(`Level ${level.id} is locked`)
   }
 }
-// Helper für Level-Status-Anzeige
-const getLevelStatusClass = (level) => {
-  if (!level.unlocked) return 'locked'
-  if (level.isPerfect) return 'perfect'
-  if (level.completed) return 'completed'
-  if (level.isInProgress) return 'in-progress'
-  return 'available'
-}
-
-const getLevelStatusText = (level) => {
-  if (!level.unlocked) return 'Locked'
-  if (level.isPerfect) return 'Perfect!'
-  if (level.completed) return `${level.stars} Star${level.stars > 1 ? 's' : ''}`
-  if (level.isInProgress) return `${level.progress}% Complete`
-  return 'Not Started'
-}
-
-// Get card background color
-const getLevelCardBg = (level) => {
-  if (!level.unlocked) return 'var(--level-locked)'
-  if (level.isPerfect) return 'linear-gradient(45deg, #ffd700, #ffed4e)'
-  if (level.completed) return 'var(--level-completed)'
-  if (level.id === 1) return 'var(--level-featured)'
-  return 'var(--level-unlocked)'
-}
-
-// Convert level data to game card format for consistent display
-const getLevelAsGameCard = (level) => {
-  return {
-    id: level.id,
-    name: level.name,
-    text: level.description,
-    icon: fruitEmojis[level.id - 1],
-    iconType: 'emoji',
-    iconBg: level.unlocked
-      ? (level.id === 1 ? '#e84393' : '#00b894')
-      : 'var(--grey-color)',
-    unlocked: level.unlocked,
-    completed: level.completed,
-    stars: level.stars
-  }
-}
 </script>
 
 <template>
@@ -112,137 +67,64 @@ const getLevelAsGameCard = (level) => {
         <div
           v-for="level in enhancedLevels"
           :key="level.id"
-          class="level-selection__level-card"
+          class="level-selection__level-tile"
           :class="{
-            'level-selection__level-card--unlocked': level.unlocked,
-            'level-selection__level-card--locked': !level.unlocked,
-            'level-selection__level-card--completed': level.completed,
-            'level-selection__level-card--perfect': level.isPerfect,
-            'level-selection__level-card--in-progress': level.isInProgress,
-            'level-selection__level-card--featured': level.id === 1
+            'level-selection__level-tile--unlocked': level.unlocked,
+            'level-selection__level-tile--locked': !level.unlocked,
+            'level-selection__level-tile--completed': level.completed,
+            'level-selection__level-tile--perfect': level.isPerfect,
+            'level-selection__level-tile--featured': level.id === 1
           }"
-          :style="{ background: getLevelCardBg(level) }"
           role="button"
           tabindex="0"
           @click="selectLevel(level)"
           @keydown.enter="selectLevel(level)"
           :disabled="!level.unlocked"
-          :aria-label="`Level ${level.id}: ${level.name}${level.unlocked ? '' : ' (locked)'}`"
+          :aria-label="`Level ${level.id}: Target ${level.targetScore} points${level.unlocked ? '' : ' (locked)'}`"
         >
-          <!-- Level Icon -->
-          <div class="level-selection__level-icon">
-            <div class="level-selection__level-icon-container">
-              <!-- Lock icon for locked levels -->
-              <svg
-                v-if="!level.unlocked"
-                class="level-selection__level-lock"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <circle cx="12" cy="16" r="1"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-
-              <!-- Fruit emoji for unlocked levels -->
-              <span
-                v-else
-                class="level-selection__level-emoji"
-              >
-                {{ fruitEmojis[level.id - 1] }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Level Content -->
-          <div class="level-selection__level-content">
-            <h3 class="level-selection__level-name">{{ level.name }}</h3>
-
-            <!-- Level Goal Display -->
-            <p v-if="level.unlocked && level.goal" class="level-selection__level-goal">
-              Target: {{ level.goal.targetScore }} points
-            </p>
-
-            <!-- Progress Bar for in-progress levels -->
-            <div
-              v-if="level.isInProgress"
-              class="level-selection__progress"
-            >
-              <div class="level-selection__progress-bar">
-                <div
-                  class="level-selection__progress-fill"
-                  :style="{ width: `${level.progress}%` }"
-                ></div>
-              </div>
-              <span class="level-selection__progress-text">{{ level.progress }}%</span>
-            </div>
-
-            <!-- Best Score Display -->
-            <p
-              v-if="level.unlocked && level.bestScore > 0"
-              class="level-selection__best-score"
-            >
-              Best: {{ level.bestScore }} pts
-            </p>
-          </div>
-
-          <!-- Level Action/Status -->
-          <div class="level-selection__level-action">
-            <!-- Stars for completed levels -->
-            <div
-              v-if="level.completed"
-              class="level-selection__level-stars"
-            >
-              <span
-                v-for="star in 3"
-                :key="star"
-                class="level-selection__level-star"
-                :class="{
-                  'level-selection__level-star--filled': star <= level.stars,
-                  'level-selection__level-star--perfect': level.isPerfect && star <= level.stars
-                }"
-              >
-                ⭐
-              </span>
-            </div>
-
-            <!-- Play button for level 1 -->
-            <div
-              v-else-if="level.id === 1 && level.unlocked"
-              class="level-selection__play-badge"
-            >
-              PLAY
-            </div>
-
-            <!-- Status badge for other levels -->
-            <div
-              v-else-if="level.unlocked"
-              class="level-selection__status-badge"
-              :class="`level-selection__status-badge--${getLevelStatusClass(level)}`"
-            >
-              {{ getLevelStatusText(level) }}
-            </div>
-
-            <!-- Arrow for unlocked levels -->
+          <!-- Level Number -->
+          <div class="level-selection__level-number">
+            <span v-if="level.unlocked">{{ level.id }}</span>
             <svg
-              v-if="level.unlocked"
-              class="level-selection__level-arrow"
+              v-else
+              class="level-selection__level-lock"
               width="20"
               height="20"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
             >
-              <path d="m9 18 6-6-6-6"/>
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <circle cx="12" cy="16" r="1"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+
+          <!-- Level Goal -->
+          <div class="level-selection__level-target">
+            <span v-if="level.unlocked && level.goal">{{ level.goal.targetScore }} pts</span>
+            <span v-else-if="!level.unlocked">Locked</span>
+          </div>
+
+          <!-- Stars Display -->
+          <div class="level-selection__level-stars">
+            <svg
+              v-for="star in 3"
+              :key="star"
+              class="level-selection__star-svg"
+              :class="{ 'level-selection__star-svg--filled': star <= level.stars }"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <path
+                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                :fill="star <= level.stars ? '#FFD700' : 'transparent'"
+                :stroke="star <= level.stars ? '#FFA500' : '#666'"
+                stroke-width="1"
+              />
             </svg>
           </div>
         </div>
@@ -299,83 +181,82 @@ const getLevelAsGameCard = (level) => {
 
   &__levels-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-3);
 
-    @media (min-width: vars.$breakpoint-sm) {
-      gap: var(--space-4);
+    @media (max-width: vars.$breakpoint-sm) {
+      gap: var(--space-2);
     }
   }
 
-  // Level Card Element
-  &__level-card {
-    background-color: var(--card-bg);
+  // Level Tile Element - Neue kompakte Kacheln
+  &__level-tile {
+    aspect-ratio: 1;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
     border-radius: var(--border-radius-lg);
-    border: 1px solid var(--card-border);
-    padding: var(--space-4);
+    padding: var(--space-3);
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    min-height: 72px;
-    position: relative;
+    justify-content: space-between;
+    min-height: 100px;
 
     &:hover {
-      background-color: var(--card-bg-hover);
+      transform: translateY(-2px);
       box-shadow: var(--card-shadow-hover);
     }
 
     &:focus-visible {
       outline: var(--focus-outline);
-      outline-offset: 0.125rem;
-      box-shadow: var(--focus-shadow);
+      outline-offset: 2px;
     }
 
-    &:active {
-      transform: translateY(0.0625rem);
-    }
-
-    // Level Card Modifiers
     &--unlocked {
+      background: var(--level-unlocked);
+      color: var(--white);
+      border-color: transparent;
+
       &:hover {
-        transform: translateY(-2px);
+        box-shadow: var(--level-unlocked-hover);
       }
     }
 
     &--locked {
-      opacity: 0.6;
+      background: var(--level-locked);
+      color: var(--text-muted);
       cursor: not-allowed;
-      background-color: var(--level-locked);
+      opacity: 0.6;
 
       &:hover {
         transform: none;
-        background-color: var(--level-locked);
-        box-shadow: var(--card-shadow);
+        box-shadow: none;
       }
     }
 
     &--completed {
       background: var(--level-completed);
       color: var(--white);
-
-      .level-selection__level-name,
-      .level-selection__level-description {
-        color: var(--white);
-      }
+      border-color: transparent;
 
       &:hover {
         box-shadow: var(--level-completed-hover);
       }
     }
 
+    &--perfect {
+      background: linear-gradient(45deg, #ffd700, #ffed4e);
+      color: #1a1a1a;
+      border-color: transparent;
+      animation: perfect-glow 2s ease-in-out infinite;
+    }
+
     &--featured {
       background: var(--level-featured);
       color: var(--white);
-
-      .level-selection__level-name,
-      .level-selection__level-description {
-        color: var(--white);
-      }
+      border-color: transparent;
 
       &:hover {
         box-shadow: var(--level-featured-hover);
@@ -383,219 +264,35 @@ const getLevelAsGameCard = (level) => {
     }
   }
 
-  // Level Icon Element
-  &__level-icon {
-    margin-right: var(--space-4);
-    flex-shrink: 0;
+  &__level-number {
+    font-size: var(--font-size-2xl);
+    font-weight: bold;
+    margin-bottom: var(--space-1);
   }
 
-  &__level-icon-container {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--border-radius-lg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-  }
-
-  &__level-lock {
-    opacity: 0.6;
-    color: var(--text-muted);
-  }
-
-  &__level-emoji {
-    font-size: 24px;
-    line-height: 1;
-    user-select: none;
-  }
-
-  // Level Content Element
-  &__level-content {
-    flex: 1;
-    min-width: 0;
-  }
-
-  &__level-name {
-    margin: 0 0 var(--space-1) 0;
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    color: var(--text-color);
-    line-height: 1.2;
-  }
-
-  &__level-description {
-    margin: 0;
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    line-height: 1.2;
-  }
-
-  // Level Action Element
-  &__level-action {
-    margin-left: var(--space-2);
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  &__level-target {
+    font-size: var(--font-size-xs);
+    text-align: center;
+    margin-bottom: var(--space-2);
+    opacity: 0.9;
   }
 
   &__level-stars {
     display: flex;
     gap: 2px;
-  }
-
-  &__level-star {
-    font-size: 12px;
-    opacity: 0.3;
-
-    &--filled {
-      opacity: 1;
-    }
-  }
-
-  &__play-badge {
-    background: var(--accent-color);
-    color: var(--white);
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--border-radius-md);
-    font-size: var(--font-size-xs);
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
-  }
-
-  &__level-arrow {
-    color: var(--text-secondary);
-    transition: transform 0.2s ease;
-
-    .level-selection__level-card:hover & {
-      transform: translateX(2px);
-    }
-  }
-
-  // Enhanced Level Card Styles
-  &__level-card {
-    // Bestehende Styles...
-
-    &--perfect {
-      animation: perfect-glow 2s ease-in-out infinite;
-
-      .level-selection__level-name {
-        color: #1a1a1a;
-        font-weight: bold;
-      }
-    }
-
-    &--in-progress {
-      border: 2px solid var(--info-color);
-
-      &:hover {
-        box-shadow: 0 4px 16px rgba(9, 132, 227, 0.4);
-      }
-    }
-  }
-
-  // Level Goal Display
-  &__level-goal {
-    margin: var(--space-1) 0;
-    font-size: var(--font-size-xs);
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 500;
-  }
-
-  // Progress Bar Styles
-  &__progress {
-    margin: var(--space-1) 0;
-    display: flex;
     align-items: center;
-    gap: var(--space-1);
   }
 
-  &__progress-bar {
-    flex: 1;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  &__progress-fill {
-    height: 100%;
-    background: var(--info-color);
-    border-radius: 2px;
-    transition: width 0.3s ease;
-  }
-
-  &__progress-text {
-    font-size: var(--font-size-xs);
-    color: var(--white);
-    font-weight: 600;
-    min-width: 30px;
-  }
-
-  // Best Score Display
-  &__best-score {
-    margin: var(--space-1) 0 0 0;
-    font-size: var(--font-size-xs);
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 500;
-  }
-
-  // Enhanced Stars
-  &__level-star {
-    font-size: 12px;
-    opacity: 0.3;
+  &__star-svg {
+    transition: all 0.2s ease;
 
     &--filled {
-      opacity: 1;
-    }
-
-    &--perfect {
-      animation: star-twinkle 1.5s ease-in-out infinite;
+      filter: drop-shadow(0 1px 3px rgba(255, 215, 0, 0.5));
     }
   }
 
-  // Status Badge
-  &__status-badge {
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    color: var(--white);
-    background: var(--info-color);
-
-    &--available {
-      background: var(--success-color);
-    }
-
-    &--in-progress {
-      background: var(--info-color);
-    }
-
-    &--completed {
-      background: var(--warning-color);
-      color: var(--text-color);
-    }
-
-    &--perfect {
-      background: linear-gradient(45deg, #ffd700, #ffed4e);
-      color: var(--text-color);
-    }
-  }
-
-  // Play Badge Enhancement
-  &__play-badge {
-    background: var(--accent-color);
-    color: var(--white);
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--border-radius-md);
-    font-size: var(--font-size-xs);
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
-    animation: pulse-play 2s ease-in-out infinite;
+  &__level-lock {
+    opacity: 0.6;
   }
 }
 
@@ -609,30 +306,9 @@ const getLevelAsGameCard = (level) => {
   }
 }
 
-@keyframes star-twinkle {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
-}
-
-@keyframes pulse-play {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
 // Dark theme adjustments
 [data-theme="dark"] {
-  .level-selection__level-goal,
-  .level-selection__best-score {
+  .level-selection__level-target {
     color: rgba(255, 255, 255, 0.8);
   }
 }

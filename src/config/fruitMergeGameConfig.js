@@ -257,9 +257,9 @@ export const LEVEL_GOALS = {
 		}
 	},
 	7: {
-		targetScore: 5000,
+		targetScore: 50000,
 		maxMoves: 55,
-		gameOverHeight: 100,
+		gameOverHeight: 300,
 		timeLimit: null,
 		description: "Erreiche 5000 Punkte",
 		starThresholds: {

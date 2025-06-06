@@ -72,16 +72,6 @@ const svgStyle = computed(() => ({
       :fruit-type="fruitType"
       :size="displaySize"
     />
-
-    <!-- Glow effect for preview -->
-    <div
-      v-if="isPreview"
-      class="drop-fruit__glow"
-      :style="{
-        backgroundColor: fruitConfig.color,
-        boxShadow: `0 0 20px ${fruitConfig.glowColor}`
-      }"
-    />
   </div>
 </template>
 
@@ -89,18 +79,6 @@ const svgStyle = computed(() => ({
 .drop-fruit {
   &--preview {
     animation: fruit-hover 2s ease-in-out infinite;
-
-    .drop-fruit__glow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 80%;
-      height: 80%;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.3;
-      animation: glow-pulse 2s ease-in-out infinite;
-    }
   }
 
   &--dropping {
@@ -114,21 +92,6 @@ const svgStyle = computed(() => ({
     height: 100%;
     filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
   }
-
-  &--dragging {
-    .drop-fruit__glow {
-      opacity: 0.6;
-      transform: translate(-50%, -50%) scale(1.3);
-      animation: glow-intense 0.5s ease-in-out infinite;
-    }
-  }
-
-  &--invalid {
-    .drop-fruit__glow {
-      background-color: var(--error-color) !important;
-      box-shadow: 0 0 20px var(--error-color) !important;
-    }
-  }
 }
 
 @keyframes fruit-hover {
@@ -137,17 +100,6 @@ const svgStyle = computed(() => ({
   }
   50% {
     transform: translateY(-5px);
-  }
-}
-
-@keyframes glow-pulse {
-  0%, 100% {
-    opacity: 0.2;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  50% {
-    opacity: 0.4;
-    transform: translate(-50%, -50%) scale(1.1);
   }
 }
 
