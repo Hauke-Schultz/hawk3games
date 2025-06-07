@@ -1,545 +1,514 @@
 <script setup>
-import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Matter from 'matter-js'
-import { useSessionStore } from '../../stores/index.js'
-import { useSettingsStore } from '../../stores/settingsStore.js'
-import { storeToRefs } from "pinia"
-import { PHYSICS_CONFIG, FRUIT_TYPES } from '../../config/fruitMergeGameConfig.js'
-import { useComboSystem } from '../../composables/useComboSystem.js'
-import { usePhysicsEngine } from '../../composables/usePhysicsEngine.js'
-import { useFruitManager } from '../../composables/useFruitManager.js'
-import { useInputHandler } from '../../composables/useInputHandler.js'
-import { useGameRules } from '../../composables/useGameRules.js'
-import { useLevelCompletion } from '../../composables/useLevelCompletion.js'
-import LevelCompletionOverlay from '../LevelCompletionOverlay/LevelCompletionOverlay.vue'
-import DropFruit from '../DropFruit/DropFruit.vue'
-import DroppedFruit from '../DroppedFruit/DroppedFruit.vue'
 
-// Props for game state and session data
 const props = defineProps({
-  currentLevel: {
-    type: Number,
-    required: true
-  },
-  currentSession: {
-    type: Object,
-    required: true,
-    validator: (session) => {
-      return session && typeof session.score === 'number' && typeof session.moves === 'number'
-    }
-  },
-  isGameActive: {
-    type: Boolean,
-    default: false
-  },
-  isGamePaused: {
-    type: Boolean,
-    default: false
-  },
+  currentLevel: { type: Number, required: true },
+  currentSession: { type: Object, required: true },
+  isGameActive: { type: Boolean, default: false },
+  isGamePaused: { type: Boolean, default: false }
 })
 
-// Events
 const emit = defineEmits([
-  'pause-game',
-  'resume-game',
-  'back-to-level-selection',
   'move-made',
   'score-update',
   'combo-message',
   'game-over',
-  'level-completed',
-  'start-next-level',
-  'level-physics-stop'
+  'level-completed'
 ])
 
-// Store integration
-const sessionStore = useSessionStore()
-const settingsStore = useSettingsStore()
+// Game Board Constants
+const BOARD_WIDTH = 300
+const BOARD_HEIGHT = 400
+const WALL_THICKNESS = 10
+const GAME_OVER_LINE = 80
 
-// Game canvas reference
-const gameCanvas = ref(null)
-let dropCooldownTimer = null
+// Fruit Configuration - Definiere ZUERST
+const fruitTypes = [
+  { size: 32, color: '#9C27B0', level: 1, name: 'Blueberry', points: 10 },
+  { size: 38, color: '#E91E63', level: 2, name: 'Strawberry', points: 25 },
+  { size: 44, color: '#FFEB3B', level: 3, name: 'Lemon', points: 50 },
+  { size: 50, color: '#FF9800', level: 4, name: 'Orange', points: 100 },
+  { size: 58, color: '#8BC34A', level: 5, name: 'Apple', points: 200 },
+  { size: 66, color: '#FFAB91', level: 6, name: 'Peach', points: 400 },
+  { size: 74, color: '#FF7043', level: 7, name: 'Mango', points: 800 },
+  { size: 82, color: '#FFA726', level: 8, name: 'Pineapple', points: 1600 },
+  { size: 90, color: '#F48FB1', level: 9, name: 'Watermelon', points: 3200 },
+  { size: 98, color: '#8E24AA', level: 10, name: 'Melon', points: 6400 }
+]
+// dangerZoneHeight
+const dangerZoneHeight = ref(BOARD_HEIGHT - GAME_OVER_LINE)
 
-// Performance monitoring
-let animationFrameId = null
-let performanceOptimizationTimer = null
+// Generate New Fruit Function ZUERST definieren
+function generateFruit() {
+  const maxStartingLevel = Math.min(5, Math.floor(props.currentLevel / 2) + 3)
+  const randomIndex = Math.floor(Math.random() * maxStartingLevel)
+  const fruitType = fruitTypes[randomIndex]
 
-// Physics engine integration
-const {
-  engine,
-  world,
-  initializePhysics,
-  cleanupPhysics,
-  createFruitBody,
-  addBodyToWorld,
-  removeBodyFromWorld,
-  setupCollisionEvents,
-  applyRotationImpulse,
-  getCollisionForce,
-  optimizeWorldPerformance,
-  wakeNearbyBodies
-} = usePhysicsEngine()
+  return {
+    id: nextFruitId.value++,
+    level: fruitType.level,
+    size: fruitType.size,
+    color: fruitType.color,
+    name: fruitType.name,
+    points: fruitType.points,
+    x: 0,
+    y: 0,
+    rotation: 0,
+    body: null,
+    merging: false,
+    isNew: false
+  }
+}
 
-// Fruit management integration
-const {
-  droppedFruits,
-  currentDropFruitType,
-  canDrop,
-  dropFruit,
-  generateNextDropFruit,
-  updateFruitPositions,
-  updateFruitPositionsThrottled,
-  checkForMerges,
-  resetFruitManager,
-  setGameOverState,
-  gameOverState,
-  setLevelCompletedState,
-  getUpdatePerformanceStats
-} = useFruitManager(emit, {
-  world,
-  createFruitBody,
-  addBodyToWorld,
-  removeBodyFromWorld
-})
+// Game State - JETZT mit initial Wert
+const gameBoard = ref(null)
+const fruits = ref([])
+const nextFruitId = ref(0)
+const nextFruit = ref(generateFruit()) // ✅ SOFORT initialisieren
+const dropPosition = ref(BOARD_WIDTH / 2)
+const canDropFruit = ref(true)
+const dropCooldown = ref(false)
+const gameOver = ref(false)
+const isDragging = ref(false)
+const gameOverCheckInterval = ref(null)
 
-// Input handling integration
-const {
-  isDragging,
-  dropPreviewPosition,
-  isHoveringDropZone,
-  dropFruitPosition,
-  dropLineStyle,
-  getContainerEventHandlers,
-  resetInputState,
-  getDropZoneAriaLabel
-} = useInputHandler(gameCanvas, {
-  canDrop,
-  dropFruit
-}, {
-  isGameActive: computed(() => props.isGameActive),
-  isGamePaused: computed(() => props.isGamePaused)
-})
+// Physics Engine
+let engine = null
+let runner = null
+let walls = []
 
-// Game rules integration
-const {
-  isNearGameOver,
-  gameOverHeight,
-  dangerZoneHeight,
-  violationWarningLevel,
-  checkGameOver,
-  cleanupViolations,
-  resetGameRules,
-  setLevelGameOverHeight
-} = useGameRules(droppedFruits, emit)
+// Rest der Funktionen bleibt gleich...
+function initPhysics() {
+  engine = Matter.Engine.create({
+    gravity: { x: 0, y: 0.8, scale: 0.001 },
+    constraintIterations: 2,
+    positionIterations: 6,
+    velocityIterations: 4
+  })
 
-// Combo system integration
-const {
-  comboState,
-  handleComboMerge,
-  resetCombo
-} = useComboSystem(emit)
+  runner = Matter.Runner.create({
+    delta: 1000 / 60,
+    isFixed: true
+  })
 
-const levelCompletionState = useLevelCompletion(emit)
+  walls = [
+    Matter.Bodies.rectangle(
+      BOARD_WIDTH / 2,
+      BOARD_HEIGHT + WALL_THICKNESS / 2,
+      BOARD_WIDTH,
+      WALL_THICKNESS,
+      {
+        isStatic: true,
+        label: 'wall-bottom',
+        restitution: 0.3,
+        friction: 0.8
+      }
+    ),
+    Matter.Bodies.rectangle(
+      -WALL_THICKNESS / 2,
+      BOARD_HEIGHT / 2,
+      WALL_THICKNESS,
+      BOARD_HEIGHT,
+      {
+        isStatic: true,
+        label: 'wall-left',
+        restitution: 0.3,
+        friction: 0.8
+      }
+    ),
+    Matter.Bodies.rectangle(
+      BOARD_WIDTH + WALL_THICKNESS / 2,
+      BOARD_HEIGHT / 2,
+      WALL_THICKNESS,
+      BOARD_HEIGHT,
+      {
+        isStatic: true,
+        label: 'wall-right',
+        restitution: 0.3,
+        friction: 0.8
+      }
+    )
+  ]
 
-// Enhanced collision event handler
-const handleCollisionEvent = (event) => {
+  Matter.Composite.add(engine.world, walls)
+  Matter.Events.on(engine, 'collisionStart', handleCollision)
+  Matter.Runner.run(runner, engine)
+
+  updateFruitPositions()
+  startGameOverCheck()
+}
+
+// Alle anderen Funktionen bleiben unverändert...
+function updateFruitPositions() {
+  if (!engine || gameOver.value) return
+
+  const fruitsToUpdate = fruits.value.filter(fruit => fruit.body)
+
+  fruitsToUpdate.forEach(fruit => {
+    const pos = fruit.body.position
+    const newX = pos.x - fruit.size / 2
+    const newY = pos.y - fruit.size / 2
+    const newRotation = fruit.body.angle * (180 / Math.PI)
+
+    if (Math.abs(fruit.x - newX) > 0.1 ||
+      Math.abs(fruit.y - newY) > 0.1 ||
+      Math.abs(fruit.rotation - newRotation) > 0.5) {
+      fruit.x = newX
+      fruit.y = newY
+      fruit.rotation = newRotation
+    }
+  })
+
+  requestAnimationFrame(updateFruitPositions)
+}
+
+function handleCollision(event) {
   const pairs = event.pairs
 
   pairs.forEach(pair => {
     const { bodyA, bodyB } = pair
 
-    // Check if both bodies are fruits
-    const fruitA = droppedFruits.value.find(f => f.body === bodyA)
-    const fruitB = droppedFruits.value.find(f => f.body === bodyB)
+    if (bodyA.label.startsWith('fruit-') && bodyB.label.startsWith('fruit-')) {
+      const fruitDataA = bodyA.label.split('-')
+      const fruitDataB = bodyB.label.split('-')
 
-    if (fruitA || fruitB) {
-      // Enhanced collision effects using physics engine
-      const collision = pair.collision
-      const force = getCollisionForce(collision)
+      const idA = parseInt(fruitDataA[1])
+      const idB = parseInt(fruitDataB[1])
+      const levelA = parseInt(fruitDataA[2])
+      const levelB = parseInt(fruitDataB[2])
 
-      if (fruitA) {
-        applyRotationImpulse(bodyA, force)
+      if (levelA === levelB && levelA < fruitTypes.length) {
+        const fruitA = fruits.value.find(f => f.id === idA)
+        const fruitB = fruits.value.find(f => f.id === idB)
+
+        if (fruitA && fruitB && !fruitA.merging && !fruitB.merging) {
+          mergeFruits(fruitA, fruitB, bodyA, bodyB)
+        }
       }
-
-      if (fruitB) {
-        applyRotationImpulse(bodyB, force)
-      }
-
-      // Check for merge using fruit manager
-      checkForMerges(bodyA, bodyB, handleComboMerge)
     }
   })
 }
 
-// Game over monitoring with cleanup
-watch(droppedFruits, () => {
-  if (props.isGameActive && !props.isGamePaused) {
-    cleanupViolations()
+function mergeFruits(fruitA, fruitB, bodyA, bodyB) {
+  fruitA.merging = true
+  fruitB.merging = true
 
-    // Game Over wird von useGameRules selbst getriggert
-    const gameOverResult = checkGameOver()
-    if (gameOverResult) {
-      // useGameRules hat bereits das game-over Event emitted
-      handleGameOver({
-        reason: 'height_limit',
-        finalScore: props.currentSession?.score || 0,
-        moves: props.currentSession?.moves || 0,
-        level: props.currentLevel
-      })
-    }
-  }
-}, { deep: true })
+  const centerX = (bodyA.position.x + bodyB.position.x) / 2
+  const centerY = (bodyA.position.y + bodyB.position.y) / 2
 
-watch(() => props.currentSession?.score, (newScore) => {
-  if (newScore && props.isGameActive && !gameOverState.value) {
-    // Check if level goal is reached
-    const isCompleted = levelCompletionState.checkLevelCompletion(newScore)
-    if (isCompleted) {
-      // Trigger immediate physics stop
-      handleLevelCompleted({
-        reason: 'target_reached',
-        finalScore: newScore,
-        moves: props.currentSession?.moves || 0,
-        level: props.currentLevel
-      })
-    }
-  }
-}, { immediate: false })
+  const baseScore = fruitA.points + fruitB.points
+  const levelBonus = fruitA.level * 50
+  const totalScore = baseScore + levelBonus
 
-// OPTIMIZED: Adaptive physics update loop with performance monitoring
-const startUpdateLoop = () => {
-  const update = () => {
-    if (props.isGameActive && !props.isGamePaused) {
-      // OPTIMIZATION: Adaptive update frequency based on fruit count
-      if (droppedFruits.value.length > 10) {
-        updateFruitPositionsThrottled() // Throttled for many fruits
-      } else {
-        updateFruitPositions() // Normal update for few fruits
+  emit('score-update', totalScore)
+  emit('combo-message', `${fruitA.name} + ${fruitB.name} = ${fruitTypes[fruitA.level].name}!`)
+
+  setTimeout(() => {
+    Matter.Composite.remove(engine.world, bodyA)
+    Matter.Composite.remove(engine.world, bodyB)
+
+    fruits.value = fruits.value.filter(f => f.id !== fruitA.id && f.id !== fruitB.id)
+
+    if (fruitA.level < fruitTypes.length) {
+      const newFruitType = fruitTypes[fruitA.level]
+      const newFruit = {
+        id: nextFruitId.value++,
+        level: newFruitType.level,
+        size: newFruitType.size,
+        color: newFruitType.color,
+        name: newFruitType.name,
+        points: newFruitType.points,
+        x: centerX - newFruitType.size / 2,
+        y: centerY - newFruitType.size / 2,
+        rotation: 0,
+        body: null,
+        merging: false,
+        isNew: true
       }
-    }
-    animationFrameId = requestAnimationFrame(update)
-  }
-  update()
-}
 
-const handleGameOver = (gameOverData) => {
-  console.log('💀 Game Over received in GamePlayArea:', gameOverData)
-
-  // Stop physics and UI
-  stopUpdateLoop()
-  resetInputState()
-  resetCombo()
-  setGameOverState(true)
-
-  // Delegate to parent
-  emit('game-over', gameOverData)
-}
-
-const handleLevelCompleted = (completionData) => {
-  console.log('🎉 Level Completed received in GamePlayArea:', completionData)
-
-  // Stop physics and UI (same as game over)
-  stopUpdateLoop()
-  resetInputState()
-  resetCombo()
-  setLevelCompletedState(true)  // Use the new function
-
-  // Delegate to parent
-  emit('level-completed', completionData)
-}
-
-const stopUpdateLoop = () => {
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId)
-    animationFrameId = null
-    console.log('🛑 Physics update loop stopped')
-  }
-}
-
-// OPTIMIZED: Performance optimization with adaptive frequency
-const startPerformanceOptimization = () => {
-  performanceOptimizationTimer = setInterval(() => {
-    if (droppedFruits.value.length > 5) {
-      optimizeWorldPerformance()
+      addMergedFruit(newFruit, centerX, centerY)
     }
 
-    // Log performance stats in DEV mode
-    if (import.meta.env.DEV && droppedFruits.value.length > 8) {
-      const stats = getUpdatePerformanceStats()
-      console.log('📊 Performance Stats:', stats)
-    }
-  }, 2000) // Every 2 seconds
+    checkLevelCompletion()
+  }, 150)
 }
 
-const stopPerformanceOptimization = () => {
-  if (performanceOptimizationTimer) {
-    clearInterval(performanceOptimizationTimer)
-    performanceOptimizationTimer = null
+function addMergedFruit(fruit, x, y) {
+  const fruitBody = Matter.Bodies.circle(x, y, fruit.size / 2, {
+    restitution: 0.4,
+    friction: 0.6,
+    frictionAir: 0.01,
+    density: 0.001,
+    label: `fruit-${fruit.id}-${fruit.level}`
+  })
+
+  fruit.body = fruitBody
+  Matter.Body.setVelocity(fruitBody, { x: 0, y: -1 })
+  Matter.Composite.add(engine.world, fruitBody)
+  fruits.value.push(fruit)
+
+  setTimeout(() => {
+    fruit.isNew = false
+  }, 500)
+}
+
+function dropFruit(event) {
+  if (!canDropFruit.value || dropCooldown.value || !isDragging.value) {
+    isDragging.value = false
+    return
   }
+
+  event.preventDefault()
+  isDragging.value = false
+
+  const newFruit = { ...nextFruit.value }
+
+  const safeDropX = Math.max(
+    newFruit.size / 2 + WALL_THICKNESS,
+    Math.min(BOARD_WIDTH - newFruit.size / 2 - WALL_THICKNESS, dropPosition.value)
+  )
+
+  addFruitToWorld(newFruit, safeDropX, -newFruit.size)
 }
 
-// Lifecycle hooks
-onMounted(() => {
-  console.log('🎮 GamePlayArea mounted - ready for physics')
+function addFruitToWorld(fruit, x, y) {
+  dropCooldown.value = true
+  canDropFruit.value = false
 
-  // Initialize physics engine
-  initializePhysics()
+  const fruitBody = Matter.Bodies.circle(x, y, fruit.size / 2, {
+    restitution: 0.5,
+    friction: 0.7,
+    frictionAir: 0.01,
+    density: 0.001,
+    label: `fruit-${fruit.id}-${fruit.level}`
+  })
 
-  // Setup collision events
-  setupCollisionEvents(handleCollisionEvent)
+  fruit.body = fruitBody
+  fruit.x = x - fruit.size / 2
+  fruit.y = y - fruit.size / 2
+  fruit.isNew = true
 
-  // Generate first drop fruit
-  generateNextDropFruit()
+  Matter.Composite.add(engine.world, fruitBody)
+  fruits.value.push(fruit)
 
-  // Start update loop
-  startUpdateLoop()
+  nextFruit.value = generateFruit()
+  emit('move-made')
 
-  // Start performance optimization
-  startPerformanceOptimization()
+  setTimeout(() => {
+    dropCooldown.value = false
+    canDropFruit.value = true
+    fruit.isNew = false
+  }, 800)
+}
 
-  // Set level-specific game over height
-  setLevelGameOverHeight(props.currentLevel)
+function startDrag(event) {
+  if (!canDropFruit.value || dropCooldown.value) return
 
-  levelCompletionState.initializeLevel(props.currentLevel, props.currentSession);
+  event.preventDefault()
+  isDragging.value = true
+  handleDrag(event)
+}
 
-  // Initialize level completion
-  levelCompletionState.$on?.('level-physics-stop', () => {
-    handleLevelCompleted({
-      reason: 'target_reached',
-      finalScore: props.currentSession?.score || 0,
-      moves: props.currentSession?.moves || 0,
-      level: props.currentLevel
+function handleDrag(event) {
+  if (!isDragging.value) return
+
+  event.preventDefault()
+
+  const clientX = event.clientX || (event.touches && event.touches[0].clientX) || 0
+  const boardRect = gameBoard.value.getBoundingClientRect()
+  const relativeX = clientX - boardRect.left
+
+  const minX = nextFruit.value.size / 2 + WALL_THICKNESS
+  const maxX = BOARD_WIDTH - nextFruit.value.size / 2 - WALL_THICKNESS
+
+  dropPosition.value = Math.max(minX, Math.min(maxX, relativeX))
+}
+
+function startGameOverCheck() {
+  gameOverCheckInterval.value = setInterval(() => {
+    if (gameOver.value) return
+
+    const fruitsAboveLine = fruits.value.some(fruit =>
+      fruit.y < GAME_OVER_LINE && fruit.body && fruit.body.speed < 0.1
+    )
+
+    if (fruitsAboveLine) {
+      triggerGameOver()
+    }
+  }, 1000)
+}
+
+function triggerGameOver() {
+  gameOver.value = true
+  canDropFruit.value = false
+
+  if (gameOverCheckInterval.value) {
+    clearInterval(gameOverCheckInterval.value)
+  }
+
+  emit('game-over', {
+    finalScore: props.currentSession.score,
+    fruitsDropped: fruits.value.length,
+    highestLevel: Math.max(...fruits.value.map(f => f.level))
+  })
+}
+
+function checkLevelCompletion() {
+  const maxLevel = Math.max(...fruits.value.map(f => f.level))
+  const targetLevel = Math.min(props.currentLevel + 5, 8)
+
+  if (maxLevel >= targetLevel) {
+    emit('level-completed', {
+      level: props.currentLevel,
+      maxFruitLevel: maxLevel,
+      bonus: maxLevel * 1000
     })
-  })
+  }
+}
 
-  console.log(`🍎 Initial drop fruit: ${currentDropFruitType.value}`)
+watch(() => props.isGamePaused, (paused) => {
+  if (paused) {
+    Matter.Runner.stop(runner)
+    canDropFruit.value = false
+  } else {
+    Matter.Runner.run(runner, engine)
+    canDropFruit.value = true
+  }
+})
+
+watch(() => props.isGameActive, (active) => {
+  if (!active) {
+    canDropFruit.value = false
+  }
+})
+
+onMounted(async () => {
+  await nextTick()
+  // nextFruit ist bereits initialisiert!
+  dropPosition.value = BOARD_WIDTH / 2
+  initPhysics()
 })
 
 onUnmounted(() => {
-  console.log('🎮 GamePlayArea unmounted - cleanup')
+  if (gameOverCheckInterval.value) {
+    clearInterval(gameOverCheckInterval.value)
+  }
 
-  // Stop update loop
-  stopUpdateLoop()
+  if (runner) {
+    Matter.Runner.stop(runner)
+  }
 
-  // Stop performance optimization
-  stopPerformanceOptimization()
-
-  // Reset all systems
-  resetInputState()
-  resetFruitManager()
-  resetGameRules()
-  resetCombo()
-
-  // Physics cleanup handled by composable
-})
-
-// Expose combo state for parent components
-defineExpose({
-  comboState,
-  getPerformanceStats: getUpdatePerformanceStats
+  if (engine) {
+    Matter.Events.off(engine)
+    Matter.World.clear(engine.world)
+    Matter.Engine.clear(engine)
+  }
 })
 </script>
-
 <template>
   <div class="game-play-area">
     <div class="game-play-area__game-container">
-      <!-- Level Completion Overlay -->
-      <LevelCompletionOverlay
-        :level-completion-state="levelCompletionState"
-        :current-session="currentSession"
-        :current-level="currentLevel"
-        :max-level="9"
-        @start-next-level="(levelId) => emit('start-next-level', levelId)"
-        @back-to-levels="() => emit('back-to-level-selection')"
-      />
-      <!-- Physics Game Area -->
       <div class="game-play-area__physics">
-        <div
-          ref="gameCanvas"
-          class="game-play-area__physics-container"
-          :class="{
-            'game-play-area__physics-container--paused': isGamePaused,
-            'game-play-area__physics-container--active': isGameActive && canDrop && !gameOverState,
-            'game-play-area__physics-container--cooldown': !canDrop && !gameOverState,
-            'game-play-area__physics-container--danger': violationWarningLevel === 'critical',
-            'game-play-area__physics-container--game-over': gameOverState || props.currentSession?.status === 'game_over'
-          }"
-          v-bind="getContainerEventHandlers()"
-          :aria-label="getDropZoneAriaLabel()"
-          role="application"
-          tabindex="0"
-        >
-          <!-- Drop Zone -->
+        <!-- Next Fruit Indicator - Mit Null-Check -->
+        <div class="next-fruit-indicator">
           <div
-            v-if="isGameActive"
-            class="game-play-area__drop-zone"
+            v-if="nextFruit"
+            class="preview-fruit"
+            :style="{
+              width: `${nextFruit.size * 0.6}px`,
+              height: `${nextFruit.size * 0.6}px`,
+              backgroundColor: nextFruit.color
+            }"
+          >
+            {{ nextFruit.level }}
+          </div>
+        </div>
+
+        <!-- Game Board -->
+        <div
+          ref="gameBoard"
+          class="game-board"
+          @mousedown="startDrag"
+          @mousemove="handleDrag"
+          @mouseup="dropFruit"
+          @mouseleave="dropFruit"
+          @touchstart="startDrag"
+          @touchmove="handleDrag"
+          @touchend="dropFruit"
+        >
+          <!-- Drop Guide Line -->
+          <div
+            v-if="isDragging"
+            class="drop-guide"
+            :style="{ left: `${dropPosition}px` }"
           ></div>
+
+          <!-- Next Fruit Preview - Mit Null-Check -->
+          <div
+            v-if="nextFruit && canDropFruit && !isDragging"
+            class="next-fruit-preview"
+            :style="{
+              left: `${dropPosition}px`,
+              width: `${nextFruit.size}px`,
+              height: `${nextFruit.size}px`,
+              backgroundColor: nextFruit.color
+            }"
+          >
+            {{ nextFruit.level }}
+          </div>
 
           <!-- Game Over Line -->
           <div
             class="game-play-area__game-over-line"
-            :class="{
-              'game-play-area__game-over-line--warning': isNearGameOver,
-              'game-play-area__game-over-line--critical': violationWarningLevel === 'critical'
-            }"
             :style="{ top: `${dangerZoneHeight}px` }"
           ></div>
+
+          <!-- Physics Fruits -->
+          <div
+            v-for="fruit in fruits"
+            :key="fruit.id"
+            class="fruit"
+            :class="{
+              'merging': fruit.merging,
+              'new-fruit': fruit.isNew
+            }"
+            :style="{
+              left: `${fruit.x}px`,
+              top: `${fruit.y}px`,
+              width: `${fruit.size}px`,
+              height: `${fruit.size}px`,
+              backgroundColor: fruit.color,
+              transform: `rotate(${fruit.rotation}deg)`
+            }"
+          >
+            <span class="fruit-level">{{ fruit.level }}</span>
+          </div>
+
+          <!-- Game Over Overlay -->
+          <div v-if="gameOver" class="game-over-overlay">
+            <div class="game-over-content">
+              <h3>Game Over!</h3>
+              <p>Früchte haben die Obergrenze erreicht</p>
+            </div>
+          </div>
         </div>
-
-        <!-- Drop Trajectory Line -->
-        <div
-          v-if="dropPreviewPosition && isGameActive && canDrop && !gameOverState"
-          class="game-play-area__trajectory-line"
-          :style="dropLineStyle"
-        ></div>
-
-        <!-- Drop Fruit Preview -->
-        <DropFruit
-          v-if="isGameActive && canDrop && !gameOverState"
-          :fruit-type="currentDropFruitType"
-          :position="dropFruitPosition"
-          :is-preview="true"
-          :is-dragging="isDragging"
-          :is-valid-drop="isHoveringDropZone"
-        />
-
-        <!-- Dropped Fruits -->
-        <DroppedFruit
-          v-for="fruit in droppedFruits"
-          :key="fruit.id"
-          :fruit="fruit"
-          :class="{
-            'dropped-fruit--merged': fruit.isMerged,
-            'dropped-fruit--merging': fruit.merging
-          }"
-        />
       </div>
     </div>
   </div>
 </template>
-
 <style scoped lang="scss">
-@use '../../assets/variables' as vars;
-
-// Game Play Area Block
 .game-play-area {
   display: flex;
   justify-content: center;
   align-items: flex-start;
   min-height: 60vh;
+  user-select: none;
 
-  // Game Container Element
-  &__game-container {
-    width: var(--game-board-width);
-    height: var(--game-board-height);
-    background-color: var(--game-board-bg);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--card-shadow);
-    overflow: hidden;
-  }
-
-  // Physics Game Area Element
   &__physics {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 0 auto;
-    position: relative;
-  }
-
-  // Canvas Container Element
-  &__physics-container {
-    width: 300px;
-    height: 400px;
-    border: 2px solid var(--card-border);
-    border-radius: var(--border-radius-lg);
-    background-color: var(--bg-secondary);
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
-    user-select: none;
-    touch-action: none;
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-color: var(--accent-color);
-    }
-
-    &--active {
-      cursor: crosshair;
-      box-shadow:
-        0 0 20px rgba(0, 184, 148, 0.3),
-        inset 0 0 0 2px rgba(0, 184, 148, 0.1);
-
-      &:hover {
-        box-shadow:
-          0 0 30px rgba(0, 184, 148, 0.5),
-          inset 0 0 0 2px rgba(0, 184, 148, 0.2);
-      }
-    }
-
-    &--cooldown {
-      cursor: wait;
-    }
-
-    &--paused {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-
-    &--danger {
-      border-color: var(--error-color);
-      box-shadow: 0 0 20px rgba(225, 112, 85, 0.5);
-      animation: danger-pulse 1s ease-in-out infinite;
-    }
-
-    &--game-over {
-      cursor: not-allowed;
-      opacity: 1;
-      background-color: rgba(225, 112, 85, 0.1);
-      border-color: var(--error-color);
-      z-index: 20;
-
-      &::after {
-        content: 'GAME OVER';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: var(--font-size-2xl);
-        font-weight: bold;
-        color: var(--error-color);
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        pointer-events: none;
-        z-index: 100;
-      }
-    }
-  }
-
-  // Drop zone indicator
-  &__drop-zone {
-    position: absolute;
-    top: 0;
-    left: 20px;
-    right: 20px;
-    opacity: 0.6;
-    pointer-events: none;
-    z-index: 5;
-    background: linear-gradient(90deg,
-      transparent 0%,
-      rgba(0, 184, 148, 0.3) 20%,
-      rgba(0, 184, 148, 0.6) 50%,
-      rgba(0, 184, 148, 0.3) 80%,
-      transparent 100%
-    );
-    height: 3px;
-    box-shadow: 0 0 10px rgba(0, 184, 148, 0.4);
-    animation: drop-zone-glow 2s ease-in-out infinite;
-  }
-
-  &__trajectory-line {
-    pointer-events: none;
-    z-index: 5;
   }
 
   &__game-over-line {
@@ -577,60 +546,174 @@ defineExpose({
   }
 }
 
-// Animations
-@keyframes drop-zone-glow {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scaleY(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scaleY(1.5);
+.next-fruit-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  margin-bottom: 10px;
+  min-height: 50px;
+
+  .preview-fruit {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 }
 
-@keyframes game-over-warning {
+.game-board {
+  width: 300px;
+  height: 400px;
+  border: 3px solid var(--card-border, #e0e0e0);
+  border-radius: 12px;
+  background-color: var(--game-board-bg);
+  overflow: hidden;
+  position: relative;
+  cursor: crosshair;
+  touch-action: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(180deg, rgba(255, 0, 0, 0.1) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+.drop-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #ff4444 0%, transparent 100%);
+  transform: translateX(-1px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.next-fruit-preview {
+  position: absolute;
+  top: -50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  transform: translateX(-50%);
+  z-index: 3;
+  opacity: 0.8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.2s ease;
+}
+
+.fruit {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+  will-change: transform;
+
+  .fruit-level {
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+  }
+
+  &.merging {
+    transform: scale(1.1);
+    opacity: 0.9;
+    animation: merge-pulse 0.3s ease-in-out;
+  }
+
+  &.new-fruit {
+    animation: fruit-appear 0.5s ease-out;
+  }
+}
+
+.game-over-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+
+  .game-over-content {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+    h3 {
+      margin: 0 0 10px 0;
+      color: #d32f2f;
+      font-size: 24px;
+    }
+
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+    }
+  }
+}
+
+@keyframes merge-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1.1); }
+}
+
+@keyframes fruit-appear {
   0% {
-    opacity: 0.7;
-    transform: scaleY(1);
+    transform: scale(0.8);
+    opacity: 0;
   }
   100% {
-    opacity: 1;
-    transform: scaleY(1.5);
-  }
-}
-
-@keyframes game-over-critical {
-  0% {
-    opacity: 0.8;
-    transform: scaleY(1.2);
-  }
-  50% {
-    opacity: 1;
-    transform: scaleY(1.8);
-  }
-  100% {
-    opacity: 0.8;
-    transform: scaleY(1.2);
-  }
-}
-
-@keyframes danger-pulse {
-  0%, 100% {
     transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
+    opacity: 1;
   }
 }
 
-// Reduced motion support
-@media (prefers-reduced-motion: reduce) {
-  .game-play-area__physics-container,
-  .game-play-area__drop-zone,
-  .game-play-area__game-over-line {
-    animation: none;
-    transition: none;
+// Responsive Design
+@media (max-width: 768px) {
+  .game-play-area__game-container {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 10px;
+  }
+
+  .game-board {
+    cursor: default;
+  }
+
+  .next-fruit-preview {
+    opacity: 0.6;
   }
 }
 </style>
