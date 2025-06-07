@@ -63,8 +63,19 @@ export function usePhysicsEngine() {
 			friction: 0.4,
 			density: 0.001,
 			frictionAir: 0.01,
+			render: {
+				visible: false,
+				sprite: { xScale: 0, yScale: 0 }
+			},
+			collisionFilter: {
+				group: 0,
+				category: 0x0001,
+				mask: 0x0001
+			},
 			label: `fruit_${fruitId}`,
-			fruitType: fruitType
+			fruitType: fruitType,
+			isSensor: false,
+			isStatic: false
 		})
 	}
 

@@ -1,4 +1,4 @@
-// src/composables/useFruitManager.js - Fruit Management Composable
+// src/composables/useFruitManager.js - Memory-Optimized Fruit Management Composable
 import { ref, computed } from 'vue'
 import Matter from 'matter-js'
 import { FRUIT_TYPES, FRUIT_SPAWN_WEIGHTS, PHYSICS_CONFIG } from '../config/fruitMergeGameConfig.js'
@@ -13,6 +13,38 @@ export function useFruitManager(emit, physicsEngine) {
 	const gameOverTriggered = ref(false)
 	const levelCompletedState = ref(false)
 	const levelCompletedTriggered = ref(false)
+
+	// Memory optimization: Object pools
+	const updateObjectPool = []
+	const settledObjectPool = []
+
+	// Performance monitoring
+	let frameCount = 0
+	let averageUpdateTime = 0
+	let lastPerformanceCheck = 0
+
+	// Object pool helpers
+	const getUpdateObject = () => {
+		return updateObjectPool.pop() || {
+			index: 0,
+			fruit: null,
+			position: { x: 0, y: 0 },
+			rotation: 0
+		}
+	}
+
+	const returnUpdateObject = (obj) => {
+		obj.fruit = null // Clear reference to prevent memory leaks
+		updateObjectPool.push(obj)
+	}
+
+	const getSettledObject = () => {
+		return settledObjectPool.pop() || { index: 0 }
+	}
+
+	const returnSettledObject = (obj) => {
+		settledObjectPool.push(obj)
+	}
 
 	// Fruit generation
 	const getRandomSpawnFruit = () => {
@@ -174,29 +206,92 @@ export function useFruitManager(emit, physicsEngine) {
 		console.log(`🍎 Merged fruit created: ${fruitType}`)
 	}
 
-	// Physics update loop
+	// OPTIMIZED: Memory-optimized physics update with Object Pooling
 	const updateFruitPositions = () => {
 		if (!droppedFruits.value.length || gameOverState.value || levelCompletedState.value) return
 
-		droppedFruits.value.forEach(fruit => {
-			if (fruit.body) {
-				// Sync visual position with physics body
-				fruit.position.x = fruit.body.position.x
-				fruit.position.y = fruit.body.position.y
+		const startTime = performance.now()
 
-				// Sync rotation (stored for reactivity)
-				fruit.rotation = fruit.body.angle
+		const updates = []
+		const settled = []
 
-				// Check velocity for dropping state
-				const velocity = Matter.Vector.magnitude(fruit.body.velocity)
-				const angularVelocity = Math.abs(fruit.body.angularVelocity)
+		// Pre-allocate arrays for better performance
+		const fruitsLength = droppedFruits.value.length
 
-				if (velocity < 0.1 && angularVelocity < 0.05 && fruit.isDropping) {
-					fruit.isDropping = false
-					console.log(`🍎 Fruit ${fruit.id} settled`)
-				}
+		for (let i = 0; i < fruitsLength; i++) {
+			const fruit = droppedFruits.value[i]
+			if (!fruit.body) continue
+
+			const body = fruit.body
+			const newX = body.position.x
+			const newY = body.position.y
+			const newRotation = body.angle
+
+			// Threshold-based update - only update when significant change
+			const positionDelta = Math.abs(newX - fruit.position.x) + Math.abs(newY - fruit.position.y)
+			const rotationDelta = Math.abs(newRotation - fruit.rotation)
+
+			if (positionDelta > 0.2 || rotationDelta > 0.02) {
+				const updateObj = getUpdateObject()
+				updateObj.index = i
+				updateObj.fruit = fruit
+				updateObj.position.x = newX
+				updateObj.position.y = newY
+				updateObj.rotation = newRotation
+				updates.push(updateObj)
 			}
-		})
+
+			// Settlement check only for moving fruits
+			if (fruit.isDropping && body.speed < 0.1 && Math.abs(body.angularSpeed) < 0.05) {
+				const settledObj = getSettledObject()
+				settledObj.index = i
+				settled.push(settledObj)
+			}
+		}
+
+		// Batch position updates
+		for (let i = 0; i < updates.length; i++) {
+			const update = updates[i]
+			update.fruit.position.x = update.position.x
+			update.fruit.position.y = update.position.y
+			update.fruit.rotation = update.rotation
+			returnUpdateObject(update)
+		}
+
+		// Batch settlement updates
+		for (let i = 0; i < settled.length; i++) {
+			const settledObj = settled[i]
+			droppedFruits.value[settledObj.index].isDropping = false
+			returnSettledObject(settledObj)
+		}
+
+		// Log settlement if any occurred
+		if (settled.length > 0) {
+			console.log(`🍎 ${settled.length} fruits settled`)
+		}
+
+		// Clear arrays for next frame (reuse arrays)
+		updates.length = 0
+		settled.length = 0
+
+		// Performance monitoring
+		const endTime = performance.now()
+		const updateTime = endTime - startTime
+
+		// Rolling average of update time
+		averageUpdateTime = (averageUpdateTime * 0.9) + (updateTime * 0.1)
+		frameCount++
+
+		// Performance warning for slow updates
+		if (frameCount % 300 === 0) { // Every 5 seconds at 60fps
+			if (averageUpdateTime > 2) { // > 2ms is problematic
+				console.warn(`🐌 updateFruitPositions is slow: ${averageUpdateTime.toFixed(2)}ms avg`)
+			}
+
+			if (import.meta.env.DEV) {
+				console.log(`📊 Update performance: ${averageUpdateTime.toFixed(2)}ms avg, ${droppedFruits.value.length} fruits`)
+			}
+		}
 	}
 
 	// Collision detection for merges
@@ -235,7 +330,7 @@ export function useFruitManager(emit, physicsEngine) {
 		if (isGameOver) {
 			canDrop.value = false
 
-			// Stoppe alle Früchte sofort
+			// Stop all fruits immediately
 			droppedFruits.value.forEach(fruit => {
 				if (fruit.body) {
 					Matter.Body.setVelocity(fruit.body, { x: 0, y: 0 })
@@ -253,7 +348,7 @@ export function useFruitManager(emit, physicsEngine) {
 		if (isCompleted) {
 			canDrop.value = false
 
-			// Stoppe alle Früchte sofort (gleiche Logik wie Game Over)
+			// Stop all fruits immediately (same logic as Game Over)
 			droppedFruits.value.forEach(fruit => {
 				if (fruit.body) {
 					Matter.Body.setVelocity(fruit.body, { x: 0, y: 0 })
@@ -288,22 +383,32 @@ export function useFruitManager(emit, physicsEngine) {
 		currentDropFruitType.value = getRandomSpawnFruit()
 		canDrop.value = true
 		gameOverState.value = false
-		levelCompletedState.value = false  // NEU
-		levelCompletedTriggered.value = false  // NEU
+		levelCompletedState.value = false
+		levelCompletedTriggered.value = false
+
+		// Reset performance counters
+		frameCount = 0
+		averageUpdateTime = 0
+		lastPerformanceCheck = 0
+
+		// Clear object pools
+		updateObjectPool.length = 0
+		settledObjectPool.length = 0
+
 		console.log('🔄 Fruit manager reset')
 	}
 
 	const freezeAllFruits = () => {
 		droppedFruits.value.forEach(fruit => {
 			if (fruit.body && !fruit.body.isStatic) {
-				// Geschwindigkeit stoppen
+				// Stop velocity
 				Matter.Body.setVelocity(fruit.body, { x: 0, y: 0 })
 				Matter.Body.setAngularVelocity(fruit.body, 0)
 
-				// Frucht statisch machen (friert ein)
+				// Make fruit static (freeze)
 				Matter.Body.setStatic(fruit.body, true)
 
-				// Visueller Marker für eingefrorene Früchte
+				// Visual marker for frozen fruits
 				fruit.isFrozen = true
 			}
 		})
@@ -314,13 +419,48 @@ export function useFruitManager(emit, physicsEngine) {
 	const unfreezeAllFruits = () => {
 		droppedFruits.value.forEach(fruit => {
 			if (fruit.body && fruit.body.isStatic && fruit.isFrozen) {
-				// Früchte wieder dynamisch machen
+				// Make fruits dynamic again
 				Matter.Body.setStatic(fruit.body, false)
 				fruit.isFrozen = false
 			}
 		})
 
 		console.log(`🔥 Unfroze fruits`)
+	}
+
+	// Performance utilities
+	const getUpdatePerformanceStats = () => {
+		return {
+			averageUpdateTime,
+			frameCount,
+			fruitCount: droppedFruits.value.length,
+			poolSizes: {
+				updatePool: updateObjectPool.length,
+				settledPool: settledObjectPool.length
+			}
+		}
+	}
+
+	// Alternative throttled update for high fruit counts
+	let updateQueued = false
+	let lastUpdateTime = 0
+	const UPDATE_INTERVAL = 16.67 // ~60 FPS
+
+	const updateFruitPositionsThrottled = () => {
+		if (updateQueued) return
+
+		const now = performance.now()
+		if (now - lastUpdateTime < UPDATE_INTERVAL) {
+			updateQueued = true
+			requestAnimationFrame(() => {
+				updateQueued = false
+				updateFruitPositions()
+			})
+			return
+		}
+
+		lastUpdateTime = now
+		updateFruitPositions()
 	}
 
 	return {
@@ -336,6 +476,7 @@ export function useFruitManager(emit, physicsEngine) {
 		handleFruitMerge,
 		createMergedFruit,
 		updateFruitPositions,
+		updateFruitPositionsThrottled,
 		checkForMerges,
 		clearAllFruits,
 		resetFruitManager,
@@ -347,11 +488,14 @@ export function useFruitManager(emit, physicsEngine) {
 		freezeAllFruits,
 		unfreezeAllFruits,
 
-		// Utilities
-		getRandomSpawnFruit,
-
 		setLevelCompletedState,
 		levelCompletedState,
 		levelCompletedTriggered,
+
+		// Performance utilities
+		getUpdatePerformanceStats,
+
+		// Utilities
+		getRandomSpawnFruit
 	}
 }

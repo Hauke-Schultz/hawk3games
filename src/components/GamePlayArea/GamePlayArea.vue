@@ -60,6 +60,9 @@ const settingsStore = useSettingsStore()
 const gameCanvas = ref(null)
 let dropCooldownTimer = null
 
+// Performance monitoring
+let animationFrameId = null
+let performanceOptimizationTimer = null
 
 // Physics engine integration
 const {
@@ -72,7 +75,9 @@ const {
   removeBodyFromWorld,
   setupCollisionEvents,
   applyRotationImpulse,
-  getCollisionForce
+  getCollisionForce,
+  optimizeWorldPerformance,
+  wakeNearbyBodies
 } = usePhysicsEngine()
 
 // Fruit management integration
@@ -83,11 +88,13 @@ const {
   dropFruit,
   generateNextDropFruit,
   updateFruitPositions,
+  updateFruitPositionsThrottled,
   checkForMerges,
   resetFruitManager,
   setGameOverState,
   gameOverState,
   setLevelCompletedState,
+  getUpdatePerformanceStats
 } = useFruitManager(emit, {
   world,
   createFruitBody,
@@ -199,12 +206,16 @@ watch(() => props.currentSession?.score, (newScore) => {
   }
 }, { immediate: false })
 
-// Physics update loop
-let animationFrameId = null
+// OPTIMIZED: Adaptive physics update loop with performance monitoring
 const startUpdateLoop = () => {
   const update = () => {
     if (props.isGameActive && !props.isGamePaused) {
-      updateFruitPositions()
+      // OPTIMIZATION: Adaptive update frequency based on fruit count
+      if (droppedFruits.value.length > 10) {
+        updateFruitPositionsThrottled() // Throttled for many fruits
+      } else {
+        updateFruitPositions() // Normal update for few fruits
+      }
     }
     animationFrameId = requestAnimationFrame(update)
   }
@@ -231,7 +242,7 @@ const handleLevelCompleted = (completionData) => {
   stopUpdateLoop()
   resetInputState()
   resetCombo()
-  setLevelCompletedState(true)  // Verwende die neue Funktion
+  setLevelCompletedState(true)  // Use the new function
 
   // Delegate to parent
   emit('level-completed', completionData)
@@ -242,6 +253,28 @@ const stopUpdateLoop = () => {
     cancelAnimationFrame(animationFrameId)
     animationFrameId = null
     console.log('🛑 Physics update loop stopped')
+  }
+}
+
+// OPTIMIZED: Performance optimization with adaptive frequency
+const startPerformanceOptimization = () => {
+  performanceOptimizationTimer = setInterval(() => {
+    if (droppedFruits.value.length > 5) {
+      optimizeWorldPerformance()
+    }
+
+    // Log performance stats in DEV mode
+    if (import.meta.env.DEV && droppedFruits.value.length > 8) {
+      const stats = getUpdatePerformanceStats()
+      console.log('📊 Performance Stats:', stats)
+    }
+  }, 2000) // Every 2 seconds
+}
+
+const stopPerformanceOptimization = () => {
+  if (performanceOptimizationTimer) {
+    clearInterval(performanceOptimizationTimer)
+    performanceOptimizationTimer = null
   }
 }
 
@@ -261,7 +294,10 @@ onMounted(() => {
   // Start update loop
   startUpdateLoop()
 
-  // Setze level-spezifische game over height
+  // Start performance optimization
+  startPerformanceOptimization()
+
+  // Set level-specific game over height
   setLevelGameOverHeight(props.currentLevel)
 
   levelCompletionState.initializeLevel(props.currentLevel, props.currentSession);
@@ -285,6 +321,9 @@ onUnmounted(() => {
   // Stop update loop
   stopUpdateLoop()
 
+  // Stop performance optimization
+  stopPerformanceOptimization()
+
   // Reset all systems
   resetInputState()
   resetFruitManager()
@@ -296,7 +335,8 @@ onUnmounted(() => {
 
 // Expose combo state for parent components
 defineExpose({
-  comboState
+  comboState,
+  getPerformanceStats: getUpdatePerformanceStats
 })
 </script>
 

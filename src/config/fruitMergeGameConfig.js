@@ -245,7 +245,7 @@ export const LEVEL_GOALS = {
 		}
 	},
 	6: {
-		targetScore: 3500,
+		targetScore: 35000,
 		maxMoves: 50,
 		gameOverHeight: 100,
 		timeLimit: null,
