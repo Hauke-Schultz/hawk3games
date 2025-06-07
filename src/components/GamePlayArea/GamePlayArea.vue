@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Matter from 'matter-js'
+import { FRUIT_TYPES } from '../../config/fruitMergeGameConfig.js'
 
 const props = defineProps({
   currentLevel: { type: Number, required: true },
@@ -23,19 +24,16 @@ const BOARD_HEIGHT = 400
 const WALL_THICKNESS = 10
 const GAME_OVER_LINE = 80
 
-// Fruit Configuration - Definiere ZUERST
-const fruitTypes = [
-  { size: 32, color: '#9C27B0', level: 1, name: 'Blueberry', points: 10 },
-  { size: 38, color: '#E91E63', level: 2, name: 'Strawberry', points: 25 },
-  { size: 44, color: '#FFEB3B', level: 3, name: 'Lemon', points: 50 },
-  { size: 50, color: '#FF9800', level: 4, name: 'Orange', points: 100 },
-  { size: 58, color: '#8BC34A', level: 5, name: 'Apple', points: 200 },
-  { size: 66, color: '#FFAB91', level: 6, name: 'Peach', points: 400 },
-  { size: 74, color: '#FF7043', level: 7, name: 'Mango', points: 800 },
-  { size: 82, color: '#FFA726', level: 8, name: 'Pineapple', points: 1600 },
-  { size: 90, color: '#F48FB1', level: 9, name: 'Watermelon', points: 3200 },
-  { size: 98, color: '#8E24AA', level: 10, name: 'Melon', points: 6400 }
-]
+const fruitTypes = Object.values(FRUIT_TYPES).map(fruit => ({
+  size: fruit.radius * 2, // Config verwendet radius, wir brauchen size
+  color: fruit.color,
+  level: fruit.id,
+  name: fruit.emoji.split(' ')[0], // Fallback für Name
+  points: fruit.scoreValue,
+  gradient: fruit.gradient,
+  svg: fruit.svg
+}))
+
 // dangerZoneHeight
 const dangerZoneHeight = ref(BOARD_HEIGHT - GAME_OVER_LINE)
 
@@ -77,6 +75,14 @@ const gameOverCheckInterval = ref(null)
 let engine = null
 let runner = null
 let walls = []
+
+const getFruitSvg = (level) => {
+  const fruitType = Object.values(FRUIT_TYPES).find(fruit => fruit.id === level)
+  if (!fruitType) return ''
+
+  // SVG direkt von der Config laden
+  return fruitType.svg || `<circle cx="32" cy="32" r="30" fill="${fruitType.color}"/>`
+}
 
 // Rest der Funktionen bleibt gleich...
 function initPhysics() {
@@ -413,15 +419,18 @@ onUnmounted(() => {
         <!-- Next Fruit Indicator - Mit Null-Check -->
         <div class="next-fruit-indicator">
           <div
-            v-if="nextFruit"
-            class="preview-fruit"
+            v-if="nextFruit && canDropFruit && !isDragging"
+            class="next-fruit-preview"
             :style="{
-              width: `${nextFruit.size * 0.6}px`,
-              height: `${nextFruit.size * 0.6}px`,
-              backgroundColor: nextFruit.color
+              left: `${dropPosition}px`,
+              width: `${nextFruit.size}px`,
+              height: `${nextFruit.size}px`
             }"
           >
-            {{ nextFruit.level }}
+            <div
+              class="fruit-svg-container"
+              v-html="getFruitSvg(nextFruit.level)"
+            />
           </div>
         </div>
 
@@ -437,7 +446,6 @@ onUnmounted(() => {
           @touchmove="handleDrag"
           @touchend="dropFruit"
         >
-          <!-- Drop Guide Line -->
           <div
             v-if="isDragging"
             class="drop-guide"
@@ -446,16 +454,25 @@ onUnmounted(() => {
 
           <!-- Next Fruit Preview - Mit Null-Check -->
           <div
-            v-if="nextFruit && canDropFruit && !isDragging"
-            class="next-fruit-preview"
+            v-for="fruit in fruits"
+            :key="fruit.id"
+            class="fruit"
+            :class="{
+              'merging': fruit.merging,
+              'new-fruit': fruit.isNew
+            }"
             :style="{
-              left: `${dropPosition}px`,
-              width: `${nextFruit.size}px`,
-              height: `${nextFruit.size}px`,
-              backgroundColor: nextFruit.color
+              left: `${fruit.x}px`,
+              top: `${fruit.y}px`,
+              width: `${fruit.size}px`,
+              height: `${fruit.size}px`,
+              transform: `rotate(${fruit.rotation}deg)`
             }"
           >
-            {{ nextFruit.level }}
+            <div
+              class="fruit-svg-container"
+              v-html="getFruitSvg(fruit.level)"
+            />
           </div>
 
           <!-- Game Over Line -->
@@ -478,7 +495,6 @@ onUnmounted(() => {
               top: `${fruit.y}px`,
               width: `${fruit.size}px`,
               height: `${fruit.size}px`,
-              backgroundColor: fruit.color,
               transform: `rotate(${fruit.rotation}deg)`
             }"
           >
@@ -546,12 +562,27 @@ onUnmounted(() => {
   }
 }
 
+.fruit-svg-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  :deep(svg) {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  }
+}
+
 .next-fruit-indicator {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 0;
-  margin-bottom: 10px;
+  position: relative;
+  width: 100%;
   min-height: 50px;
 
   .preview-fruit {
@@ -564,6 +595,14 @@ onUnmounted(() => {
     font-size: 14px;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .fruit-svg-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
   }
 }
 
@@ -604,18 +643,12 @@ onUnmounted(() => {
 
 .next-fruit-preview {
   position: absolute;
-  top: -50px;
-  border-radius: 50%;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
   transform: translateX(-50%);
   z-index: 3;
-  opacity: 0.8;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transition: opacity 0.2s ease;
 }
 
@@ -629,13 +662,10 @@ onUnmounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease;
   will-change: transform;
+  overflow: hidden;
 
   .fruit-level {
-    color: white;
-    font-weight: bold;
-    font-size: 12px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-    pointer-events: none;
+    display: none;
   }
 
   &.merging {
