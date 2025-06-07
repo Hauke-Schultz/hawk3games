@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Matter from 'matter-js'
-import { FRUIT_TYPES } from '../../config/fruitMergeGameConfig.js'
+import {PHYSICS_CONFIG, FRUIT_TYPES} from '../../config/fruitMergeGameConfig.js'
+import { useLevelGoals } from '../../composables/useLevelGoals.js'
+import LevelCompletionOverlay from '../LevelCompletionOverlay/LevelCompletionOverlay.vue'
 
 const props = defineProps({
   currentLevel: { type: Number, required: true },
@@ -13,7 +15,6 @@ const props = defineProps({
 const emit = defineEmits([
   'move-made',
   'score-update',
-  'combo-message',
   'game-over',
   'level-completed'
 ])
@@ -34,8 +35,93 @@ const fruitTypes = Object.values(FRUIT_TYPES).map(fruit => ({
   svg: fruit.svg
 }))
 
-// dangerZoneHeight
+const levelCompletionState = ref(null)
+const showCompletionOverlay = ref(false)
 const dangerZoneHeight = ref(BOARD_HEIGHT - GAME_OVER_LINE)
+
+// Level Goals Integration
+const { getLevelGoal, calculateStars, getLevelCompletionData } = useLevelGoals()
+
+// Nach den bestehenden Funktionen hinzufügen:
+function checkLevelCompletion() {
+  const goal = getLevelGoal(props.currentLevel)
+  if (!goal) return false
+
+  const currentScore = props.currentSession?.score || 0
+  const currentMoves = props.currentSession?.moves || 0
+  const gameTime = Date.now() - (props.currentSession?.startTime || Date.now())
+
+  // Prüfe ob Level-Ziel erreicht wurde
+  if (currentScore >= goal.targetScore) {
+    completeLevelWithRewards(currentScore, currentMoves, gameTime)
+    return true
+  }
+
+  return false
+}
+
+function completeLevelWithRewards(finalScore, totalMoves, timeMs) {
+  console.log(`🎉 Level ${props.currentLevel} completed!`)
+
+  // Berechne Sterne basierend auf Performance
+  const stars = calculateStars(props.currentLevel, finalScore, totalMoves, timeMs)
+
+  // Erstelle Belohnungsdaten
+  const rewardData = {
+    totalCoins: calculateCoinReward(stars),
+    totalDiamonds: calculateDiamondReward(stars),
+    bonusCoins: 0,
+    bonusDiamonds: 0,
+    breakdown: {
+      baseReward: calculateCoinReward(1),
+      starBonus: calculateCoinReward(stars) - calculateCoinReward(1),
+      perfectBonus: stars === 3 ? calculateDiamondReward(3) : 0
+    }
+  }
+
+  // Erfolge (falls vorhanden)
+  const achievements = []
+  if (stars === 3) {
+    achievements.push({
+      type: 'perfect_level',
+      title: 'Perfect Clear!',
+      description: `Completed Level ${props.currentLevel} with 3 stars!`
+    })
+  }
+
+  // Level-Abschlussdaten
+  const completionData = getLevelCompletionData(props.currentLevel, finalScore, totalMoves, timeMs)
+
+  // Completion State setzen
+  levelCompletionState.value = {
+    rewardData,
+    achievements,
+    completionData,
+    stars,
+    levelId: props.currentLevel
+  }
+
+  // Overlay anzeigen
+  showCompletionOverlay.value = true
+
+  // Level als abgeschlossen markieren
+  emit('level-completed', {
+    levelId: props.currentLevel,
+    stars,
+    score: finalScore,
+    moves: totalMoves,
+    timeMs
+  })
+}
+
+function calculateCoinReward(stars) {
+  const baseReward = Math.max(50, props.currentLevel * 25)
+  return baseReward + ((stars - 1) * 25)
+}
+
+function calculateDiamondReward(stars) {
+  return stars === 3 ? Math.floor(props.currentLevel / 3) + 1 : 0
+}
 
 // Generate New Fruit Function ZUERST definieren
 function generateFruit() {
@@ -203,12 +289,9 @@ function mergeFruits(fruitA, fruitB, bodyA, bodyB) {
   const centerX = (bodyA.position.x + bodyB.position.x) / 2
   const centerY = (bodyA.position.y + bodyB.position.y) / 2
 
-  const baseScore = fruitA.points + fruitB.points
-  const levelBonus = fruitA.level * 50
-  const totalScore = baseScore + levelBonus
+  const baseScore = fruitA.points
 
-  emit('score-update', totalScore)
-  emit('combo-message', `${fruitA.name} + ${fruitB.name} = ${fruitTypes[fruitA.level].name}!`)
+  emit('score-update', baseScore)
 
   setTimeout(() => {
     Matter.Composite.remove(engine.world, bodyA)
@@ -257,6 +340,14 @@ function addMergedFruit(fruit, x, y) {
   setTimeout(() => {
     fruit.isNew = false
   }, 500)
+
+  setTimeout(() => {
+    if (checkLevelCompletion()) {
+      // Level completed, stop physics
+      canDropFruit.value = false
+      showNextFruit.value = false
+    }
+  }, 200)
 }
 
 function dropFruit(event) {
@@ -360,18 +451,18 @@ function triggerGameOver() {
   })
 }
 
-function checkLevelCompletion() {
-  const maxLevel = Math.max(...fruits.value.map(f => f.level))
-  const targetLevel = Math.min(props.currentLevel + 5, 8)
-
-  if (maxLevel >= targetLevel) {
-    emit('level-completed', {
-      level: props.currentLevel,
-      maxFruitLevel: maxLevel,
-      bonus: maxLevel * 1000
-    })
-  }
+function handleStartNextLevel(nextLevelId) {
+  showCompletionOverlay.value = false
+  levelCompletionState.value = null
+  emit('start-next-level', nextLevelId)
 }
+
+function handleBackToLevels() {
+  showCompletionOverlay.value = false
+  levelCompletionState.value = null
+  emit('back-to-level-selection')
+}
+
 
 watch(() => props.isGamePaused, (paused) => {
   if (paused) {
@@ -511,6 +602,16 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <LevelCompletionOverlay
+      v-if="showCompletionOverlay && levelCompletionState"
+      :level-completion-state="levelCompletionState"
+      :current-session="currentSession"
+      :current-level="currentLevel"
+      :max-level="9"
+      @start-next-level="handleStartNextLevel"
+      @back-to-levels="handleBackToLevels"
+    />
   </div>
 </template>
 <style scoped lang="scss">

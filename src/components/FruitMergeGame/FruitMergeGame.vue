@@ -45,11 +45,6 @@ const handleBackToLevelSelection = () => {
   emit('back-to-levels')
 }
 
-// GameStateManager Events
-const handleLevelCompleted = (completionData) => {
-  console.log('🎉 Level completed:', completionData)
-}
-
 const handleSessionStarted = (sessionData) => {
   console.log('🎮 Session started:', sessionData)
 }
@@ -124,6 +119,53 @@ const handleStartNextLevel = (levelId) => {
     }
   }, 300) // Kurze Verzögerung für sauberen Übergang
 }
+
+const handleLevelCompleted = (completionData) => {
+  console.log('🎉 Level completed:', completionData)
+
+  // Update stores mit completion data
+  const stateManager = gameStateManager.value
+  if (stateManager) {
+    // Level Store update
+    stateManager.levelStore.completeLevel(
+      completionData.levelId,
+      completionData.stars,
+      completionData.score,
+      completionData.timeMs
+    )
+
+    // Currency Store update
+    const coinReward = calculateCoinReward(completionData.stars)
+    const diamondReward = calculateDiamondReward(completionData.stars)
+
+    if (coinReward > 0) {
+      stateManager.currencyStore.addCoins(
+        coinReward,
+        'level_completion',
+        `Level ${completionData.levelId} (${completionData.stars} stars)`
+      )
+    }
+
+    if (diamondReward > 0) {
+      stateManager.currencyStore.addDiamonds(
+        diamondReward,
+        'level_completion',
+        `Level ${completionData.levelId} perfect!`
+      )
+    }
+
+    // Session beenden
+    stateManager.sessionStore.completeSession(completionData.score, true)
+  }
+}
+
+function calculateCoinReward(stars) {
+  return Math.max(50, props.currentLevel * 25) + ((stars - 1) * 25)
+}
+
+function calculateDiamondReward(stars) {
+  return stars === 3 ? Math.floor(props.currentLevel / 3) + 1 : 0
+}
 </script>
 
 <template>
@@ -195,6 +237,7 @@ const handleStartNextLevel = (levelId) => {
             @score-update="handleScoreUpdate"
             @combo-message="handleComboMessage"
             @game-over="handleGameOver"
+            @level-completed="handleLevelCompleted"
             @start-next-level="handleStartNextLevel"
           />
         </div>
