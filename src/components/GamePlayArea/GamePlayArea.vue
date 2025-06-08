@@ -299,7 +299,7 @@ function addFruitToWorld(fruit, x, y) {
     dropCooldown.value = false
     canDropFruit.value = true
     fruit.isNew = false
-  }, 800)
+  }, PHYSICS_CONFIG.dropCooldown)
 }
 
 function startDrag(event) {

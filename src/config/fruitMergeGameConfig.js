@@ -6,7 +6,7 @@ export const PHYSICS_CONFIG = {
 		height: 400,
 		thickness: 10,
 	},
-	dropCooldown: 500, // Milliseconds between drops
+	dropCooldown: 600, // Milliseconds between drops
 	gameOverHeight: 320, // Height at which game is over
 	warningZone: 30
 }
