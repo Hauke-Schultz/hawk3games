@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Matter from 'matter-js'
 import {PHYSICS_CONFIG, FRUIT_TYPES, LEVEL_GOALS} from '../../config/fruitMergeGameConfig.js'
 import { useLevelGoals } from '../../composables/useLevelGoals.js'
+import { useComboSystem } from '../../composables/useComboSystem.js'
 import LevelCompletionOverlay from '../LevelCompletionOverlay/LevelCompletionOverlay.vue'
 
 const props = defineProps({
@@ -54,6 +55,18 @@ const gameOverCheckInterval = ref(null)
 let engine = null
 let runner = null
 let walls = []
+
+// Combo System Integration
+const {
+  comboState,
+  handleComboMerge,
+  resetCombo
+} = useComboSystem(emit)
+
+// Combo State für Parent Component exportieren
+defineExpose({
+  comboState
+})
 
 // Generate New Fruit Function
 function generateFruit() {
@@ -202,7 +215,10 @@ function mergeFruits(fruitA, fruitB, bodyA, bodyB) {
 
   const baseScore = fruitA.points
 
-  emit('score-update', baseScore)
+  // ✨ COMBO SYSTEM: Berechne finalen Score mit Combo-Bonus
+  const finalScore = handleComboMerge(baseScore)
+
+  emit('score-update', finalScore)
 
   setTimeout(() => {
     Matter.Composite.remove(engine.world, bodyA)
@@ -233,6 +249,7 @@ function mergeFruits(fruitA, fruitB, bodyA, bodyB) {
     checkLevelCompletion()
   }, 150)
 }
+
 
 function addMergedFruit(fruit, x, y) {
   const fruitBody = Matter.Bodies.circle(x, y, fruit.size / 2, {
@@ -372,10 +389,12 @@ function startGameOverCheck() {
 }
 
 function triggerGameOver() {
-  if (gameOver.value) return // Verhindere mehrfache Ausführung
+  if (gameOver.value) return
 
   gameOver.value = true
   canDropFruit.value = false
+
+  resetCombo()
 
   // Stoppe alle Physics
   if (runner) {
@@ -549,6 +568,8 @@ onUnmounted(() => {
     Matter.World.clear(engine.world)
     Matter.Engine.clear(engine)
   }
+
+  resetCombo()
 
   topViolations.value = {}
 })

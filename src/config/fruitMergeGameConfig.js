@@ -192,7 +192,7 @@ export const FRUIT_TYPES = {
 	ORANGE: {
 		id: 4,
 		emoji: '🍊',
-		radius: 30,
+		radius: 28,
 		nextType: 'APPLE',
 		color: '#ffa726',
 		scoreValue: 100,
@@ -247,7 +247,7 @@ export const FRUIT_TYPES = {
 	APPLE: {
 		id: 5,
 		emoji: '🍎',
-		radius: 40,
+		radius: 34,
 		nextType: 'PEACH',
 		color: '#e53e3e',
 		scoreValue: 200,
@@ -305,7 +305,7 @@ export const FRUIT_TYPES = {
 	PEACH: {
 		id: 6,
 		emoji: '🍑',
-		radius: 52,
+		radius: 40,
 		nextType: 'PINEAPPLE',
 		color: '#ff7043',
 		scoreValue: 400,
@@ -346,7 +346,7 @@ export const FRUIT_TYPES = {
 	PINEAPPLE: {
 		id: 7,
 		emoji: '🍍',
-		radius: 68,
+		radius: 58,
 		nextType: 'MELON',
 		color: '#d69e2e',
 		scoreValue: 800,
@@ -403,7 +403,7 @@ export const FRUIT_TYPES = {
 	MELON: {
 		id: 8,
 		emoji: '🍉',
-		radius: 82,
+		radius: 74,
 		nextType: 'COCONUT',
 		color: '#38b2ac',
 		scoreValue: 1600,
@@ -444,7 +444,7 @@ export const FRUIT_TYPES = {
 	COCONUT: {
 		id: 9,
 		emoji: '🥥',
-		radius: 98,
+		radius: 88,
 		nextType: null,
 		color: '#8b4513',
 		scoreValue: 3200,
@@ -495,8 +495,8 @@ export const FRUIT_SPAWN_WEIGHTS = {
 
 // Combo configuration
 export const COMBO_CONFIG = {
-	resetDelay: 6000,
-	minComboForDisplay: 1,
+	resetDelay: 3000,
+	minComboForDisplay: 2,
 	scoreMultipliers: {
 		1: 1.0,   // Single merge
 		2: 1.2,   // 2x combo = 20% bonus

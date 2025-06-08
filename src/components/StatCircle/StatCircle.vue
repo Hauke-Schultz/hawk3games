@@ -11,6 +11,10 @@ const props = defineProps({
     type: String,
     default: 'STAT'
   },
+  subline: {
+    type: String,
+    default: ''
+  },
 
   // Progress tracking (optional)
   progress: {
@@ -164,6 +168,13 @@ const displayValue = computed(() => {
         :style="{ fontSize: `${labelSize}px` }"
       >
         {{ label }}
+      </div>
+      <div
+        v-if="subline"
+        class="stat-circle__subline"
+        :style="{ fontSize: `${labelSize * 1.5}px` }"
+      >
+        {{ subline }}
       </div>
     </div>
   </div>

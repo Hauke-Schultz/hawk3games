@@ -217,7 +217,8 @@ const handleRetryLevel = (levelId) => {
           :diamonds="diamonds"
           :current-session="{
             ...currentSession,
-            combo: gamePlayArea?.comboState?.current || currentSession?.combo || 0
+            combo: gamePlayArea?.comboState?.current || 0,
+            maxCombo: gamePlayArea?.comboState?.maxThisSession || 0,
           }"
           :is-game-active="isGameActive"
           :is-game-over="currentSession?.status === 'game_over'"

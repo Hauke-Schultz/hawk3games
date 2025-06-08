@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import GameIcon from '../GameIcon/GameIcon.vue'
 import StatCircle from '../StatCircle/StatCircle.vue'
 import { useLevelGoals } from '../../composables/useLevelGoals.js'
+import {COMBO_CONFIG} from "../../config/fruitMergeGameConfig.js";
 
 const props = defineProps({
   currentLevel: {
@@ -72,14 +73,6 @@ const currentLevelPadded = computed(() => {
   return props.currentLevel.toString().padStart(2, '0')
 })
 
-const formattedScore = computed(() => {
-  return props.formatNumber(props.currentSession?.score || 0)
-})
-
-const currentMoves = computed(() => {
-  return props.currentSession?.moves || 0
-})
-
 const currentCombo = computed(() => {
   return props.currentSession?.combo || 0
 })
@@ -90,14 +83,9 @@ const showGameOverMessage = computed(() => {
 
 const currentLevelGoal = computed(() => getLevelGoal(props.currentLevel))
 
-const goalProgress = computed(() => {
-  if (!currentLevelGoal.value || !props.currentSession) return 0
-  return getLevelProgress(props.currentLevel, props.currentSession.score || 0)
-})
-
-const isGoalReached = computed(() => {
-  if (!currentLevelGoal.value || !props.currentSession) return false
-  return (props.currentSession.score || 0) >= currentLevelGoal.value.targetScore
+// maxComboThisSession
+const maxComboThisSession = computed(() => {
+  return props.currentSession?.maxCombo || 0
 })
 
 // Goal-related computed properties
@@ -185,8 +173,9 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
       <!-- Combo Circle -->
       <div class="game-stats-header__stat">
         <StatCircle
-          :value="currentCombo"
+          :value="currentCombo >= COMBO_CONFIG.minComboForDisplay ? currentCombo : ''"
           label="COMBO"
+          :subline="`${maxComboThisSession > 2 ? `${maxComboThisSession}` : ''}`"
           type="combo"
           :time-left="comboTimeLeft"
           :max-time="comboResetDelay"
