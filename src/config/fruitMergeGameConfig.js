@@ -537,7 +537,7 @@ export const COMBO_CONFIG = {
 // Level Goal Configuration
 export const LEVEL_GOALS = {
 	1: {
-		targetScore: 200,
+		targetScore: 100,
 		maxMoves: 25,
 		gameOverHeight: 320,
 		timeLimit: null, // null = unbegrenzt

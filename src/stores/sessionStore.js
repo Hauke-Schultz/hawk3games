@@ -208,7 +208,6 @@ export const useSessionStore = defineStore('session', () => {
 		if (!isGameActive.value) return false
 
 		currentSession.value.moves++
-		console.log(`🎯 Move ${currentSession.value.moves}`)
 		return currentSession.value.moves
 	}
 

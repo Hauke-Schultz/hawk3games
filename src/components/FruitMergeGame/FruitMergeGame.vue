@@ -61,7 +61,6 @@ const handleMoveaMade = () => {
   const stateManager = gameStateManager.value
   if (stateManager && stateManager.sessionStore) {
     stateManager.sessionStore.incrementMoves()
-    console.log(`🎯 Move incremented via GameStateManager`)
   }
 }
 

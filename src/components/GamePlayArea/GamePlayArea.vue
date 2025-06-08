@@ -23,13 +23,13 @@ const emit = defineEmits([
 const BOARD_WIDTH = 300
 const BOARD_HEIGHT = 400
 const WALL_THICKNESS = 10
-const GAME_OVER_LINE = 80
+const GAME_OVER_LINE = 300
 
 const fruitTypes = Object.values(FRUIT_TYPES).map(fruit => ({
-  size: fruit.radius * 2, // Config verwendet radius, wir brauchen size
+  size: fruit.radius * 2,
   color: fruit.color,
   level: fruit.id,
-  name: fruit.emoji.split(' ')[0], // Fallback für Name
+  name: fruit.emoji.split(' ')[0],
   points: fruit.scoreValue,
   gradient: fruit.gradient,
   svg: fruit.svg
@@ -37,93 +37,31 @@ const fruitTypes = Object.values(FRUIT_TYPES).map(fruit => ({
 
 const levelCompletionState = ref(null)
 const showCompletionOverlay = ref(false)
-const dangerZoneHeight = ref(BOARD_HEIGHT - GAME_OVER_LINE)
+const dangerZoneHeight = ref(GAME_OVER_LINE) // ✅ KORRIGIERT: Gefahrenzone bei 80px von oben
+const gameOver = ref(false) // ✅ HINZUGEFÜGT: Game Over State
+const topViolations = ref({}) // Track violations per fruit
+const gameOverDelay = 2000 // 2 Sekunden Wartezeit
 
 // Level Goals Integration
 const { getLevelGoal, calculateStars, getLevelCompletionData } = useLevelGoals()
 
-// Nach den bestehenden Funktionen hinzufügen:
-function checkLevelCompletion() {
-  const goal = getLevelGoal(props.currentLevel)
-  if (!goal) return false
+// Game State
+const gameBoard = ref(null)
+const fruits = ref([])
+const nextFruitId = ref(0)
+const nextFruit = ref(generateFruit())
+const dropPosition = ref(BOARD_WIDTH / 2)
+const canDropFruit = ref(true)
+const dropCooldown = ref(false)
+const isDragging = ref(false)
+const gameOverCheckInterval = ref(null)
 
-  const currentScore = props.currentSession?.score || 0
-  const currentMoves = props.currentSession?.moves || 0
-  const gameTime = Date.now() - (props.currentSession?.startTime || Date.now())
+// Physics Engine
+let engine = null
+let runner = null
+let walls = []
 
-  // Prüfe ob Level-Ziel erreicht wurde
-  if (currentScore >= goal.targetScore) {
-    completeLevelWithRewards(currentScore, currentMoves, gameTime)
-    return true
-  }
-
-  return false
-}
-
-function completeLevelWithRewards(finalScore, totalMoves, timeMs) {
-  console.log(`🎉 Level ${props.currentLevel} completed!`)
-
-  // Berechne Sterne basierend auf Performance
-  const stars = calculateStars(props.currentLevel, finalScore, totalMoves, timeMs)
-
-  // Erstelle Belohnungsdaten
-  const rewardData = {
-    totalCoins: calculateCoinReward(stars),
-    totalDiamonds: calculateDiamondReward(stars),
-    bonusCoins: 0,
-    bonusDiamonds: 0,
-    breakdown: {
-      baseReward: calculateCoinReward(1),
-      starBonus: calculateCoinReward(stars) - calculateCoinReward(1),
-      perfectBonus: stars === 3 ? calculateDiamondReward(3) : 0
-    }
-  }
-
-  // Erfolge (falls vorhanden)
-  const achievements = []
-  if (stars === 3) {
-    achievements.push({
-      type: 'perfect_level',
-      title: 'Perfect Clear!',
-      description: `Completed Level ${props.currentLevel} with 3 stars!`
-    })
-  }
-
-  // Level-Abschlussdaten
-  const completionData = getLevelCompletionData(props.currentLevel, finalScore, totalMoves, timeMs)
-
-  // Completion State setzen
-  levelCompletionState.value = {
-    rewardData,
-    achievements,
-    completionData,
-    stars,
-    levelId: props.currentLevel
-  }
-
-  // Overlay anzeigen
-  showCompletionOverlay.value = true
-
-  // Level als abgeschlossen markieren
-  emit('level-completed', {
-    levelId: props.currentLevel,
-    stars,
-    score: finalScore,
-    moves: totalMoves,
-    timeMs
-  })
-}
-
-function calculateCoinReward(stars) {
-  const baseReward = Math.max(50, props.currentLevel * 25)
-  return baseReward + ((stars - 1) * 25)
-}
-
-function calculateDiamondReward(stars) {
-  return stars === 3 ? Math.floor(props.currentLevel / 3) + 1 : 0
-}
-
-// Generate New Fruit Function ZUERST definieren
+// Generate New Fruit Function
 function generateFruit() {
   const maxStartingLevel = Math.min(5, Math.floor(props.currentLevel / 2) + 3)
   const randomIndex = Math.floor(Math.random() * maxStartingLevel)
@@ -145,32 +83,12 @@ function generateFruit() {
   }
 }
 
-// Game State - JETZT mit initial Wert
-const gameBoard = ref(null)
-const fruits = ref([])
-const nextFruitId = ref(0)
-const nextFruit = ref(generateFruit()) // ✅ SOFORT initialisieren
-const dropPosition = ref(BOARD_WIDTH / 2)
-const canDropFruit = ref(true)
-const dropCooldown = ref(false)
-const gameOver = ref(false)
-const isDragging = ref(false)
-const gameOverCheckInterval = ref(null)
-
-// Physics Engine
-let engine = null
-let runner = null
-let walls = []
-
 const getFruitSvg = (level) => {
   const fruitType = Object.values(FRUIT_TYPES).find(fruit => fruit.id === level)
   if (!fruitType) return ''
-
-  // SVG direkt von der Config laden
   return fruitType.svg || `<circle cx="32" cy="32" r="30" fill="${fruitType.color}"/>`
 }
 
-// Rest der Funktionen bleibt gleich...
 function initPhysics() {
   engine = Matter.Engine.create({
     gravity: { x: 0, y: 0.8, scale: 0.001 },
@@ -231,7 +149,6 @@ function initPhysics() {
   startGameOverCheck()
 }
 
-// Alle anderen Funktionen bleiben unverändert...
 function updateFruitPositions() {
   if (!engine || gameOver.value) return
 
@@ -414,28 +331,76 @@ function handleDrag(event) {
   dropPosition.value = Math.max(minX, Math.min(maxX, relativeX))
 }
 
+// ✅ KORRIGIERTE Game Over Funktionen
 function startGameOverCheck() {
   gameOverCheckInterval.value = setInterval(() => {
     if (gameOver.value) return
 
-    const fruitsAboveLine = fruits.value.some(fruit =>
-      fruit.y < dangerZoneHeight && fruit.body && fruit.body.speed < 0.1
-    )
+    const currentTime = Date.now()
 
-    if (fruitsAboveLine) {
-      triggerGameOver()
+    // Check each fruit for danger zone violations
+    for (const fruit of fruits.value) {
+      if (!fruit.body) continue
+
+      const fruitY = fruit.body.position.y
+      const fruitRadius = fruit.size / 2
+      const velocity = Math.abs(fruit.body.velocity.y)
+
+      const isInDangerZone = (fruitY - fruitRadius) <= dangerZoneHeight.value
+      const isStable = velocity < 0.8 // Frucht bewegt sich kaum noch
+
+      if (isInDangerZone && isStable) {
+        // Start tracking violation time
+        if (!topViolations.value[fruit.id]) {
+          topViolations.value[fruit.id] = currentTime
+        }
+
+        // Check if violation lasted long enough
+        if (currentTime - topViolations.value[fruit.id] >= gameOverDelay) {
+          triggerGameOver()
+          return
+        }
+      } else {
+        // Remove violation if fruit moved away
+        if (topViolations.value[fruit.id]) {
+          delete topViolations.value[fruit.id]
+        }
+      }
     }
-  }, 1000)
+
+    // Clean up violations for removed fruits
+    Object.keys(topViolations.value).forEach(fruitId => {
+      if (!fruits.value.some(f => f.id.toString() === fruitId)) {
+        delete topViolations.value[fruitId]
+      }
+    })
+  }, 200) // Weniger häufige Prüfung
 }
 
-const handleGameOver = (gameOverData) => {
-  console.log('💀 Game Over received:', gameOverData)
+function triggerGameOver() {
+  if (gameOver.value) return // Verhindere mehrfache Ausführung
 
-  // Create game over completion state
-  const gameOverState = {
-    type: 'game_over', // NEW: Unterscheidung zwischen completion und game_over
+  gameOver.value = true
+  canDropFruit.value = false
+
+  // Stoppe alle Physics
+  if (runner) {
+    Matter.Runner.stop(runner)
+  }
+
+  // Stoppe Game Over Check
+  if (gameOverCheckInterval.value) {
+    clearInterval(gameOverCheckInterval.value)
+    gameOverCheckInterval.value = null
+  }
+
+  console.log('💀 Game Over triggered')
+
+  // Erstelle Game Over State für Overlay
+  const gameOverData = {
+    type: 'game_over',
     rewardData: {
-      totalCoins: 0, // Keine Belohnung bei Game Over
+      totalCoins: 0,
       totalDiamonds: 0,
       bonusCoins: 0,
       bonusDiamonds: 0,
@@ -445,13 +410,13 @@ const handleGameOver = (gameOverData) => {
         perfectBonus: 0
       }
     },
-    achievements: [], // Keine Achievements bei Game Over
+    achievements: [],
     completionData: {
       completed: false,
       stars: 0,
       progress: 0,
       message: 'Game Over - Try Again!',
-      finalScore: gameOverData.finalScore || props.currentSession?.score || 0,
+      finalScore: props.currentSession?.score || 0,
       totalMoves: props.currentSession?.moves || 0,
       timeMs: Date.now() - (props.currentSession?.startTime || Date.now())
     },
@@ -459,30 +424,92 @@ const handleGameOver = (gameOverData) => {
     levelId: props.currentLevel
   }
 
-  // Set completion state für Game Over
-  levelCompletionState.value = gameOverState
+  // Setze Completion State und zeige Overlay
+  levelCompletionState.value = gameOverData
   showCompletionOverlay.value = true
 
-  // Update session store
-  const stateManager = gameStateManager.value
-  if (stateManager && stateManager.sessionStore) {
-    stateManager.sessionStore.completeSession(gameOverData.finalScore, false)
-  }
+  // Emit Game Over Event
+  emit('game-over', {
+    finalScore: props.currentSession?.score || 0,
+    fruitsDropped: fruits.value.length,
+    highestLevel: Math.max(...fruits.value.map(f => f.level), 0)
+  })
 }
 
-function triggerGameOver() {
-  gameOver.value = true
-  canDropFruit.value = false
+// Level Completion Check
+function checkLevelCompletion() {
+  if (gameOver.value) return false // Nicht prüfen wenn Game Over
 
-  if (gameOverCheckInterval.value) {
-    clearInterval(gameOverCheckInterval.value)
+  const goal = getLevelGoal(props.currentLevel)
+  if (!goal) return false
+
+  const currentScore = props.currentSession?.score || 0
+  const currentMoves = props.currentSession?.moves || 0
+  const gameTime = Date.now() - (props.currentSession?.startTime || Date.now())
+
+  if (currentScore >= goal.targetScore) {
+    completeLevelWithRewards(currentScore, currentMoves, gameTime)
+    return true
   }
 
-  emit('game-over', {
-    finalScore: props.currentSession.score,
-    fruitsDropped: fruits.value.length,
-    highestLevel: Math.max(...fruits.value.map(f => f.level))
+  return false
+}
+
+function completeLevelWithRewards(finalScore, totalMoves, timeMs) {
+  console.log(`🎉 Level ${props.currentLevel} completed!`)
+
+  const stars = calculateStars(props.currentLevel, finalScore, totalMoves, timeMs)
+
+  const rewardData = {
+    totalCoins: calculateCoinReward(stars),
+    totalDiamonds: calculateDiamondReward(stars),
+    bonusCoins: 0,
+    bonusDiamonds: 0,
+    breakdown: {
+      baseReward: calculateCoinReward(1),
+      starBonus: calculateCoinReward(stars) - calculateCoinReward(1),
+      perfectBonus: stars === 3 ? calculateDiamondReward(3) : 0
+    }
+  }
+
+  const achievements = []
+  if (stars === 3) {
+    achievements.push({
+      type: 'perfect_level',
+      title: 'Perfect Clear!',
+      description: `Completed Level ${props.currentLevel} with 3 stars!`
+    })
+  }
+
+  const completionData = getLevelCompletionData(props.currentLevel, finalScore, totalMoves, timeMs)
+
+  levelCompletionState.value = {
+    type: 'level_completion',
+    rewardData,
+    achievements,
+    completionData,
+    stars: stars,
+    levelId: props.currentLevel
+  }
+
+  showCompletionOverlay.value = true
+
+  emit('level-completed', {
+    levelId: props.currentLevel,
+    stars,
+    score: finalScore,
+    moves: totalMoves,
+    timeMs
   })
+}
+
+function calculateCoinReward(stars) {
+  const baseReward = Math.max(50, props.currentLevel * 25)
+  return baseReward + ((stars - 1) * 25)
+}
+
+function calculateDiamondReward(stars) {
+  return stars === 3 ? Math.floor(props.currentLevel / 3) + 1 : 0
 }
 
 function handleBackToLevels() {
@@ -491,11 +518,12 @@ function handleBackToLevels() {
   emit('back-to-level-selection')
 }
 
+// Watch für Game State Changes
 watch(() => props.isGamePaused, (paused) => {
   if (paused) {
     Matter.Runner.stop(runner)
     canDropFruit.value = false
-  } else {
+  } else if (!gameOver.value) { // ✅ Nur fortsetzen wenn nicht Game Over
     Matter.Runner.run(runner, engine)
     canDropFruit.value = true
   }
@@ -509,7 +537,6 @@ watch(() => props.isGameActive, (active) => {
 
 onMounted(async () => {
   await nextTick()
-  // nextFruit ist bereits initialisiert!
   dropPosition.value = BOARD_WIDTH / 2
   initPhysics()
 })
@@ -528,16 +555,19 @@ onUnmounted(() => {
     Matter.World.clear(engine.world)
     Matter.Engine.clear(engine)
   }
+
+  topViolations.value = {}
 })
 </script>
+
 <template>
   <div class="game-play-area">
     <div class="game-play-area__game-container">
       <div class="game-play-area__physics">
-        <!-- Next Fruit Indicator - Mit Null-Check -->
+        <!-- Next Fruit Indicator -->
         <div class="next-fruit-indicator">
           <div
-            v-if="nextFruit && canDropFruit && !isDragging"
+            v-if="nextFruit && canDropFruit && !isDragging && !gameOver"
             class="next-fruit-preview"
             :style="{
               left: `${dropPosition}px`,
@@ -565,19 +595,30 @@ onUnmounted(() => {
           @touchend="dropFruit"
         >
           <div
-            v-if="isDragging"
+            v-if="isDragging && !gameOver"
             class="drop-guide"
             :style="{ left: `${dropPosition}px` }"
           ></div>
 
-          <!-- Next Fruit Preview - Mit Null-Check -->
+          <!-- Game Over Line -->
+          <div
+            class="game-play-area__game-over-line"
+            :class="{
+              'game-play-area__game-over-line--danger': gameOver
+            }"
+            :style="{ top: `${dangerZoneHeight}px` }"
+          ></div>
+
+          <!-- Physics Fruits -->
           <div
             v-for="fruit in fruits"
             :key="fruit.id"
             class="fruit"
             :class="{
               'merging': fruit.merging,
-              'new-fruit': fruit.isNew
+              'new-fruit': fruit.isNew,
+              'danger-fruit': fruit.body && (fruit.body.position.y - fruit.size/2) <= dangerZoneHeight && Math.abs(fruit.body.velocity.y) < 0.8,
+              'warning-fruit': fruit.body && (fruit.body.position.y - fruit.size/2) <= dangerZoneHeight && Math.abs(fruit.body.velocity.y) >= 0.8
             }"
             :style="{
               left: `${fruit.x}px`,
@@ -592,44 +633,11 @@ onUnmounted(() => {
               v-html="getFruitSvg(fruit.level)"
             />
           </div>
-
-          <!-- Game Over Line -->
-          <div
-            class="game-play-area__game-over-line"
-            :style="{ top: `${dangerZoneHeight}px` }"
-          ></div>
-
-          <!-- Physics Fruits -->
-          <div
-            v-for="fruit in fruits"
-            :key="fruit.id"
-            class="fruit"
-            :class="{
-              'merging': fruit.merging,
-              'new-fruit': fruit.isNew
-            }"
-            :style="{
-              left: `${fruit.x}px`,
-              top: `${fruit.y}px`,
-              width: `${fruit.size}px`,
-              height: `${fruit.size}px`,
-              transform: `rotate(${fruit.rotation}deg)`
-            }"
-          >
-            <span class="fruit-level">{{ fruit.level }}</span>
-          </div>
-
-          <!-- Game Over Overlay -->
-          <div v-if="gameOver" class="game-over-overlay">
-            <div class="game-over-content">
-              <h3>Game Over!</h3>
-              <p>Früchte haben die Obergrenze erreicht</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
 
+    <!-- Level Completion/Game Over Overlay -->
     <LevelCompletionOverlay
       v-if="showCompletionOverlay && levelCompletionState"
       :level-completion-state="levelCompletionState"
@@ -640,6 +648,7 @@ onUnmounted(() => {
     />
   </div>
 </template>
+
 <style scoped lang="scss">
 .game-play-area {
   display: flex;
@@ -670,12 +679,7 @@ onUnmounted(() => {
     pointer-events: none;
     transition: all 0.3s ease;
 
-    &--warning {
-      animation: game-over-warning 0.5s ease-in-out infinite alternate;
-      box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
-    }
-
-    &--critical {
+    &--danger {
       background: linear-gradient(90deg,
         transparent 0%,
         #c0392b 20%,
@@ -711,18 +715,6 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   min-height: 50px;
-
-  .preview-fruit {
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 14px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
 
   .fruit-svg-container {
     position: absolute;
@@ -791,10 +783,6 @@ onUnmounted(() => {
   will-change: transform;
   overflow: hidden;
 
-  .fruit-level {
-    display: none;
-  }
-
   &.merging {
     transform: scale(1.1);
     opacity: 0.9;
@@ -804,39 +792,13 @@ onUnmounted(() => {
   &.new-fruit {
     animation: fruit-appear 0.5s ease-out;
   }
-}
 
-.game-over-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  backdrop-filter: blur(4px);
+  &.danger-fruit {
+    filter: brightness(1.2) drop-shadow(0 0 8px rgba(231, 76, 60, 0.8));
+  }
 
-  .game-over-content {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-
-    h3 {
-      margin: 0 0 10px 0;
-      color: #d32f2f;
-      font-size: 24px;
-    }
-
-    p {
-      margin: 0;
-      color: #666;
-      font-size: 14px;
-    }
+  &.warning-fruit {
+    filter: brightness(1.1) drop-shadow(0 0 5px rgba(255, 193, 7, 0.6));
   }
 }
 
@@ -854,6 +816,15 @@ onUnmounted(() => {
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes game-over-critical {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
   }
 }
 

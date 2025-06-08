@@ -171,6 +171,7 @@ const handleBackToLevels = () => {
     text-align: center;
     box-shadow: var(--card-shadow);
     min-width: 320px;
+    max-width: 320px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
