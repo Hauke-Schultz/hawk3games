@@ -1,16 +1,14 @@
-// src/composables/useLevelCompletionUI.js
 import { computed } from 'vue'
 
 export function useLevelCompletionUI(levelCompletionState) {
 	const shouldShowCompletion = computed(() => {
-		return levelCompletionState && levelCompletionState.value !== null
+		return levelCompletionState
 	})
 
 	const completionStars = computed(() => {
-		console.log('completionStars', levelCompletionState.value);
-		if (!levelCompletionState?.value) return []
+		if (!levelCompletionState) return []
 
-		const stars = levelCompletionState.value.stars || 0
+		const stars = levelCompletionState.stars || 0
 
 		return Array.from({ length: 3 }, (_, index) => ({
 			index: index + 1,
@@ -19,11 +17,10 @@ export function useLevelCompletionUI(levelCompletionState) {
 	})
 
 	const completionTitle = computed(() => {
-		console.log('completionTitle', levelCompletionState.value);
-		if (!levelCompletionState?.value) return 'Level Complete!'
+		if (!levelCompletionState) return 'Level Complete!'
 
-		const stars = levelCompletionState.value.stars || 0
-		const type = levelCompletionState.value.type
+		const stars = levelCompletionState.stars || 0
+		const type = levelCompletionState.type
 
 		// Game Over spezifische Titel
 		if (type === 'game_over') {
@@ -32,9 +29,9 @@ export function useLevelCompletionUI(levelCompletionState) {
 
 		// Level Completion Titel basierend auf Sternen
 		switch (stars) {
-			case 3: return 'Perfect! 🌟'
-			case 2: return 'Great Job! ⭐'
-			case 1: return 'Level Complete! ⭐'
+			case 3: return 'Perfect!'
+			case 2: return 'Great Job!'
+			case 1: return 'Level Complete!'
 			default: return 'Level Complete!'
 		}
 	})

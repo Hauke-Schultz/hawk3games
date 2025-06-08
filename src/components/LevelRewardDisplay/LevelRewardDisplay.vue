@@ -159,6 +159,7 @@ const hasAchievements = computed(() => props.achievements.length > 0)
 
   &__breakdown-source {
     flex: 1;
+    text-align: right;
   }
 
   &__breakdown-amount {

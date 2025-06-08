@@ -541,23 +541,23 @@ export const LEVEL_GOALS = {
 		maxMoves: 25,
 		gameOverHeight: 320,
 		timeLimit: null, // null = unbegrenzt
-		description: "Erreiche 200 Punkte",
+		description: "Erreiche 100 Punkte",
 		starThresholds: {
-			1: { score: 200, moves: 14, time: null },
-			2: { score: 200, moves: 12, time: null },
-			3: { score: 200, moves: 10, time: null }
+			1: { score: 100, moves: 9, time: null },
+			2: { score: 100, moves: 8, time: null },
+			3: { score: 100, moves: 7, time: null }
 		}
 	},
 	2: {
-		targetScore: 800,
+		targetScore: 300,
 		maxMoves: 30,
 		gameOverHeight: 100,
 		timeLimit: null,
-		description: "Erreiche 800 Punkte",
+		description: "Erreiche 300 Punkte",
 		starThresholds: {
-			1: { score: 800, moves: 30, time: null },
-			2: { score: 1100, moves: 25, time: null },
-			3: { score: 1500, moves: 20, time: null }
+			1: { score: 300, moves: 30, time: null },
+			2: { score: 300, moves: 25, time: null },
+			3: { score: 300, moves: 20, time: null }
 		}
 	},
 	3: {

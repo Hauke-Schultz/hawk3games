@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useLevelCompletionUI } from '../../composables/useLevelCompletionUI.js'
 import LevelRewardDisplay from '../LevelRewardDisplay/LevelRewardDisplay.vue'
+import GameIcon from "../GameIcon/GameIcon.vue";
 
 const props = defineProps({
   levelCompletionState: {
@@ -94,7 +95,8 @@ const handleBackToLevels = () => {
               :class="{ 'completion__star--filled': star.filled }"
               :style="{ animationDelay: getStarAnimationDelay(star.index) }"
             >
-              ⭐
+              <GameIcon v-if="star.filled" name="star" :size="42" />
+              <GameIcon v-else name="star-empty" :size="42" />
             </span>
           </div>
 
@@ -209,7 +211,7 @@ const handleBackToLevels = () => {
 
     &--filled {
       opacity: 1;
-      animation: star-sparkle 0.6s ease-out;
+      animation: star-sparkle 3s ease-out infinite;
     }
   }
 
@@ -306,11 +308,14 @@ const handleBackToLevels = () => {
 
 // Animations
 @keyframes star-sparkle {
-  0%, 100% {
+  0% {
     transform: scale(1);
   }
-  50% {
+  10% {
     transform: scale(1.2);
+  }
+  20% {
+    transform: scale(1);
   }
 }
 
