@@ -340,14 +340,6 @@ function addMergedFruit(fruit, x, y) {
   setTimeout(() => {
     fruit.isNew = false
   }, 500)
-
-  setTimeout(() => {
-    if (checkLevelCompletion()) {
-      // Level completed, stop physics
-      canDropFruit.value = false
-      showNextFruit.value = false
-    }
-  }, 200)
 }
 
 function dropFruit(event) {
@@ -427,13 +419,55 @@ function startGameOverCheck() {
     if (gameOver.value) return
 
     const fruitsAboveLine = fruits.value.some(fruit =>
-      fruit.y < GAME_OVER_LINE && fruit.body && fruit.body.speed < 0.1
+      fruit.y < dangerZoneHeight && fruit.body && fruit.body.speed < 0.1
     )
 
     if (fruitsAboveLine) {
       triggerGameOver()
     }
   }, 1000)
+}
+
+const handleGameOver = (gameOverData) => {
+  console.log('💀 Game Over received:', gameOverData)
+
+  // Create game over completion state
+  const gameOverState = {
+    type: 'game_over', // NEW: Unterscheidung zwischen completion und game_over
+    rewardData: {
+      totalCoins: 0, // Keine Belohnung bei Game Over
+      totalDiamonds: 0,
+      bonusCoins: 0,
+      bonusDiamonds: 0,
+      breakdown: {
+        baseReward: 0,
+        starBonus: 0,
+        perfectBonus: 0
+      }
+    },
+    achievements: [], // Keine Achievements bei Game Over
+    completionData: {
+      completed: false,
+      stars: 0,
+      progress: 0,
+      message: 'Game Over - Try Again!',
+      finalScore: gameOverData.finalScore || props.currentSession?.score || 0,
+      totalMoves: props.currentSession?.moves || 0,
+      timeMs: Date.now() - (props.currentSession?.startTime || Date.now())
+    },
+    stars: 0,
+    levelId: props.currentLevel
+  }
+
+  // Set completion state für Game Over
+  levelCompletionState.value = gameOverState
+  showCompletionOverlay.value = true
+
+  // Update session store
+  const stateManager = gameStateManager.value
+  if (stateManager && stateManager.sessionStore) {
+    stateManager.sessionStore.completeSession(gameOverData.finalScore, false)
+  }
 }
 
 function triggerGameOver() {
@@ -451,18 +485,11 @@ function triggerGameOver() {
   })
 }
 
-function handleStartNextLevel(nextLevelId) {
-  showCompletionOverlay.value = false
-  levelCompletionState.value = null
-  emit('start-next-level', nextLevelId)
-}
-
 function handleBackToLevels() {
   showCompletionOverlay.value = false
   levelCompletionState.value = null
   emit('back-to-level-selection')
 }
-
 
 watch(() => props.isGamePaused, (paused) => {
   if (paused) {
@@ -609,7 +636,6 @@ onUnmounted(() => {
       :current-session="currentSession"
       :current-level="currentLevel"
       :max-level="9"
-      @start-next-level="handleStartNextLevel"
       @back-to-levels="handleBackToLevels"
     />
   </div>

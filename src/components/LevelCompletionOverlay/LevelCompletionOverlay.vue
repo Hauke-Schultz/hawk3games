@@ -22,7 +22,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['start-next-level', 'back-to-levels'])
+const emit = defineEmits(['back-to-levels'])
 
 // Bestehende UI Logic
 const {
@@ -39,18 +39,31 @@ const hasNextLevel = computed(() => {
   return props.currentLevel < props.maxLevel
 })
 
-const nextLevelNumber = computed(() => {
-  return props.currentLevel + 1
+const isGameOver = computed(() => {
+  return props.levelCompletionState?.type === 'game_over'
 })
 
-// Button Actions
-const handleNextLevel = () => {
-  emit('start-next-level', nextLevelNumber.value)
-}
+const gameOverMessage = computed(() => {
+  if (!isGameOver.value) return ''
+
+  const completionData = props.levelCompletionState?.completionData
+  return completionData?.message || 'Better luck next time!'
+})
+
+const finalScore = computed(() => {
+  return props.levelCompletionState?.completionData?.finalScore ||
+    props.currentSession?.score || 0
+})
+
+const totalMoves = computed(() => {
+  return props.levelCompletionState?.completionData?.totalMoves ||
+    props.currentSession?.moves || 0
+})
 
 const handleBackToLevels = () => {
   emit('back-to-levels')
 }
+
 </script>
 
 <template>
@@ -58,13 +71,22 @@ const handleBackToLevels = () => {
     <div
       v-if="shouldShowCompletion"
       class="level-completion-overlay"
+      :class="{ 'level-completion-overlay--game-over': isGameOver }"
     >
       <div class="completion">
         <div class="completion__content">
-          <h3 class="completion__title">{{ completionTitle }}</h3>
+          <!-- Game Over spezifischer Header -->
+          <div v-if="isGameOver" class="completion__game-over-header">
+            <div class="completion__game-over-icon">💀</div>
+            <h3 class="completion__title completion__title--game-over">Game Over!</h3>
+            <p class="completion__game-over-message">{{ gameOverMessage }}</p>
+          </div>
 
-          <!-- Stars Display -->
-          <div class="completion__stars">
+          <!-- Level Completion Header (bestehend) -->
+          <h3 v-else class="completion__title">{{ completionTitle }}</h3>
+
+          <!-- Stars Display - nur bei Level Completion -->
+          <div v-if="!isGameOver" class="completion__stars">
             <span
               v-for="star in completionStars"
               :key="star.index"
@@ -80,21 +102,27 @@ const handleBackToLevels = () => {
           <div class="completion__stats">
             <div class="completion__stat">
               <span class="completion__stat-label">Final Score</span>
-              <span class="completion__stat-value">{{ currentSession?.score || 0 }}</span>
+              <span class="completion__stat-value">{{ finalScore }}</span>
             </div>
 
             <div class="completion__stat">
               <span class="completion__stat-label">Moves Used</span>
-              <span class="completion__stat-value">{{ currentSession?.moves || 0 }}</span>
+              <span class="completion__stat-value">{{ totalMoves }}</span>
             </div>
           </div>
 
-          <!-- Rewards Display -->
+          <!-- Rewards Display - nur bei Level Completion -->
           <LevelRewardDisplay
+            v-if="!isGameOver"
             :reward-data="rewardData"
             :achievements="achievements"
             :visible="true"
           />
+
+          <!-- Encouragement Message für Game Over -->
+          <div v-if="isGameOver" class="completion__encouragement">
+            <p>Don't give up! Every attempt makes you stronger! 💪</p>
+          </div>
 
           <!-- Action Buttons -->
           <div class="completion__actions">
@@ -123,6 +151,16 @@ const handleBackToLevels = () => {
   align-items: center;
   justify-content: center;
   z-index: 100;
+
+  &--game-over {
+    .completion__content {
+      border: 2px solid var(--error-color);
+      background: linear-gradient(135deg,
+        var(--card-bg) 0%,
+        rgba(225, 112, 85, 0.1) 100%
+      );
+    }
+  }
 }
 
 .completion {
@@ -203,6 +241,47 @@ const handleBackToLevels = () => {
     line-height: var(--font-line-height-small);
     color: var(--text-color);
   }
+
+  &__game-over-header {
+    text-align: center;
+    margin-bottom: var(--space-4);
+  }
+
+  &__game-over-icon {
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--space-2);
+    animation: game-over-bounce 0.6s ease-out;
+  }
+
+  &__title--game-over {
+    color: var(--error-color);
+    margin-bottom: var(--space-2);
+  }
+
+  &__game-over-message {
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    margin: 0;
+  }
+
+  &__stat--game-over {
+    border-left: 3px solid var(--error-color);
+    padding-left: var(--space-2);
+  }
+
+  &__encouragement {
+    text-align: center;
+    padding: var(--space-4);
+    background: rgba(0, 184, 148, 0.1);
+    border-radius: var(--border-radius-md);
+    margin: var(--space-4) 0;
+
+    p {
+      margin: 0;
+      color: var(--text-color);
+      font-weight: 600;
+    }
+  }
 }
 
 // Transitions
@@ -234,12 +313,15 @@ const handleBackToLevels = () => {
   }
 }
 
-@keyframes next-level-pulse {
-  0%, 100% {
-    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
+@keyframes game-over-bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
   }
-  50% {
-    box-shadow: 0 4px 16px rgba(0, 184, 148, 0.5);
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
   }
 }
 

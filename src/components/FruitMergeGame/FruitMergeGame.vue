@@ -166,6 +166,21 @@ function calculateCoinReward(stars) {
 function calculateDiamondReward(stars) {
   return stars === 3 ? Math.floor(props.currentLevel / 3) + 1 : 0
 }
+
+const handleRetryLevel = (levelId) => {
+  console.log(`🔄 Retrying level ${levelId} via FruitMergeGame`)
+
+  // Reset game state manager
+  gameStateManager.value?.finishCurrentLevel()
+
+  // Short delay then restart same level
+  setTimeout(() => {
+    const level = levels.value.find(l => l.id === levelId)
+    if (level && level.unlocked) {
+      handleLevelSelected(level)
+    }
+  }, 300)
+}
 </script>
 
 <template>
@@ -239,6 +254,7 @@ function calculateDiamondReward(stars) {
             @game-over="handleGameOver"
             @level-completed="handleLevelCompleted"
             @start-next-level="handleStartNextLevel"
+            @retry-level="handleRetryLevel"
           />
         </div>
       </template>
