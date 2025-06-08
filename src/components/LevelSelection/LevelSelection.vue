@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useLevelGoals } from '../../composables/useLevelGoals.js'
+import GameIcon from "../GameIcon/GameIcon.vue";
 
 // Props for level data and configuration
 const props = defineProps({
@@ -72,8 +73,7 @@ const selectLevel = (level) => {
             'level-selection__level-tile--unlocked': level.unlocked,
             'level-selection__level-tile--locked': !level.unlocked,
             'level-selection__level-tile--completed': level.completed,
-            'level-selection__level-tile--perfect': level.isPerfect,
-            'level-selection__level-tile--featured': level.id === 1
+            'level-selection__level-tile--perfect': level.isPerfect
           }"
           role="button"
           tabindex="0"
@@ -82,50 +82,38 @@ const selectLevel = (level) => {
           :disabled="!level.unlocked"
           :aria-label="`Level ${level.id}: Target ${level.targetScore} points${level.unlocked ? '' : ' (locked)'}`"
         >
+          <!-- Stars Display -->
+          <div class="level-selection__level-stars">
+            <template
+              v-for="star in 3"
+            >
+              <GameIcon
+                v-if="star <= level.stars"
+                key="star"
+                name="star"
+                :size="24"
+                class="level-selection__star-svg level-selection__star-svg--filled"
+              />
+              <GameIcon
+                v-else
+                key="star-empty"
+                name="star-empty"
+                :size="24"
+                class="level-selection__star-svg"
+              />
+            </template>
+          </div>
+
           <!-- Level Number -->
           <div class="level-selection__level-number">
             <span v-if="level.unlocked">{{ level.id }}</span>
-            <svg
-              v-else
-              class="level-selection__level-lock"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <circle cx="12" cy="16" r="1"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+            <GameIcon name="lock" v-else :size="28" class="level-selection__level-lock" />
           </div>
 
           <!-- Level Goal -->
           <div class="level-selection__level-target">
             <span v-if="level.unlocked && level.goal">{{ level.goal.targetScore }} pts</span>
             <span v-else-if="!level.unlocked">Locked</span>
-          </div>
-
-          <!-- Stars Display -->
-          <div class="level-selection__level-stars">
-            <svg
-              v-for="star in 3"
-              :key="star"
-              class="level-selection__star-svg"
-              :class="{ 'level-selection__star-svg--filled': star <= level.stars }"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                :fill="star <= level.stars ? '#FFD700' : 'transparent'"
-                :stroke="star <= level.stars ? '#FFA500' : '#666'"
-                stroke-width="1"
-              />
-            </svg>
           </div>
         </div>
       </div>
@@ -216,7 +204,7 @@ const selectLevel = (level) => {
 
     &--unlocked {
       background: var(--level-unlocked);
-      color: var(--white);
+      color: var(--black);
       border-color: transparent;
 
       &:hover {
@@ -226,7 +214,7 @@ const selectLevel = (level) => {
 
     &--locked {
       background: var(--level-locked);
-      color: var(--text-muted);
+      color: var(--white);
       cursor: not-allowed;
       opacity: 0.6;
 
@@ -238,7 +226,7 @@ const selectLevel = (level) => {
 
     &--completed {
       background: var(--level-completed);
-      color: var(--white);
+      color: var(--black);
       border-color: transparent;
 
       &:hover {
@@ -247,15 +235,15 @@ const selectLevel = (level) => {
     }
 
     &--perfect {
-      background: linear-gradient(45deg, #ffd700, #ffed4e);
-      color: #1a1a1a;
+      background: var(--level-perfect);
+      color: var(--black);
       border-color: transparent;
       animation: perfect-glow 2s ease-in-out infinite;
     }
 
     &--featured {
       background: var(--level-featured);
-      color: var(--white);
+      color: var(--black);
       border-color: transparent;
 
       &:hover {
@@ -267,13 +255,12 @@ const selectLevel = (level) => {
   &__level-number {
     font-size: var(--font-size-2xl);
     font-weight: bold;
-    margin-bottom: var(--space-1);
+    display: flex;
   }
 
   &__level-target {
     font-size: var(--font-size-xs);
     text-align: center;
-    margin-bottom: var(--space-2);
     opacity: 0.9;
   }
 
@@ -303,13 +290,6 @@ const selectLevel = (level) => {
   }
   50% {
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-  }
-}
-
-// Dark theme adjustments
-[data-theme="dark"] {
-  .level-selection__level-target {
-    color: rgba(255, 255, 255, 0.8);
   }
 }
 </style>

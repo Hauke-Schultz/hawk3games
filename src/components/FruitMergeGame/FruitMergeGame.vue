@@ -125,7 +125,6 @@ const handleLevelCompleted = (completionData) => {
   // Update stores mit completion data
   const stateManager = gameStateManager.value
   if (stateManager) {
-    // Level Store update
     stateManager.levelStore.completeLevel(
       completionData.levelId,
       completionData.stars,
@@ -155,15 +154,19 @@ const handleLevelCompleted = (completionData) => {
 
     // Session beenden
     stateManager.sessionStore.completeSession(completionData.score, true)
+    stateManager.levelStore.saveLevelData()
+    stateManager.levelStore.finishLevel()
   }
 }
 
 function calculateCoinReward(stars) {
-  return Math.max(50, props.currentLevel * 25) + ((stars - 1) * 25)
+  const levelId = gameStateManager.value?.currentLevel || 1
+  return Math.max(50, levelId * 25) + ((stars - 1) * 25)
 }
 
 function calculateDiamondReward(stars) {
-  return stars === 3 ? Math.floor(props.currentLevel / 3) + 1 : 0
+  const levelId = gameStateManager.value?.currentLevel || 1
+  return stars === 3 ? Math.floor(levelId / 3) + 1 : 0
 }
 
 const handleRetryLevel = (levelId) => {

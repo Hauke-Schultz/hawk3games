@@ -1,14 +1,10 @@
 
 // Physics configuration
 export const PHYSICS_CONFIG = {
-	canvas: {
+	board: {
 		width: 300,
-		height: 400
-	},
-	dropZone: {
-		minX: 25,
-		maxX: 275,
-		dropY: 30
+		height: 400,
+		thickness: 10,
 	},
 	dropCooldown: 500, // Milliseconds between drops
 	gameOverHeight: 320, // Height at which game is over

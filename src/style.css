@@ -84,10 +84,10 @@
   --level-unlocked: linear-gradient(45deg, #00b894, #00cec9);
   --level-unlocked-hover: 0 6px 20px rgba(0, 184, 148, 0.5);
   --level-locked: rgba(178, 190, 195, 0.3);
-  --level-completed: linear-gradient(45deg, #fdcb6e, #f39c12);
-  --level-completed-hover: 0 6px 20px rgba(243, 156, 18, 0.5);
-  --level-featured: linear-gradient(45deg, #e84393, #fd79a8);
-  --level-featured-hover: 0 6px 20px rgba(232, 67, 147, 0.5);
+  --level-completed: linear-gradient(45deg, #e84393, #fd79a8);
+  --level-completed-hover: 0 6px 20px rgba(232, 67, 147, 0.5);
+  --level-perfect: linear-gradient(45deg, #ffd700, #ffed4e);
+  --level-perfect-hover: 0 6px 20px rgba(255, 215, 0, 0.5);
 
   /* Game Configs */
   --game-board-bg: #ffffff;
@@ -150,10 +150,10 @@
   --level-unlocked: linear-gradient(45deg, #00b894, #00cec9);
   --level-unlocked-hover: 0 6px 20px rgba(0, 206, 201, 0.4);
   --level-locked: rgba(99, 110, 114, 0.3);
-  --level-completed: linear-gradient(45deg, #fdcb6e, #f39c12);
-  --level-completed-hover: 0 6px 20px rgba(253, 203, 110, 0.4);
-  --level-featured: linear-gradient(45deg, #e84393, #fd79a8);
-  --level-featured-hover: 0 6px 20px rgba(232, 67, 147, 0.4);
+  --level-completed: linear-gradient(45deg, #e84393, #fd79a8);
+  --level-completed-hover: 0 6px 20px rgba(232, 67, 147, 0.4);
+  --level-perfect: linear-gradient(45deg, #ffd700, #ffed4e);
+  --level-perfect-hover: 0 6px 20px rgba(255, 215, 0, 0.4);
 
   /* Game Configs */
   --game-board-bg: #2d3436;

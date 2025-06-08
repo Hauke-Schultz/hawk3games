@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Matter from 'matter-js'
-import {PHYSICS_CONFIG, FRUIT_TYPES} from '../../config/fruitMergeGameConfig.js'
+import {PHYSICS_CONFIG, FRUIT_TYPES, LEVEL_GOALS} from '../../config/fruitMergeGameConfig.js'
 import { useLevelGoals } from '../../composables/useLevelGoals.js'
 import LevelCompletionOverlay from '../LevelCompletionOverlay/LevelCompletionOverlay.vue'
 
@@ -19,12 +19,6 @@ const emit = defineEmits([
   'level-completed'
 ])
 
-// Game Board Constants
-const BOARD_WIDTH = 300
-const BOARD_HEIGHT = 400
-const WALL_THICKNESS = 10
-const GAME_OVER_LINE = 300
-
 const fruitTypes = Object.values(FRUIT_TYPES).map(fruit => ({
   size: fruit.radius * 2,
   color: fruit.color,
@@ -37,7 +31,7 @@ const fruitTypes = Object.values(FRUIT_TYPES).map(fruit => ({
 
 const levelCompletionState = ref(null)
 const showCompletionOverlay = ref(false)
-const dangerZoneHeight = ref(GAME_OVER_LINE) // ✅ KORRIGIERT: Gefahrenzone bei 80px von oben
+const dangerZoneHeight = ref(LEVEL_GOALS[props.currentLevel]?.gameOverHeight)
 const gameOver = ref(false) // ✅ HINZUGEFÜGT: Game Over State
 const topViolations = ref({}) // Track violations per fruit
 const gameOverDelay = 2000 // 2 Sekunden Wartezeit
@@ -50,7 +44,7 @@ const gameBoard = ref(null)
 const fruits = ref([])
 const nextFruitId = ref(0)
 const nextFruit = ref(generateFruit())
-const dropPosition = ref(BOARD_WIDTH / 2)
+const dropPosition = ref(PHYSICS_CONFIG.board.width / 2)
 const canDropFruit = ref(true)
 const dropCooldown = ref(false)
 const isDragging = ref(false)
@@ -104,10 +98,10 @@ function initPhysics() {
 
   walls = [
     Matter.Bodies.rectangle(
-      BOARD_WIDTH / 2,
-      BOARD_HEIGHT + WALL_THICKNESS / 2,
-      BOARD_WIDTH,
-      WALL_THICKNESS,
+      PHYSICS_CONFIG.board.width / 2,
+      PHYSICS_CONFIG.board.height + PHYSICS_CONFIG.board.thickness / 2,
+      PHYSICS_CONFIG.board.width,
+      PHYSICS_CONFIG.board.thickness,
       {
         isStatic: true,
         label: 'wall-bottom',
@@ -116,10 +110,10 @@ function initPhysics() {
       }
     ),
     Matter.Bodies.rectangle(
-      -WALL_THICKNESS / 2,
-      BOARD_HEIGHT / 2,
-      WALL_THICKNESS,
-      BOARD_HEIGHT,
+      -PHYSICS_CONFIG.board.thickness / 2,
+      PHYSICS_CONFIG.board.height / 2,
+      PHYSICS_CONFIG.board.thickness,
+      PHYSICS_CONFIG.board.height,
       {
         isStatic: true,
         label: 'wall-left',
@@ -128,10 +122,10 @@ function initPhysics() {
       }
     ),
     Matter.Bodies.rectangle(
-      BOARD_WIDTH + WALL_THICKNESS / 2,
-      BOARD_HEIGHT / 2,
-      WALL_THICKNESS,
-      BOARD_HEIGHT,
+      PHYSICS_CONFIG.board.width + PHYSICS_CONFIG.board.thickness / 2,
+      PHYSICS_CONFIG.board.height / 2,
+      PHYSICS_CONFIG.board.thickness,
+      PHYSICS_CONFIG.board.height,
       {
         isStatic: true,
         label: 'wall-right',
@@ -271,8 +265,8 @@ function dropFruit(event) {
   const newFruit = { ...nextFruit.value }
 
   const safeDropX = Math.max(
-    newFruit.size / 2 + WALL_THICKNESS,
-    Math.min(BOARD_WIDTH - newFruit.size / 2 - WALL_THICKNESS, dropPosition.value)
+    newFruit.size / 2 + PHYSICS_CONFIG.board.thickness,
+    Math.min(PHYSICS_CONFIG.board.width - newFruit.size / 2 - PHYSICS_CONFIG.board.thickness, dropPosition.value)
   )
 
   addFruitToWorld(newFruit, safeDropX, -newFruit.size)
@@ -325,8 +319,8 @@ function handleDrag(event) {
   const boardRect = gameBoard.value.getBoundingClientRect()
   const relativeX = clientX - boardRect.left
 
-  const minX = nextFruit.value.size / 2 + WALL_THICKNESS
-  const maxX = BOARD_WIDTH - nextFruit.value.size / 2 - WALL_THICKNESS
+  const minX = nextFruit.value.size / 2 + PHYSICS_CONFIG.board.thickness
+  const maxX = PHYSICS_CONFIG.board.width - nextFruit.value.size / 2 - PHYSICS_CONFIG.board.thickness
 
   dropPosition.value = Math.max(minX, Math.min(maxX, relativeX))
 }
@@ -537,7 +531,7 @@ watch(() => props.isGameActive, (active) => {
 
 onMounted(async () => {
   await nextTick()
-  dropPosition.value = BOARD_WIDTH / 2
+  dropPosition.value = PHYSICS_CONFIG.board.width / 2
   initPhysics()
 })
 
