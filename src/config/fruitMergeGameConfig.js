@@ -493,6 +493,11 @@ export const FRUIT_SPAWN_WEIGHTS = {
 	// Higher fruits only through merging
 }
 
+export const POINTS_CONFIG = {
+	DURATION: 2000,
+	MAX_DISTANCE: 100,
+}
+
 // Combo configuration
 export const COMBO_CONFIG = {
 	resetDelay: 3000,
@@ -510,12 +515,10 @@ export const COMBO_CONFIG = {
 		10: 3.5   // 10+ combo = 250% bonus
 	},
 	comboMessage: {
-		2: 'Nice Combo!',
-		3: 'Great Combo!',
-		4: 'Awesome Combo!',
+		2: 'GO GO Combo!',
 		5: 'Amazing Combo!',
-		7: 'Incredible Combo!',
-		10: 'LEGENDARY COMBO!'
+		10: 'Incredible Combo!',
+		15: 'LEGENDARY COMBO!'
 	},
 	comboColor: {
 		2: '#fdcb6e',  // Yellow

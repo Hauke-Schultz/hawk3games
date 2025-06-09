@@ -55,6 +55,10 @@
   --accent-hover: #00a085;
   --accent-active: #008f76;
 
+  --mood-one-color: #00b894;
+  --mood-two-color: #e84393;
+  --mood-three-color: #ffd700;
+
   /* Button Colors */
   --button-bg: #00b894;
   --button-bg-hover: #00a085;
@@ -127,6 +131,10 @@
   --accent-color: #00b894;
   --accent-hover: #00cec9;
   --accent-active: #00a085;
+
+  --mood-one-color: #00b894;
+  --mood-two-color: #e84393;
+  --mood-three-color: #ffd700;
 
   /* Button Colors */
   --button-bg: #00b894;

@@ -1,7 +1,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Matter from 'matter-js'
-import {PHYSICS_CONFIG, FRUIT_TYPES, LEVEL_GOALS} from '../../config/fruitMergeGameConfig.js'
+import {
+  PHYSICS_CONFIG,
+  FRUIT_TYPES,
+  LEVEL_GOALS,
+  POINTS_CONFIG,
+  FRUIT_SPAWN_WEIGHTS,
+  COMBO_CONFIG
+} from '../../config/fruitMergeGameConfig.js'
 import { useLevelGoals } from '../../composables/useLevelGoals.js'
 import { useComboSystem } from '../../composables/useComboSystem.js'
 import LevelCompletionOverlay from '../LevelCompletionOverlay/LevelCompletionOverlay.vue'
@@ -36,6 +43,8 @@ const dangerZoneHeight = ref(LEVEL_GOALS[props.currentLevel]?.gameOverHeight)
 const gameOver = ref(false) // ✅ HINZUGEFÜGT: Game Over State
 const topViolations = ref({}) // Track violations per fruit
 const gameOverDelay = 2000 // 2 Sekunden Wartezeit
+const floatingScores = ref([])
+const nextScoreId = ref(0)
 
 // Level Goals Integration
 const { getLevelGoal, calculateStars, getLevelCompletionData } = useLevelGoals()
@@ -70,8 +79,7 @@ defineExpose({
 
 // Generate New Fruit Function
 function generateFruit() {
-  const maxStartingLevel = Math.min(5, Math.floor(props.currentLevel / 2) + 3)
-  const randomIndex = Math.floor(Math.random() * maxStartingLevel)
+  const randomIndex = Math.floor(Math.random() * 4)
   const fruitType = fruitTypes[randomIndex]
 
   return {
@@ -212,11 +220,11 @@ function mergeFruits(fruitA, fruitB, bodyA, bodyB) {
 
   const centerX = (bodyA.position.x + bodyB.position.x) / 2
   const centerY = (bodyA.position.y + bodyB.position.y) / 2
-
   const baseScore = fruitA.points
-
-  // ✨ COMBO SYSTEM: Berechne finalen Score mit Combo-Bonus
   const finalScore = handleComboMerge(baseScore)
+  const comboMultiplier = finalScore / baseScore
+  const comboMessage = COMBO_CONFIG.comboMessage[comboState.value.current] || ''
+  createFloatingScore(centerX, centerY - 20, finalScore, comboMultiplier, comboMessage)
 
   emit('score-update', finalScore)
 
@@ -317,6 +325,59 @@ function addFruitToWorld(fruit, x, y) {
     canDropFruit.value = true
     fruit.isNew = false
   }, PHYSICS_CONFIG.dropCooldown)
+}
+
+function createFloatingScore(x, y, points, comboMultiplier = 1, comboMessage = '') {
+  const scoreId = nextScoreId.value++
+
+  const floatingScore = {
+    id: scoreId,
+    x: x,
+    y: y,
+    startY: y,
+    points: points,
+    comboMultiplier: comboMultiplier,
+    isCombo: comboMultiplier > 1,
+    comboMessage: comboMessage,
+    opacity: 1,
+    scale: 1,
+    animationProgress: 0
+  }
+
+  floatingScores.value.push(floatingScore)
+
+  // Animation starten
+  animateFloatingScore(floatingScore)
+
+  // Score nach Animation entfernen
+  setTimeout(() => {
+    removeFloatingScore(scoreId)
+  }, POINTS_CONFIG.DURATION)
+}
+
+function animateFloatingScore(score) {
+  const startTime = Date.now()
+
+  const animate = () => {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / POINTS_CONFIG.DURATION, 1)
+    const easeOut = 1 - Math.pow(1 - progress, 3)
+    score.y = score.startY - (easeOut * POINTS_CONFIG.MAX_DISTANCE) // Von startY aus 60px nach oben
+    score.opacity = 1 - (progress * progress) // Fade out mit ease
+    score.scale = 1 + (easeOut * 0.3) // Leicht vergrößern
+    score.animationProgress = progress
+    if (progress < 1) {
+      requestAnimationFrame(animate)
+    }
+  }
+  requestAnimationFrame(animate)
+}
+
+function removeFloatingScore(scoreId) {
+  const index = floatingScores.value.findIndex(score => score.id === scoreId)
+  if (index > -1) {
+    floatingScores.value.splice(index, 1)
+  }
 }
 
 function startDrag(event) {
@@ -648,6 +709,36 @@ onUnmounted(() => {
               v-html="getFruitSvg(fruit.level)"
             />
           </div>
+          <div
+            v-for="score in floatingScores"
+            :key="score.id"
+            class="floating-score"
+            :class="{
+              'floating-score--combo': score.isCombo
+            }"
+            :style="{
+              left: `${score.x}px`,
+              top: `${score.y}px`,
+              opacity: score.opacity,
+              transform: `translate(-50%, -50%) scale(${score.scale})`
+            }"
+          >
+            <div
+              v-if="score.comboMessage"
+              class="floating-score__combo-message"
+            >
+              {{ score.comboMessage }}
+            </div>
+            <div
+              v-if="score.isCombo"
+              class="floating-score__combo"
+            >
+              {{ score.comboMultiplier.toFixed(1) }}x
+            </div>
+            <div class="floating-score__points">
+              +{{ score.points }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -814,6 +905,76 @@ onUnmounted(() => {
 
   &.warning-fruit {
     filter: brightness(1.1) drop-shadow(0 0 5px rgba(255, 193, 7, 0.6));
+  }
+}
+
+.floating-score {
+  position: absolute;
+  pointer-events: none;
+  z-index: 50;
+  font-weight: bold;
+  text-align: center;
+  will-change: transform, opacity;
+
+  &__points {
+    font-size: 18px;
+    line-height: 1;
+    color: var(--success-color);
+    text-shadow:
+      1px 1px 2px rgba(0, 0, 0, 0.8),
+      -1px -1px 2px rgba(255, 255, 255, 0.3);
+    margin-bottom: 2px;
+  }
+
+  &__combo-message {
+    font-size: 12px;
+    line-height: 1;
+    color: var(--mood-three-color);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  &__combo {
+    font-size: 12px;
+    line-height: 1;
+    color: var(--mood-two-color);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  &--combo {
+    .floating-score__points {
+      color: var(--mood-one-color);
+      font-size: 18px;
+      animation: combo-pulse 0.3s ease-out;
+    }
+  }
+}
+
+@keyframes combo-pulse {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .floating-score {
+    &__points {
+      font-size: 16px;
+    }
+
+    &__combo {
+      font-size: 10px;
+    }
+
+    &--combo .floating-score__points {
+      font-size: 18px;
+    }
   }
 }
 
