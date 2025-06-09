@@ -47,7 +47,7 @@ const floatingScores = ref([])
 const nextScoreId = ref(0)
 
 // Level Goals Integration
-const { getLevelGoal, calculateStars, getLevelCompletionData } = useLevelGoals()
+const { getLevelGoal, calculateStars, getLevelCompletionData, isLevelCompleted } = useLevelGoals()
 
 // Game State
 const gameBoard = ref(null)
@@ -59,6 +59,8 @@ const canDropFruit = ref(true)
 const dropCooldown = ref(false)
 const isDragging = ref(false)
 const gameOverCheckInterval = ref(null)
+const currentHighestFruit = ref('BLUEBERRY')
+const targetFruitCount = ref(0)
 
 // Physics Engine
 let engine = null
@@ -72,9 +74,10 @@ const {
   resetCombo
 } = useComboSystem(emit)
 
-// Combo State für Parent Component exportieren
 defineExpose({
-  comboState
+  comboState,
+  currentHighestFruit,
+  targetFruitCount
 })
 
 // Generate New Fruit Function
@@ -254,6 +257,7 @@ function mergeFruits(fruitA, fruitB, bodyA, bodyB) {
       addMergedFruit(newFruit, centerX, centerY)
     }
 
+    updateHighestFruit()
     checkLevelCompletion()
   }, 150)
 }
@@ -316,6 +320,7 @@ function addFruitToWorld(fruit, x, y) {
 
   Matter.Composite.add(engine.world, fruitBody)
   fruits.value.push(fruit)
+  updateHighestFruit()
 
   nextFruit.value = generateFruit()
   emit('move-made')
@@ -325,6 +330,33 @@ function addFruitToWorld(fruit, x, y) {
     canDropFruit.value = true
     fruit.isNew = false
   }, PHYSICS_CONFIG.dropCooldown)
+}
+
+function updateHighestFruit() {
+  if (fruits.value.length === 0) {
+    currentHighestFruit.value = 'BLUEBERRY'
+    targetFruitCount.value = 0
+    return
+  }
+
+  // Finde höchste Frucht
+  const fruitLevels = fruits.value.map(f => f.level)
+  const highestLevel = Math.max(...fruitLevels, 1)
+
+  // Finde entsprechenden Frucht-Key
+  const fruitKey = Object.keys(FRUIT_TYPES).find(key => FRUIT_TYPES[key].id === highestLevel)
+  if (fruitKey) {
+    currentHighestFruit.value = fruitKey
+  }
+
+  // Zähle Zielfrüchte für aktuelles Level
+  const goal = getLevelGoal(props.currentLevel)
+  if (goal) {
+    const targetFruitType = FRUIT_TYPES[goal.targetFruit]
+    if (targetFruitType) {
+      targetFruitCount.value = fruits.value.filter(f => f.level >= targetFruitType.id).length
+    }
+  }
 }
 
 function createFloatingScore(x, y, points, comboMultiplier = 1, comboMessage = '') {
@@ -512,28 +544,39 @@ function triggerGameOver() {
 
 // Level Completion Check
 function checkLevelCompletion() {
-  if (gameOver.value) return false // Nicht prüfen wenn Game Over
+  if (gameOver.value) return false
 
   const goal = getLevelGoal(props.currentLevel)
   if (!goal) return false
 
+  // Finde höchste erreichte Frucht
+  const fruitLevels = fruits.value.map(f => f.level)
+  const highestFruit = Math.max(...fruitLevels, 0)
   const currentScore = props.currentSession?.score || 0
-  const currentMoves = props.currentSession?.moves || 0
-  const gameTime = Date.now() - (props.currentSession?.startTime || Date.now())
 
-  if (currentScore >= goal.targetScore) {
-    completeLevelWithRewards(currentScore, currentMoves, gameTime)
+  // Zähle Zielfrüchte (für Level 9)
+  const targetFruitType = FRUIT_TYPES[goal.targetFruit]
+  const targetFruitCount = fruits.value.filter(f => f.level >= targetFruitType.id).length
+
+  // Prüfe ob Level-Ziel erreicht wurde
+  if (isLevelCompleted(props.currentLevel, Object.keys(FRUIT_TYPES).find(key => FRUIT_TYPES[key].id === highestFruit), targetFruitCount)) {
+    const currentMoves = props.currentSession?.moves || 0
+    const gameTime = Date.now() - (props.currentSession?.startTime || Date.now())
+
+    completeLevelWithRewards(highestFruit, currentScore, currentMoves, gameTime, targetFruitCount)
     return true
   }
 
   return false
 }
 
-function completeLevelWithRewards(finalScore, totalMoves, timeMs) {
+function completeLevelWithRewards(highestFruit, finalScore, totalMoves, timeMs, fruitCount = 1) {
   console.log(`🎉 Level ${props.currentLevel} completed!`)
 
-  const stars = calculateStars(props.currentLevel, finalScore, totalMoves, timeMs)
+  const highestFruitKey = Object.keys(FRUIT_TYPES).find(key => FRUIT_TYPES[key].id === highestFruit)
+  const stars = calculateStars(props.currentLevel, highestFruitKey, totalMoves, timeMs, fruitCount)
 
+  // Restliche Logik bleibt gleich, aber score wird durch fruit ersetzt
   const rewardData = {
     totalCoins: calculateCoinReward(stars),
     totalDiamonds: calculateDiamondReward(stars),
@@ -555,8 +598,7 @@ function completeLevelWithRewards(finalScore, totalMoves, timeMs) {
     })
   }
 
-  const completionData = getLevelCompletionData(props.currentLevel, finalScore, totalMoves, timeMs)
-
+  const completionData = getLevelCompletionData(props.currentLevel, highestFruitKey, totalMoves, timeMs)
   levelCompletionState.value = {
     type: 'level_completion',
     rewardData,

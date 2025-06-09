@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { createLevelConfigurations, LEVEL_DIFFICULTY } from '../types/game.js'
 import { saveToStorage, loadFromStorage } from '../utils/storage.js'
+import {FRUIT_TYPES} from "../config/fruitMergeGameConfig.js";
 
 // Level Management Store - Specialized store for level progression and management
 export const useLevelStore = defineStore('levels', () => {
@@ -120,13 +121,9 @@ export const useLevelStore = defineStore('levels', () => {
 			return false
 		}
 
-		// Validate stars (1-3)
 		stars = Math.max(1, Math.min(3, stars))
 
-		// Get current best score for this level
 		const currentBestScore = levelScores.value[levelId] || 0
-
-		// Only mark as completed if this score is better than previous best
 		const isNewBestScore = score > currentBestScore
 
 		if (!isNewBestScore && currentBestScore > 0) {
@@ -134,20 +131,17 @@ export const useLevelStore = defineStore('levels', () => {
 			return false
 		}
 
-		// Mark as completed if not already (only for new best scores)
 		if (!completedLevels.value.includes(levelId)) {
 			completedLevels.value.push(levelId)
 			console.log(`🎉 Level ${levelId} completed for the first time!`)
 		}
 
-		// Update best stars (only if better)
 		const currentStars = levelStars.value[levelId] || 0
 		if (stars > currentStars) {
 			levelStars.value[levelId] = stars
 			console.log(`⭐ New best stars for level ${levelId}: ${stars} (was ${currentStars})`)
 		}
 
-		// Update best score (only if better - this is now guaranteed)
 		levelScores.value[levelId] = score
 		console.log(`🏆 New high score for level ${levelId}: ${score} (was ${currentBestScore})`)
 

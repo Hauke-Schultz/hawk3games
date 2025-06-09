@@ -129,7 +129,7 @@ const handleLevelCompleted = (completionData) => {
     const levelCompleted = stateManager.levelStore.completeLevel(
       completionData.levelId,
       completionData.stars,
-      completionData.score,      // Score wird jetzt übergeben!
+      completionData.score,
       completionData.timeMs
     )
 
@@ -214,7 +214,6 @@ const handleRetryLevel = (levelId) => {
         formatNumber
       }">
 
-        <!-- Game Stats Header (only when playing) -->
         <GameStatsHeader
           v-if="!showLevelSelection"
           :current-level="currentLevel"
@@ -231,6 +230,8 @@ const handleRetryLevel = (levelId) => {
           :combo-time-left="gamePlayArea?.comboState?.comboTimeLeft || 0"
           :combo-reset-delay="gamePlayArea?.comboState?.resetDelay || 6000"
           :combo-message="currentComboMessage"
+          :current-highest-fruit="gamePlayArea?.currentHighestFruit || 'BLUEBERRY'"
+          :target-fruit-count="gamePlayArea?.targetFruitCount || 0"
           :on-back-to-levels="handleBackToLevelSelection"
         />
 

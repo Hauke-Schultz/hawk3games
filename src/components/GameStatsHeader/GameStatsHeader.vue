@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import GameIcon from '../GameIcon/GameIcon.vue'
 import StatCircle from '../StatCircle/StatCircle.vue'
 import { useLevelGoals } from '../../composables/useLevelGoals.js'
-import {COMBO_CONFIG} from "../../config/fruitMergeGameConfig.js";
+import {COMBO_CONFIG, FRUIT_TYPES } from '../../config/fruitMergeGameConfig.js'
 
 const props = defineProps({
   currentLevel: {
@@ -63,6 +63,14 @@ const props = defineProps({
     validator: (message) => {
       return !message || (message.message && message.type && typeof message.combo === 'number')
     }
+  },
+  currentHighestFruit: {
+    type: String,
+    default: 'BLUEBERRY'
+  },
+  targetFruitCount: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -95,11 +103,22 @@ const currentMoveGoal = computed(() => {
   return currentLevelGoal.value.starThresholds[3]?.moves || null
 })
 
-const scoreGoalProgress = computed(() => {
-  if (!currentLevelGoal.value || !props.currentSession) return 0
-  const target = currentLevelGoal.value.targetScore
-  const current = props.currentSession.score || 0
-  return Math.min(100, (current / target) * 100)
+const fruitGoalProgress = computed(() => {
+  if (!currentLevelGoal.value) return 0
+
+  const progress = (props.targetFruitCount / currentLevelGoal.value.starThresholds[1]?.targetCount) * 100
+  return Math.min(100, progress)
+})
+
+const targetFruitName = computed(() => {
+  if (!currentLevelGoal.value) return ''
+  const fruitType = FRUIT_TYPES[currentLevelGoal.value.targetFruit]
+  return fruitType ? fruitType.emoji.split(' ')[0] : ''
+})
+
+const requiredFruitCount = computed(() => {
+  if (!currentLevelGoal.value) return 1
+  return currentLevelGoal.value.starThresholds?.[1]?.targetCount || 1
 })
 
 const moveGoalProgress = computed(() => {
@@ -186,15 +205,17 @@ if (import.meta.env.DEV && props.currentSession?.combo > 0) {
 
       <!-- Score Circle -->
       <div class="game-stats-header__stat">
-        <StatCircle
-          :value="currentSession.score"
-          label="SCORE"
-          type="progress"
-          :size="70"
-          color="var(--accent-color)"
-          :progress="scoreGoalProgress"
-          :max-progress="100"
-        />
+        <div class="game-stats-header__stat">
+          <StatCircle
+            :value="targetFruitName"
+            :label="requiredFruitCount > 1 ? `${targetFruitCount}/${requiredFruitCount}` : 'TARGET'"
+            type="progress"
+            :size="70"
+            color="var(--accent-color)"
+            :progress="fruitGoalProgress"
+            :max-progress="100"
+          />
+        </div>
       </div>
 
       <!-- Moves Circle -->

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useLevelGoals } from '../../composables/useLevelGoals.js'
 import GameIcon from "../GameIcon/GameIcon.vue";
+import { FRUIT_TYPES } from "../../config/fruitMergeGameConfig.js";
 
 // Props for level data and configuration
 const props = defineProps({
@@ -31,12 +32,18 @@ const enhancedLevels = computed(() => {
     const bestScore = level.bestScore || 0
     const progress = goal ? getLevelProgress(level.id, bestScore) : 0
 
+    // NEU: Ziel-Frucht Informationen
+    const targetFruit = goal ? FRUIT_TYPES[goal.targetFruit] : null
+    const requiredCount = goal?.starThresholds?.[1]?.targetCount || 1
+
     return {
       ...level,
       goal,
       progress,
       bestScore,
       targetScore: goal?.targetScore || 0,
+      targetFruit,           // NEU
+      requiredCount,         // NEU
       isInProgress: level.unlocked && !level.completed && bestScore > 0,
       isPerfect: level.stars === 3,
       hasHighScore: bestScore > 0,
@@ -122,11 +129,13 @@ const selectLevel = (level) => {
             <span class="level-selection__score-value">{{ level.formattedScore }}</span>
           </div>
 
-          <!-- Level Goal -->
-          <div class="level-selection__level-score">
-            <span class="level-selection__score-label" v-if="level.unlocked && level.goal">Goal</span>
-            <span class="level-selection__score-value" v-if="level.unlocked && level.goal">{{ level.goal.targetScore }}</span>
-            <span v-else-if="!level.unlocked">Locked</span>
+          <div class="level-selection__level-goal">
+            <span class="level-selection__goal-label" v-if="level.unlocked && level.targetFruit">Goal</span>
+            <div class="level-selection__goal-content" v-if="level.unlocked && level.targetFruit">
+              <span class="level-selection__goal-fruit">{{ level.targetFruit.emoji.split(' ')[0] }}</span>
+              <span v-if="level.requiredCount > 1" class="level-selection__goal-count">×{{ level.requiredCount }}</span>
+            </div>
+            <span v-else-if="!level.unlocked" class="level-selection__goal-locked">Locked</span>
           </div>
         </div>
       </div>
@@ -299,6 +308,37 @@ const selectLevel = (level) => {
 
   &__score-value {
     font-size: var(--font-size-xs);
+  }
+
+  &__level-goal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &__goal-label {
+    font-size: var(--font-size-xs);
+  }
+
+  &__goal-content {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &__goal-fruit {
+    font-size: var(--font-size-sm);
+  }
+
+  &__goal-count {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+  }
+
+  &__goal-locked {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
   }
 }
 

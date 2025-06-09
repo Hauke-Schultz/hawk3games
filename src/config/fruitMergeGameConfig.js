@@ -536,111 +536,93 @@ export const COMBO_CONFIG = {
 // Level Goal Configuration
 export const LEVEL_GOALS = {
 	1: {
-		targetScore: 100,
-		maxMoves: 25,
-		gameOverHeight: 320,
-		timeLimit: null, // null = unbegrenzt
-		description: "Erreiche 100 Punkte",
+		targetFruit: 'APPLE',
+		gameOverHeight: 100,
+		description: "Erstelle einen Apfel",
 		starThresholds: {
-			1: { score: 100, moves: 9, time: null },
-			2: { score: 100, moves: 8, time: null },
-			3: { score: 100, moves: 7, time: null }
+			1: { targetFruit: 'APPLE' },
+			2: { targetFruit: 'APPLE' },
+			3: { targetFruit: 'APPLE' }
 		}
 	},
 	2: {
-		targetScore: 300,
-		maxMoves: 30,
+		targetFruit: 'APPLE',
 		gameOverHeight: 100,
-		timeLimit: null,
-		description: "Erreiche 300 Punkte",
+		description: "Erstelle zehn Äpfel",
 		starThresholds: {
-			1: { score: 300, moves: 30, time: null },
-			2: { score: 300, moves: 25, time: null },
-			3: { score: 300, moves: 20, time: null }
+			1: { targetFruit: 'APPLE', targetCount: 10 },
+			2: { targetFruit: 'APPLE', targetCount: 10 },
+			3: { targetFruit: 'APPLE', targetCount: 10 }
 		}
 	},
 	3: {
-		targetScore: 1200,
-		maxMoves: 35,
+		targetFruit: 'PEACH',
 		gameOverHeight: 100,
-		timeLimit: null,
-		description: "Erreiche 1200 Punkte",
+		description: "Erstelle zwei Pfirsiche",
 		starThresholds: {
-			1: { score: 1200, moves: 35, time: null },
-			2: { score: 1600, moves: 30, time: null },
-			3: { score: 2100, moves: 25, time: null }
+			1: { targetFruit: 'PEACH', targetCount: 2 },
+			2: { targetFruit: 'PEACH', targetCount: 2 },
+			3: { targetFruit: 'PEACH', targetCount: 2 }
 		}
 	},
 	4: {
-		targetScore: 1800,
-		maxMoves: 40,
+		targetFruit: 'PINEAPPLE',
 		gameOverHeight: 100,
-		timeLimit: null,
-		description: "Erreiche 1800 Punkte",
+		description: "Erstelle eine Ananas",
 		starThresholds: {
-			1: { score: 1800, moves: 40, time: null },
-			2: { score: 2400, moves: 35, time: null },
-			3: { score: 3200, moves: 30, time: null }
+			1: { targetFruit: 'PINEAPPLE' },
+			2: { targetFruit: 'PINEAPPLE' },
+			3: { targetFruit: 'PINEAPPLE' }
 		}
 	},
 	5: {
-		targetScore: 2500,
-		maxMoves: 45,
+		targetFruit: 'PINEAPPLE',
 		gameOverHeight: 100,
-		timeLimit: null,
-		description: "Erreiche 2500 Punkte",
+		description: "Erstelle zwei Ananas",
 		starThresholds: {
-			1: { score: 2500, moves: 45, time: null },
-			2: { score: 3300, moves: 40, time: null },
-			3: { score: 4500, moves: 35, time: null }
+			1: { targetFruit: 'PINEAPPLE', targetCount: 2 },
+			2: { targetFruit: 'PINEAPPLE', targetCount: 2 },
+			3: { targetFruit: 'PINEAPPLE', targetCount: 2 }
 		}
 	},
 	6: {
-		targetScore: 35000,
-		maxMoves: 50,
+		targetFruit: 'MELON',
 		gameOverHeight: 100,
-		timeLimit: null,
-		description: "Erreiche 3500 Punkte",
+		description: "Erstelle eine Melone",
 		starThresholds: {
-			1: { score: 3500, moves: 50, time: null },
-			2: { score: 4700, moves: 45, time: null },
-			3: { score: 6500, moves: 40, time: null }
+			1: { targetFruit: 'MELON' },
+			2: { targetFruit: 'MELON' },
+			3: { targetFruit: 'MELON' }
 		}
 	},
 	7: {
-		targetScore: 50000,
-		maxMoves: 55,
-		gameOverHeight: 300,
-		timeLimit: null,
-		description: "Erreiche 5000 Punkte",
+		targetFruit: 'MELON',
+		gameOverHeight: 100,
+		description: "Erstelle zwei Melonen",
 		starThresholds: {
-			1: { score: 5000, moves: 55, time: null },
-			2: { score: 6800, moves: 50, time: null },
-			3: { score: 9500, moves: 45, time: null }
+			1: { targetFruit: 'MELON', targetCount: 2 },
+			2: { targetFruit: 'MELON', targetCount: 2 },
+			3: { targetFruit: 'MELON', targetCount: 2 }
 		}
 	},
 	8: {
-		targetScore: 7500,
-		maxMoves: 60,
+		targetFruit: 'COCONUT',
 		gameOverHeight: 100,
-		timeLimit: null,
-		description: "Erreiche 7500 Punkte",
+		description: "Erstelle eine Kokosnuss",
 		starThresholds: {
-			1: { score: 7500, moves: 60, time: null },
-			2: { score: 10500, moves: 55, time: null },
-			3: { score: 15000, moves: 50, time: null }
+			1: { targetFruit: 'COCONUT' },
+			2: { targetFruit: 'COCONUT' },
+			3: { targetFruit: 'COCONUT' }
 		}
 	},
 	9: {
-		targetScore: 12000,
-		maxMoves: 70,
+		targetFruit: 'COCONUT',
 		gameOverHeight: 100,
-		timeLimit: null,
-		description: "Erreiche 12000 Punkte - Master Level!",
+		description: "Erstelle zwei Kokosnüsse",
 		starThresholds: {
-			1: { score: 12000, moves: 70, time: null },
-			2: { score: 18000, moves: 65, time: null },
-			3: { score: 25000, moves: 60, time: null }
+			1: { targetFruit: 'COCONUT', targetCount: 2 },
+			2: { targetFruit: 'COCONUT', targetCount: 2 },
+			3: { targetFruit: 'COCONUT', targetCount: 2 }
 		}
-	}
+	},
 }
