@@ -38,10 +38,16 @@ const enhancedLevels = computed(() => {
       bestScore,
       targetScore: goal?.targetScore || 0,
       isInProgress: level.unlocked && !level.completed && bestScore > 0,
-      isPerfect: level.stars === 3
+      isPerfect: level.stars === 3,
+      hasHighScore: bestScore > 0,
+      formattedScore: formatScore(bestScore)
     }
   })
 })
+
+const formatScore = (score) => {
+  return score.toString()
+}
 
 // Level selection handler
 const selectLevel = (level) => {
@@ -91,14 +97,14 @@ const selectLevel = (level) => {
                 v-if="star <= level.stars"
                 key="star"
                 name="star"
-                :size="24"
+                :size="20"
                 class="level-selection__star-svg level-selection__star-svg--filled"
               />
               <GameIcon
                 v-else
                 key="star-empty"
                 name="star-empty"
-                :size="24"
+                :size="20"
                 class="level-selection__star-svg"
               />
             </template>
@@ -107,12 +113,19 @@ const selectLevel = (level) => {
           <!-- Level Number -->
           <div class="level-selection__level-number">
             <span v-if="level.unlocked">{{ level.id }}</span>
-            <GameIcon name="lock" v-else :size="28" class="level-selection__level-lock" />
+            <GameIcon name="lock" v-else :size="24" class="level-selection__level-lock" />
+          </div>
+
+          <!-- High Score Display -->
+          <div class="level-selection__level-score" v-if="level.hasHighScore">
+            <span class="level-selection__score-label">Best</span>
+            <span class="level-selection__score-value">{{ level.formattedScore }}</span>
           </div>
 
           <!-- Level Goal -->
-          <div class="level-selection__level-target">
-            <span v-if="level.unlocked && level.goal">{{ level.goal.targetScore }} pts</span>
+          <div class="level-selection__level-score">
+            <span class="level-selection__score-label" v-if="level.unlocked && level.goal">Goal</span>
+            <span class="level-selection__score-value" v-if="level.unlocked && level.goal">{{ level.goal.targetScore }}</span>
             <span v-else-if="!level.unlocked">Locked</span>
           </div>
         </div>
@@ -183,7 +196,7 @@ const selectLevel = (level) => {
     background: var(--card-bg);
     border: 2px solid var(--card-border);
     border-radius: var(--border-radius-lg);
-    padding: var(--space-3);
+    padding: var(--space-2); // Reduced padding for more content
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -191,6 +204,7 @@ const selectLevel = (level) => {
     align-items: center;
     justify-content: space-between;
     min-height: 100px;
+    position: relative; // For potential badges
 
     &:hover {
       transform: translateY(-2px);
@@ -240,16 +254,6 @@ const selectLevel = (level) => {
       border-color: transparent;
       animation: perfect-glow 2s ease-in-out infinite;
     }
-
-    &--featured {
-      background: var(--level-featured);
-      color: var(--black);
-      border-color: transparent;
-
-      &:hover {
-        box-shadow: var(--level-featured-hover);
-      }
-    }
   }
 
   &__level-number {
@@ -281,6 +285,21 @@ const selectLevel = (level) => {
   &__level-lock {
     opacity: 0.6;
   }
+
+  &__level-score {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &__score-label {
+    font-size: var(--font-size-xs);
+  }
+
+  &__score-value {
+    font-size: var(--font-size-xs);
+  }
 }
 
 // Animations
@@ -292,4 +311,5 @@ const selectLevel = (level) => {
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
   }
 }
+
 </style>

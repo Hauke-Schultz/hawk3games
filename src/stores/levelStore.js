@@ -59,6 +59,31 @@ export const useLevelStore = defineStore('levels', () => {
 		return levelTimes.value[levelId] || null
 	})
 
+	const getBestScore = computed(() => (levelId) => {
+		return levelScores.value[levelId] || 0
+	})
+
+	const getLevelProgress = computed(() => (levelId) => {
+		const bestScore = getBestScore.value(levelId)
+		const attempts = getLevelAttempts.value(levelId)
+		return {
+			bestScore,
+			attempts,
+			isInProgress: attempts > 0 && bestScore > 0,
+			hasProgress: bestScore > 0
+		}
+	})
+
+	const wouldImproveScore = computed(() => (levelId, newScore) => {
+		const currentBest = levelScores.value[levelId] || 0
+		return newScore > currentBest
+	})
+
+	const canCompleteLevel = computed(() => (levelId, newScore) => {
+		if (!isLevelUnlocked.value(levelId)) return false
+		return wouldImproveScore.value(levelId, newScore)
+	})
+
 	const getLevelConfig = computed(() => (levelId) => {
 		return levelConfigurations.value.find(level => level.id === levelId)
 	})
@@ -98,35 +123,47 @@ export const useLevelStore = defineStore('levels', () => {
 		// Validate stars (1-3)
 		stars = Math.max(1, Math.min(3, stars))
 
-		// Mark as completed if not already
+		// Get current best score for this level
+		const currentBestScore = levelScores.value[levelId] || 0
+
+		// Only mark as completed if this score is better than previous best
+		const isNewBestScore = score > currentBestScore
+
+		if (!isNewBestScore && currentBestScore > 0) {
+			console.log(`🎯 Level ${levelId} not saved - score ${score} is not better than current best ${currentBestScore}`)
+			return false
+		}
+
+		// Mark as completed if not already (only for new best scores)
 		if (!completedLevels.value.includes(levelId)) {
 			completedLevels.value.push(levelId)
+			console.log(`🎉 Level ${levelId} completed for the first time!`)
 		}
 
 		// Update best stars (only if better)
 		const currentStars = levelStars.value[levelId] || 0
 		if (stars > currentStars) {
 			levelStars.value[levelId] = stars
+			console.log(`⭐ New best stars for level ${levelId}: ${stars} (was ${currentStars})`)
 		}
 
-		// Update best score (only if better)
-		const currentScore = levelScores.value[levelId] || 0
-		if (score > currentScore) {
-			levelScores.value[levelId] = score
-		}
+		// Update best score (only if better - this is now guaranteed)
+		levelScores.value[levelId] = score
+		console.log(`🏆 New high score for level ${levelId}: ${score} (was ${currentBestScore})`)
 
 		// Update best time (only if better/first time)
 		if (timeMs && timeMs > 0) {
 			const currentTime = levelTimes.value[levelId]
 			if (!currentTime || timeMs < currentTime) {
 				levelTimes.value[levelId] = timeMs
+				console.log(`⏱️ New best time for level ${levelId}: ${timeMs}ms`)
 			}
 		}
 
 		// Increment attempts
 		levelAttempts.value[levelId] = (levelAttempts.value[levelId] || 0) + 1
 
-		// Auto-unlock next level
+		// Auto-unlock next level (only on first completion or better score)
 		const nextLevel = levelId + 1
 		if (nextLevel <= levelConfigurations.value.length) {
 			unlockLevel(nextLevel)
@@ -308,6 +345,10 @@ export const useLevelStore = defineStore('levels', () => {
 		getLevelConfig,
 		getNextLevel,
 		getLevelsByDifficulty,
+		wouldImproveScore,
+		canCompleteLevel,
+		getBestScore,
+		getLevelProgress,
 
 		// Actions
 		unlockLevel,

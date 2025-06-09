@@ -125,31 +125,36 @@ const handleLevelCompleted = (completionData) => {
   // Update stores mit completion data
   const stateManager = gameStateManager.value
   if (stateManager) {
-    stateManager.levelStore.completeLevel(
+    // Speichere Level mit Score - das war das fehlende Stück!
+    const levelCompleted = stateManager.levelStore.completeLevel(
       completionData.levelId,
       completionData.stars,
-      completionData.score,
+      completionData.score,      // Score wird jetzt übergeben!
       completionData.timeMs
     )
 
-    // Currency Store update
-    const coinReward = calculateCoinReward(completionData.stars)
-    const diamondReward = calculateDiamondReward(completionData.stars)
+    // Nur Currency hinzufügen wenn Level tatsächlich als completed gespeichert wurde
+    if (levelCompleted) {
+      const coinReward = calculateCoinReward(completionData.stars)
+      const diamondReward = calculateDiamondReward(completionData.stars)
 
-    if (coinReward > 0) {
-      stateManager.currencyStore.addCoins(
-        coinReward,
-        'level_completion',
-        `Level ${completionData.levelId} (${completionData.stars} stars)`
-      )
-    }
+      if (coinReward > 0) {
+        stateManager.currencyStore.addCoins(
+          coinReward,
+          'level_completion',
+          `Level ${completionData.levelId} (${completionData.stars} stars)`
+        )
+      }
 
-    if (diamondReward > 0) {
-      stateManager.currencyStore.addDiamonds(
-        diamondReward,
-        'level_completion',
-        `Level ${completionData.levelId} perfect!`
-      )
+      if (diamondReward > 0) {
+        stateManager.currencyStore.addDiamonds(
+          diamondReward,
+          'level_completion',
+          `Level ${completionData.levelId} perfect!`
+        )
+      }
+    } else {
+      console.log('💡 Level completion not saved - score was not better than previous best')
     }
 
     // Session beenden

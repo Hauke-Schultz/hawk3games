@@ -52,7 +52,10 @@ const levels = computed(() => {
     ...level,
     unlocked: levelStore.isLevelUnlocked(level.id),
     completed: levelStore.isLevelCompleted(level.id),
-    stars: levelStore.getLevelStars(level.id)
+    stars: levelStore.getLevelStars(level.id),
+    bestScore: levelStore.getBestScore(level.id),
+    attempts: levelStore.getLevelAttempts(level.id),
+    bestTime: levelStore.getLevelTime(level.id)
   }))
 })
 
