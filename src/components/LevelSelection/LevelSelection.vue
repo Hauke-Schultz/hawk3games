@@ -42,8 +42,8 @@ const enhancedLevels = computed(() => {
       progress,
       bestScore,
       targetScore: goal?.targetScore || 0,
-      targetFruit,           // NEU
-      requiredCount,         // NEU
+      targetFruit,
+      requiredCount,
       isInProgress: level.unlocked && !level.completed && bestScore > 0,
       isPerfect: level.stars === 3,
       hasHighScore: bestScore > 0,
@@ -104,14 +104,14 @@ const selectLevel = (level) => {
                 v-if="star <= level.stars"
                 key="star"
                 name="star"
-                :size="20"
+                :size="26"
                 class="level-selection__star-svg level-selection__star-svg--filled"
               />
               <GameIcon
                 v-else
                 key="star-empty"
                 name="star-empty"
-                :size="20"
+                :size="26"
                 class="level-selection__star-svg"
               />
             </template>
@@ -119,20 +119,24 @@ const selectLevel = (level) => {
 
           <!-- Level Number -->
           <div class="level-selection__level-number">
-            <span v-if="level.unlocked">{{ level.id }}</span>
-            <GameIcon name="lock" v-else :size="24" class="level-selection__level-lock" />
+            <span v-if="level.unlocked">Level {{ level.id }}</span>
+            <GameIcon name="lock" v-else :size="38" class="level-selection__level-lock" />
           </div>
 
           <!-- High Score Display -->
           <div class="level-selection__level-score" v-if="level.hasHighScore">
-            <span class="level-selection__score-label">Best</span>
+            <span class="level-selection__score-label">Highscore:</span>
             <span class="level-selection__score-value">{{ level.formattedScore }}</span>
           </div>
 
           <div class="level-selection__level-goal">
-            <span class="level-selection__goal-label" v-if="level.unlocked && level.targetFruit">Goal</span>
             <div class="level-selection__goal-content" v-if="level.unlocked && level.targetFruit">
-              <span class="level-selection__goal-fruit">{{ level.targetFruit.emoji.split(' ')[0] }}</span>
+              <span class="level-selection__goal-fruit">
+                <span
+                  class="level-selection__goal-fruit-svg"
+                  v-html="level.targetFruit.svg"
+                />
+              </span>
               <span v-if="level.requiredCount > 1" class="level-selection__goal-count">×{{ level.requiredCount }}</span>
             </div>
             <span v-else-if="!level.unlocked" class="level-selection__goal-locked">Locked</span>
@@ -266,7 +270,7 @@ const selectLevel = (level) => {
   }
 
   &__level-number {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-base);
     font-weight: bold;
     display: flex;
   }
@@ -300,6 +304,8 @@ const selectLevel = (level) => {
     flex-direction: row;
     align-items: center;
     gap: 2px;
+    position: absolute;
+    bottom: 0;
   }
 
   &__score-label {
@@ -312,7 +318,7 @@ const selectLevel = (level) => {
 
   &__level-goal {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 2px;
   }
@@ -331,9 +337,13 @@ const selectLevel = (level) => {
     font-size: var(--font-size-sm);
   }
 
+  &__goal-fruit-svg {
+    display: block;
+    width: 34px;
+  }
+
   &__goal-count {
     font-size: var(--font-size-xs);
-    color: var(--text-secondary);
   }
 
   &__goal-locked {

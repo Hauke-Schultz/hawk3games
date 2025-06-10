@@ -540,19 +540,19 @@ export const LEVEL_GOALS = {
 		gameOverHeight: 100,
 		description: "Erstelle einen Apfel",
 		starThresholds: {
-			1: { targetFruit: 'APPLE' },
-			2: { targetFruit: 'APPLE' },
-			3: { targetFruit: 'APPLE' }
+			1: { targetFruit: 'APPLE', score: 100, moves: 8 },
+			2: { targetFruit: 'APPLE', score: 150, moves: 6 },
+			3: { targetFruit: 'APPLE', score: 200, moves: 4 },
 		}
 	},
 	2: {
 		targetFruit: 'APPLE',
 		gameOverHeight: 100,
-		description: "Erstelle zehn Äpfel",
+		description: "Erstelle zwei Äpfel",
 		starThresholds: {
-			1: { targetFruit: 'APPLE', targetCount: 10 },
-			2: { targetFruit: 'APPLE', targetCount: 10 },
-			3: { targetFruit: 'APPLE', targetCount: 10 }
+			1: { targetFruit: 'APPLE', targetCount: 2, score: 240, moves: 16 },
+			2: { targetFruit: 'APPLE', targetCount: 2, score: 280, moves: 12 },
+			3: { targetFruit: 'APPLE', targetCount: 2, score: 300, moves: 8 }
 		}
 	},
 	3: {
@@ -560,9 +560,9 @@ export const LEVEL_GOALS = {
 		gameOverHeight: 100,
 		description: "Erstelle zwei Pfirsiche",
 		starThresholds: {
-			1: { targetFruit: 'PEACH', targetCount: 2 },
-			2: { targetFruit: 'PEACH', targetCount: 2 },
-			3: { targetFruit: 'PEACH', targetCount: 2 }
+			1: { targetFruit: 'PEACH', targetCount: 2, score: 1400, moves: 50 },
+			2: { targetFruit: 'PEACH', targetCount: 2, score: 1600, moves: 40 },
+			3: { targetFruit: 'PEACH', targetCount: 2, score: 1800, moves: 30 }
 		}
 	},
 	4: {
@@ -570,59 +570,59 @@ export const LEVEL_GOALS = {
 		gameOverHeight: 100,
 		description: "Erstelle eine Ananas",
 		starThresholds: {
-			1: { targetFruit: 'PINEAPPLE' },
-			2: { targetFruit: 'PINEAPPLE' },
-			3: { targetFruit: 'PINEAPPLE' }
+			1: { targetFruit: 'PINEAPPLE', score: 3200, moves: 60 },
+			2: { targetFruit: 'PINEAPPLE', score: 3600, moves: 50 },
+			3: { targetFruit: 'PINEAPPLE', score: 4000, moves: 40 }
 		}
 	},
 	5: {
-		targetFruit: 'PINEAPPLE',
+		targetFruit: 'APPLE',
 		gameOverHeight: 100,
-		description: "Erstelle zwei Ananas",
+		description: "Erstelle zehn Äpfel",
 		starThresholds: {
-			1: { targetFruit: 'PINEAPPLE', targetCount: 2 },
-			2: { targetFruit: 'PINEAPPLE', targetCount: 2 },
-			3: { targetFruit: 'PINEAPPLE', targetCount: 2 }
+			1: { targetFruit: 'APPLE', targetCount: 10, score: 2000, moves: 80 },
+			2: { targetFruit: 'APPLE', targetCount: 10, score: 2400, moves: 70 },
+			3: { targetFruit: 'APPLE', targetCount: 10, score: 2800, moves: 60 }
 		}
 	},
 	6: {
 		targetFruit: 'MELON',
-		gameOverHeight: 100,
+		gameOverHeight: 30,
 		description: "Erstelle eine Melone",
 		starThresholds: {
-			1: { targetFruit: 'MELON' },
-			2: { targetFruit: 'MELON' },
-			3: { targetFruit: 'MELON' }
+			1: { targetFruit: 'MELON', score: 6400, moves: 100 },
+			2: { targetFruit: 'MELON', score: 7200, moves: 90 },
+			3: { targetFruit: 'MELON', score: 8000, moves: 80 }
 		}
 	},
 	7: {
 		targetFruit: 'MELON',
-		gameOverHeight: 100,
+		gameOverHeight: 30,
 		description: "Erstelle zwei Melonen",
 		starThresholds: {
-			1: { targetFruit: 'MELON', targetCount: 2 },
-			2: { targetFruit: 'MELON', targetCount: 2 },
-			3: { targetFruit: 'MELON', targetCount: 2 }
+			1: { targetFruit: 'MELON', targetCount: 2, score: 12800, moves: 120 },
+			2: { targetFruit: 'MELON', targetCount: 2, score: 14400, moves: 110 },
+			3: { targetFruit: 'MELON', targetCount: 2, score: 16000, moves: 100 }
 		}
 	},
 	8: {
 		targetFruit: 'COCONUT',
-		gameOverHeight: 100,
+		gameOverHeight: 30,
 		description: "Erstelle eine Kokosnuss",
 		starThresholds: {
-			1: { targetFruit: 'COCONUT' },
-			2: { targetFruit: 'COCONUT' },
-			3: { targetFruit: 'COCONUT' }
+			1: { targetFruit: 'COCONUT', score: 25600, moves: 150 },
+			2: { targetFruit: 'COCONUT', score: 28800, moves: 140 },
+			3: { targetFruit: 'COCONUT', score: 32000, moves: 130 }
 		}
 	},
 	9: {
 		targetFruit: 'COCONUT',
-		gameOverHeight: 100,
+		gameOverHeight: 30,
 		description: "Erstelle zwei Kokosnüsse",
 		starThresholds: {
-			1: { targetFruit: 'COCONUT', targetCount: 2 },
-			2: { targetFruit: 'COCONUT', targetCount: 2 },
-			3: { targetFruit: 'COCONUT', targetCount: 2 }
+			1: { targetFruit: 'COCONUT', targetCount: 2, score: 51200, moves: 200 },
+			2: { targetFruit: 'COCONUT', targetCount: 2, score: 57600, moves: 180 },
+			3: { targetFruit: 'COCONUT', targetCount: 2, score: 64000, moves: 160 }
 		}
 	},
 }

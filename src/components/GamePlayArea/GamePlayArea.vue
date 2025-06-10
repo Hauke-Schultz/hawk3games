@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import {ref, onMounted, onUnmounted, watch, nextTick, computed} from 'vue'
 import Matter from 'matter-js'
 import {
   PHYSICS_CONFIG,
@@ -60,7 +60,7 @@ const dropCooldown = ref(false)
 const isDragging = ref(false)
 const gameOverCheckInterval = ref(null)
 const currentHighestFruit = ref('BLUEBERRY')
-const targetFruitCount = ref(0)
+const targetFruitsCreated = ref(0)
 
 // Physics Engine
 let engine = null
@@ -77,7 +77,7 @@ const {
 defineExpose({
   comboState,
   currentHighestFruit,
-  targetFruitCount
+  targetFruitCount: computed(() => targetFruitsCreated.value)
 })
 
 // Generate New Fruit Function
@@ -255,6 +255,7 @@ function mergeFruits(fruitA, fruitB, bodyA, bodyB) {
       }
 
       addMergedFruit(newFruit, centerX, centerY)
+      checkTargetFruitCreation(newFruit.level)
     }
 
     updateHighestFruit()
@@ -335,7 +336,6 @@ function addFruitToWorld(fruit, x, y) {
 function updateHighestFruit() {
   if (fruits.value.length === 0) {
     currentHighestFruit.value = 'BLUEBERRY'
-    targetFruitCount.value = 0
     return
   }
 
@@ -348,14 +348,18 @@ function updateHighestFruit() {
   if (fruitKey) {
     currentHighestFruit.value = fruitKey
   }
+}
 
-  // Zähle Zielfrüchte für aktuelles Level
+function checkTargetFruitCreation(newFruitLevel) {
   const goal = getLevelGoal(props.currentLevel)
-  if (goal) {
-    const targetFruitType = FRUIT_TYPES[goal.targetFruit]
-    if (targetFruitType) {
-      targetFruitCount.value = fruits.value.filter(f => f.level >= targetFruitType.id).length
-    }
+  if (!goal) return
+
+  const targetFruitType = FRUIT_TYPES[goal.targetFruit]
+  if (!targetFruitType) return
+
+  if (newFruitLevel === targetFruitType.id) {
+    targetFruitsCreated.value++
+    console.log(`🎯 Target fruit created! Total: ${targetFruitsCreated.value}/${goal.starThresholds[1]?.targetCount || 1}`)
   }
 }
 
@@ -553,10 +557,7 @@ function checkLevelCompletion() {
   const fruitLevels = fruits.value.map(f => f.level)
   const highestFruit = Math.max(...fruitLevels, 0)
   const currentScore = props.currentSession?.score || 0
-
-  // Zähle Zielfrüchte (für Level 9)
-  const targetFruitType = FRUIT_TYPES[goal.targetFruit]
-  const targetFruitCount = fruits.value.filter(f => f.level >= targetFruitType.id).length
+  const targetFruitCount = targetFruitsCreated.value
 
   // Prüfe ob Level-Ziel erreicht wurde
   if (isLevelCompleted(props.currentLevel, Object.keys(FRUIT_TYPES).find(key => FRUIT_TYPES[key].id === highestFruit), targetFruitCount)) {
@@ -574,7 +575,7 @@ function completeLevelWithRewards(highestFruit, finalScore, totalMoves, timeMs, 
   console.log(`🎉 Level ${props.currentLevel} completed!`)
 
   const highestFruitKey = Object.keys(FRUIT_TYPES).find(key => FRUIT_TYPES[key].id === highestFruit)
-  const stars = calculateStars(props.currentLevel, highestFruitKey, totalMoves, timeMs, fruitCount)
+  const stars = calculateStars(props.currentLevel, finalScore, totalMoves)
 
   // Restliche Logik bleibt gleich, aber score wird durch fruit ersetzt
   const rewardData = {
@@ -598,7 +599,7 @@ function completeLevelWithRewards(highestFruit, finalScore, totalMoves, timeMs, 
     })
   }
 
-  const completionData = getLevelCompletionData(props.currentLevel, highestFruitKey, totalMoves, timeMs)
+  const completionData = getLevelCompletionData(props.currentLevel, finalScore, totalMoves, timeMs)
   levelCompletionState.value = {
     type: 'level_completion',
     rewardData,
@@ -654,6 +655,10 @@ watch(() => props.isGameActive, (active) => {
 onMounted(async () => {
   await nextTick()
   dropPosition.value = PHYSICS_CONFIG.board.width / 2
+
+  // Reset target fruit counter for new game
+  targetFruitsCreated.value = 0
+
   initPhysics()
 })
 

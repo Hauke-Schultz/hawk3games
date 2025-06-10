@@ -7,42 +7,29 @@ export function useLevelGoals() {
 	}
 
 	// Calculate stars based on performance
-	const calculateStars = (levelId, achievedFruit, moves, timeMs = null, fruitCount = 1) => {
+	const calculateStars = (levelId, score, moves) => {
 		const goal = getLevelGoal(levelId)
 		if (!goal) return 0
 
-		const targetFruitType = FRUIT_TYPES[goal.targetFruit]
-		const achievedFruitType = FRUIT_TYPES[achievedFruit]
-
-		if (!targetFruitType || !achievedFruitType) return 0
-
-		// Prüfe ob Zielfrucht erreicht wurde
-		if (achievedFruitType.id < targetFruitType.id) return 0
-
-		// Prüfe ob genug Früchte erstellt wurden (für Level 9)
-		const requiredCount = goal.starThresholds[1]?.targetCount || 1
-		if (fruitCount < requiredCount) return 0
-
 		const thresholds = goal.starThresholds
 
-		// Check für 3 Sterne (beste Performance)
-		if (moves <= thresholds[3].maxMoves &&
-			(thresholds[3].time === null || timeMs <= thresholds[3].time)) {
+		// Check for 3 stars first (highest requirement)
+		console.log('calc', score, moves);
+		if (score >= thresholds[3].score || moves <= thresholds[3].moves) {
 			return 3
 		}
 
-		// Check für 2 Sterne
-		if (moves <= thresholds[2].maxMoves &&
-			(thresholds[2].time === null || timeMs <= thresholds[2].time)) {
+		// Check for 2 stars
+		if (score >= thresholds[2].score || moves <= thresholds[2].moves) {
 			return 2
 		}
 
-		// Check für 1 Stern (Grundanforderung erfüllt)
-		if (moves <= thresholds[1].maxMoves) {
+		// Check for 1 star (minimum completion)
+		if (score >= thresholds[1].score) {
 			return 1
 		}
 
-		return 0 // Level nicht geschafft
+		return 0 // Level not completed
 	}
 
 	// Check if level is completed
@@ -132,7 +119,7 @@ export function useLevelGoals() {
 			}
 		}
 
-		const stars = calculateStars(levelId, finalScore, totalMoves, timeMs)
+		const stars = calculateStars(levelId, finalScore, totalMoves)
 		const completed = stars > 0
 		const progress = getLevelProgress(levelId, finalScore)
 
